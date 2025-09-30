@@ -130,15 +130,26 @@ export default function GeneratorPage() {
           {/* AI Draft Form */}
           <AiDraftForm onPreviewUpdate={setAiPreview} />
 
-          {/* Two Column Layout for Form and Preview */}
+          {/* Mobile Preview - Shows after AI form on mobile only */}
+          <div className="lg:hidden">
+            <PreviewPane
+              formData={formData}
+              aiPreview={aiPreview}
+              onSave={() => saveMutation.mutate()}
+              onReset={handleReset}
+              isSaving={saveMutation.isPending}
+            />
+          </div>
+
+          {/* Two Column Layout for Form and Preview (Desktop) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Left Column - Product Form */}
             <div>
               <ProductForm formData={formData} onChange={setFormData} />
             </div>
 
-            {/* Right Column - Preview */}
-            <div className="lg:sticky lg:top-24 lg:h-fit">
+            {/* Right Column - Preview (Desktop only) */}
+            <div className="hidden lg:block lg:sticky lg:top-24 lg:h-fit">
               <PreviewPane
                 formData={formData}
                 aiPreview={aiPreview}
