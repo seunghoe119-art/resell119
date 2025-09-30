@@ -79,17 +79,7 @@ export default function AiDraftForm({ onDraftGenerated }: AiDraftFormProps) {
               required
             />
           </div>
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">
-              브랜드 (선택)
-            </label>
-            <Input
-              data-testid="input-ai-brand"
-              value=""
-              onChange={(e) => setBrand(e.target.value)}
-              placeholder="예: Apple"
-            />
-          </div>
+          
           <div>
             <label className="text-sm font-medium mb-1.5 block">
               간단한 설명 (선택)
