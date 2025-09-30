@@ -85,7 +85,7 @@ export default function AiDraftForm({ onDraftGenerated }: AiDraftFormProps) {
             </label>
             <Input
               data-testid="input-ai-brand"
-              value={brand}
+              value=""
               onChange={(e) => setBrand(e.target.value)}
               placeholder="예: Apple"
             />
