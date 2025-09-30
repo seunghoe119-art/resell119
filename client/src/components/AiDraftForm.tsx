@@ -79,7 +79,7 @@ export default function AiDraftForm({ onPreviewUpdate }: AiDraftFormProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          AI 판매글 생성
+          AI 글 생성
         </CardTitle>
         <CardDescription>
           제품 정보를 입력하고 AI 작성하기 버튼을 눌러주세요
