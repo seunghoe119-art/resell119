@@ -109,15 +109,28 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="purchaseDate">최초 구매일</Label>
-            <Input
-              id="purchaseDate"
-              data-testid="input-purchase-date"
-              type="text"
-              inputMode="numeric"
-              placeholder="예: 20240212 또는 202402"
-              value={formData.purchaseDate}
-              onChange={(e) => handleChange("purchaseDate", e.target.value)}
-            />
+            <div className="flex gap-2">
+              <Input
+                id="purchaseDate"
+                data-testid="input-purchase-date"
+                type="text"
+                inputMode="numeric"
+                placeholder="예: 20240212 또는 202402"
+                value={formData.purchaseDate}
+                onChange={(e) => handleChange("purchaseDate", e.target.value)}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                data-testid="button-add-purchase-date"
+                onClick={() => {
+                  // 기능은 나중에 추가 예정
+                }}
+              >
+                추가
+              </Button>
+            </div>
             {formData.purchaseDate && parseDateText(formData.purchaseDate) && (
               <p className="text-sm text-muted-foreground" data-testid="text-parsed-purchase-date">
                 {parseDateText(formData.purchaseDate)}
