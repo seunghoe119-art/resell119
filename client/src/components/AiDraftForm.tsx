@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Copy } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +13,7 @@ interface AiDraftFormProps {
 
 export default function AiDraftForm({ onPreviewUpdate }: AiDraftFormProps) {
   const [briefDescription, setBriefDescription] = useState("");
-  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [generatedContent, setGeneratedContent] = useState("");
   const { toast } = useToast();
 
   const generateMutation = useMutation({
@@ -23,6 +24,7 @@ export default function AiDraftForm({ onPreviewUpdate }: AiDraftFormProps) {
     },
     onSuccess: (data: any) => {
       if (data.content) {
+        setGeneratedContent(data.content);
         onPreviewUpdate(data.content);
       }
     },
@@ -41,27 +43,36 @@ export default function AiDraftForm({ onPreviewUpdate }: AiDraftFormProps) {
     },
   });
 
-  useEffect(() => {
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-    }
-
+  const handleGenerate = () => {
     if (briefDescription.trim().length > 5) {
-      const timer = setTimeout(() => {
-        generateMutation.mutate(briefDescription);
-      }, 1500);
-      
-      setDebounceTimer(timer);
-    } else {
-      onPreviewUpdate("");
+      generateMutation.mutate(briefDescription);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!generatedContent) {
+      toast({
+        title: "복사할 내용이 없습니다",
+        description: "먼저 AI 작성하기를 눌러주세요.",
+        variant: "destructive",
+      });
+      return;
     }
 
-    return () => {
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
-      }
-    };
-  }, [briefDescription, onPreviewUpdate]);
+    try {
+      await navigator.clipboard.writeText(generatedContent);
+      toast({
+        title: "복사 완료",
+        description: "AI 생성 내용이 클립보드에 복사되었습니다.",
+      });
+    } catch (error) {
+      toast({
+        title: "복사 실패",
+        description: "다시 시도해주세요.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Card className="mb-6">
@@ -71,21 +82,52 @@ export default function AiDraftForm({ onPreviewUpdate }: AiDraftFormProps) {
           AI 판매글 생성
         </CardTitle>
         <CardDescription>
-          제품 정보를 입력하면 AI가 자동으로 판매글을 작성합니다
+          제품 정보를 입력하고 AI 작성하기 버튼을 눌러주세요
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div>
-          <label className="text-sm font-medium mb-1.5 block">
-            제품 정보 입력 {generateMutation.isPending && <span className="text-muted-foreground">(생성 중...)</span>}
-          </label>
-          <Textarea
-            data-testid="input-ai-description"
-            value={briefDescription}
-            onChange={(e) => setBriefDescription(e.target.value)}
-            placeholder="예: 아이폰 16 프로 이상없음"
-            rows={4}
-          />
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">
+              제품 정보 입력
+            </label>
+            <Textarea
+              data-testid="input-ai-description"
+              value={briefDescription}
+              onChange={(e) => setBriefDescription(e.target.value)}
+              placeholder="예: 아이폰 16 프로 이상없음"
+              rows={4}
+            />
+          </div>
+          <div className="flex gap-3">
+            <Button
+              data-testid="button-generate-ai-draft"
+              onClick={handleGenerate}
+              className="flex-1"
+              disabled={briefDescription.trim().length <= 5 || generateMutation.isPending}
+            >
+              {generateMutation.isPending ? (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4 animate-pulse" />
+                  AI 생성 중...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  AI 작성하기
+                </>
+              )}
+            </Button>
+            <Button
+              data-testid="button-copy-ai-content"
+              variant="outline"
+              onClick={handleCopy}
+              disabled={!generatedContent}
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              복사하기
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
