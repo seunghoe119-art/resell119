@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, RotateCcw, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 
 interface FormData {
   productName: string;
@@ -29,6 +31,7 @@ interface PreviewPaneProps {
 
 export default function PreviewPane({ formData, aiPreview, onSave, onReset, isSaving }: PreviewPaneProps) {
   const { toast } = useToast();
+  const [editablePreview, setEditablePreview] = useState<string>("");
 
   const generatePreview = () => {
     if (aiPreview) {
@@ -110,9 +113,14 @@ export default function PreviewPane({ formData, aiPreview, onSave, onReset, isSa
 
   const previewText = generatePreview();
 
+  // Sync editable preview with generated preview
+  useEffect(() => {
+    setEditablePreview(previewText);
+  }, [previewText]);
+
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(previewText);
+      await navigator.clipboard.writeText(editablePreview);
       toast({
         title: "복사 완료",
         description: "게시글이 클립보드에 복사되었습니다.",
@@ -132,10 +140,14 @@ export default function PreviewPane({ formData, aiPreview, onSave, onReset, isSa
         <h2 className="text-xl font-semibold mb-2">실시간 미리보기</h2>
       </div>
 
-      <div className="flex-1 rounded-lg bg-card border p-6 overflow-y-auto mb-4">
-        <pre className="font-mono text-sm whitespace-pre-wrap leading-relaxed" data-testid="text-preview">
-          {previewText}
-        </pre>
+      <div className="flex-1 mb-4">
+        <Textarea
+          value={editablePreview}
+          onChange={(e) => setEditablePreview(e.target.value)}
+          className="h-full min-h-[400px] font-mono text-sm leading-relaxed resize-none"
+          data-testid="text-preview"
+          placeholder="왼쪽 입력 내용이 실시간으로 반영됩니다"
+        />
       </div>
 
       <div className="flex gap-3">
