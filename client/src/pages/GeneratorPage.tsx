@@ -126,26 +126,27 @@ export default function GeneratorPage() {
     <div className="min-h-screen bg-background">
       <Navigation />
       <div className="container mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* AI Draft Form - always first on mobile, first in left column on desktop */}
-          <div className="order-1 lg:col-span-1">
-            <AiDraftForm onPreviewUpdate={setAiPreview} />
-          </div>
+        <div className="space-y-8">
+          {/* AI Draft Form */}
+          <AiDraftForm onPreviewUpdate={setAiPreview} />
 
-          {/* Preview Pane - second on mobile, right column (sticky) on desktop */}
-          <div className="order-2 lg:order-3 lg:row-span-2 lg:sticky lg:top-24 lg:h-fit">
-            <PreviewPane
-              formData={formData}
-              aiPreview={aiPreview}
-              onSave={() => saveMutation.mutate()}
-              onReset={handleReset}
-              isSaving={saveMutation.isPending}
-            />
-          </div>
+          {/* Two Column Layout for Form and Preview */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Column - Product Form */}
+            <div>
+              <ProductForm formData={formData} onChange={setFormData} />
+            </div>
 
-          {/* Product Form - third on mobile, second in left column on desktop */}
-          <div className="order-3 lg:order-2 lg:col-span-1">
-            <ProductForm formData={formData} onChange={setFormData} />
+            {/* Right Column - Preview */}
+            <div className="lg:sticky lg:top-24 lg:h-fit">
+              <PreviewPane
+                formData={formData}
+                aiPreview={aiPreview}
+                onSave={() => saveMutation.mutate()}
+                onReset={handleReset}
+                isSaving={saveMutation.isPending}
+              />
+            </div>
           </div>
         </div>
       </div>
