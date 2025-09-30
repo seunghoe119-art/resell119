@@ -154,25 +154,21 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">구성품</h3>
 
-        <div className="space-y-3">
-          <Label>기본 구성품</Label>
-          <div className="grid grid-cols-2 gap-3">
-            {basicAccessoryOptions.map((item) => (
-              <div key={item} className="flex items-center gap-2">
-                <Checkbox
-                  id={`accessory-${item}`}
-                  data-testid={`checkbox-accessory-${item}`}
-                  checked={formData.basicAccessories?.includes(item)}
-                  onCheckedChange={(checked) =>
-                    handleCheckboxChange("basicAccessories", item, checked as boolean)
-                  }
-                />
-                <Label htmlFor={`accessory-${item}`} className="font-normal cursor-pointer">
-                  {item}
-                </Label>
-              </div>
-            ))}
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="basicAccessories">기본 구성품</Label>
+          <Input
+            id="basicAccessories"
+            data-testid="input-basic-accessories"
+            placeholder="예: 본체, 제품 박스, 충전기, 케이블"
+            value={formData.basicAccessories?.join(", ") || ""}
+            onChange={(e) => {
+              const accessories = e.target.value
+                .split(",")
+                .map(item => item.trim())
+                .filter(item => item !== "");
+              handleChange("basicAccessories", accessories);
+            }}
+          />
         </div>
 
         <div className="space-y-2">
