@@ -57,7 +57,7 @@ Return JSON with Korean text values:
     }
     
     const requestData = {
-      model: "gpt-4o",
+      model: "gpt-5-mini",
       messages: [
         {
           role: "system",
