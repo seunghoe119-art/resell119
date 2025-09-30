@@ -46,10 +46,18 @@ Return JSON with Korean text values:
   "directLocation": "Korean location"
 }`;
 
-    console.log("Preparing axios request...");
+    // Clean API key: remove all non-printable and non-ASCII characters
+    const apiKey = (process.env.OPENAI_API_KEY || '')
+      .replace(/[\r\n\t\f\v]/g, '')
+      .replace(/[^\x20-\x7E]/g, '')
+      .trim();
+    
+    if (!apiKey) {
+      throw new Error("OpenAI API key is not configured");
+    }
     
     const requestData = {
-      model: "gpt-5",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
@@ -62,34 +70,30 @@ Return JSON with Korean text values:
       ],
       response_format: { type: "json_object" },
     };
-    
-    console.log("Request data prepared, making axios call...");
 
-    // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-    // Clean API key: remove all non-printable and non-ASCII characters
-    const apiKey = (process.env.OPENAI_API_KEY || '')
-      .replace(/[\r\n\t\f\v]/g, '') // Remove all whitespace control characters
-      .replace(/[^\x20-\x7E]/g, '') // Keep only printable ASCII characters
-      .trim();
-    
-    console.log("API Key length after cleaning:", apiKey.length);
-    console.log("API Key starts with:", apiKey.substring(0, 7));
-    
     const response = await axios.post("https://api.openai.com/v1/chat/completions", requestData, {
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`,
       },
+      timeout: 30000,
     });
 
-    console.log("Axios call completed, status:", response.status);
-
     const result = JSON.parse(response.data.choices[0].message.content || "{}");
-    console.log("Draft generated successfully");
     return result as GeneratedDraft;
   } catch (error: any) {
-    console.error("Error in generateListingDraft:", error);
-    console.error("Error stack:", error.stack);
-    throw new Error("AI draft generation failed: " + error.message);
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const code = error.code;
+      console.error(`OpenAI API error: status=${status}, code=${code}`);
+      
+      const newError: any = new Error("AI draft generation failed");
+      newError.status = status;
+      newError.code = code;
+      throw newError;
+    }
+    
+    console.error("AI draft generation error:", error.message);
+    throw new Error("AI draft generation failed");
   }
 }

@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Sparkles } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface AiDraftFormProps {
   onDraftGenerated: (draft: any) => void;
@@ -15,6 +16,7 @@ export default function AiDraftForm({ onDraftGenerated }: AiDraftFormProps) {
   const [productName, setProductName] = useState("");
   const [brand, setBrand] = useState("");
   const [briefDescription, setBriefDescription] = useState("");
+  const { toast } = useToast();
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -29,6 +31,19 @@ export default function AiDraftForm({ onDraftGenerated }: AiDraftFormProps) {
       setProductName("");
       setBrand("");
       setBriefDescription("");
+    },
+    onError: (error: any) => {
+      const errorMessage = error.message?.includes("요청이 너무 많습니다")
+        ? "요청이 너무 많습니다. 잠시 후 다시 시도해주세요"
+        : error.message?.includes("시간이 초과")
+        ? "요청 시간이 초과되었습니다. 다시 시도해주세요"
+        : "AI 초안 생성에 실패했습니다. 다시 시도해주세요";
+      
+      toast({
+        title: "생성 실패",
+        description: errorMessage,
+        variant: "destructive",
+      });
     },
   });
 

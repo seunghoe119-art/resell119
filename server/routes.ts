@@ -61,9 +61,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const draft = await generateListingDraft(input);
       res.json(draft);
     } catch (error: any) {
-      console.error("AI draft generation error:", error);
-      console.error("Error stack:", error.stack);
-      res.status(500).json({ error: error.message || "AI 초안 생성 실패" });
+      if (error.message?.includes("API key")) {
+        return res.status(500).json({ error: "API 키 설정 오류가 발생했습니다" });
+      }
+      
+      if (error.status === 429) {
+        return res.status(429).json({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요" });
+      }
+      
+      if (error.status === 401) {
+        return res.status(500).json({ error: "API 인증 오류가 발생했습니다" });
+      }
+      
+      if (error.code === "ECONNABORTED") {
+        return res.status(504).json({ error: "요청 시간이 초과되었습니다. 다시 시도해주세요" });
+      }
+      
+      res.status(500).json({ error: "AI 초안 생성에 실패했습니다. 다시 시도해주세요" });
     }
   });
 

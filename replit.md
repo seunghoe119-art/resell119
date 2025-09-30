@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a web application for creating and managing used goods listing posts in Korean. Users can input product details through a form interface, preview formatted listings in real-time, save them to a database, and retrieve saved listings for editing or reference. The application uses a split-pane interface with form inputs on the left and live preview on the right, optimized for Korean text and dark mode usage.
+This is a web application for creating and managing used goods listing posts in Korean. Users can input product details through a form interface, preview formatted listings in real-time, save them to a database, and retrieve saved listings for editing or reference. The application features AI-powered draft generation using OpenAI's GPT-4o model to automatically create initial listing content. It uses a split-pane interface with form inputs on the left and live preview on the right, optimized for Korean text and dark mode usage.
 
 ## User Preferences
 
@@ -30,6 +30,8 @@ Preferred communication style: Simple, everyday language.
 
 **Key Pages**:
 - `GeneratorPage` (`/`): Split-pane interface for creating/editing listings with form and preview
+  - Features AI draft generation form (`AiDraftForm`) for automated content creation
+  - Real-time preview updates as form fields are modified
 - `SavedPage` (`/saved`): List view of all saved listings
 
 **Design System**: 
@@ -49,6 +51,7 @@ Preferred communication style: Simple, everyday language.
 - `GET /api/posts/:id` - Fetch single post
 - `POST /api/posts` - Create new post
 - `PATCH /api/posts/:id` - Update existing post
+- `POST /api/generate-draft` - Generate AI-powered listing draft using OpenAI GPT-4o
 
 **Validation**: Zod schemas shared between client and server via `shared/schema.ts`
 
@@ -166,3 +169,20 @@ Preferred communication style: Simple, everyday language.
 **class-variance-authority**: Type-safe variant styling for components
 
 **nanoid**: Unique ID generation (used in toast system)
+
+### AI Integration
+
+**OpenAI GPT-4o**: AI-powered listing draft generation
+- Model: gpt-4o (changed from gpt-5 for availability)
+- Integration via axios HTTP client (not OpenAI SDK due to encoding issues with Korean text)
+- API key management via Replit Secrets (`OPENAI_API_KEY`)
+- Security: API key sanitized before use, error logging without sensitive data exposure
+- Error handling: Specific user-friendly messages for common failures (rate limits, timeouts, auth errors)
+- Timeout: 30 seconds for API requests
+- Response format: JSON mode for structured output in Korean
+
+**Implementation** (`server/openai.ts`):
+- `generateListingDraft()` function takes product info and returns complete draft
+- Axios used instead of OpenAI SDK to avoid ByteString encoding issues with Korean characters
+- Proper error sanitization to prevent API key leakage in logs
+- Custom error propagation with status codes for client-friendly error messages
