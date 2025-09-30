@@ -4,6 +4,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Button } from "@/components/ui/button";
+import { Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -35,8 +38,35 @@ interface ProductFormProps {
 }
 
 export default function ProductForm({ formData, onChange }: ProductFormProps) {
+  const { toast } = useToast();
+
   const handleChange = (field: keyof FormData, value: any) => {
     onChange({ ...formData, [field]: value });
+  };
+
+  const handleCopyProductName = async () => {
+    if (!formData.productName) {
+      toast({
+        title: "복사할 내용이 없습니다",
+        description: "제품명을 입력해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(formData.productName);
+      toast({
+        title: "복사 완료",
+        description: "제품명이 클립보드에 복사되었습니다.",
+      });
+    } catch (error) {
+      toast({
+        title: "복사 실패",
+        description: "다시 시도해주세요.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCheckboxChange = (field: "basicAccessories" | "transactionMethods", value: string, checked: boolean) => {
@@ -83,6 +113,17 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
             value={formData.productName}
             onChange={(e) => handleChange("productName", e.target.value)}
           />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleCopyProductName}
+            className="w-fit"
+            data-testid="button-copy-product-name"
+          >
+            <Copy className="h-4 w-4 mr-2" />
+            복사하기
+          </Button>
         </div>
 
         <div className="space-y-2">
