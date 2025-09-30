@@ -104,8 +104,6 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
       </div>
 
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">상태 정보</h3>
-
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="purchaseDate">최초 구매일</Label>
