@@ -47,6 +47,23 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
     handleChange(field, updated);
   };
 
+  const parseDateText = (dateText: string): string => {
+    const cleaned = dateText.replace(/\D/g, '');
+    
+    if (cleaned.length === 8) {
+      const year = cleaned.substring(0, 4);
+      const month = parseInt(cleaned.substring(4, 6), 10);
+      const day = parseInt(cleaned.substring(6, 8), 10);
+      return `${year}년 ${month}월 ${day}일 구매한 물품입니다`;
+    } else if (cleaned.length === 6) {
+      const year = cleaned.substring(0, 4);
+      const month = parseInt(cleaned.substring(4, 6), 10);
+      return `${year}년 ${month}월 구매한 물품입니다`;
+    }
+    
+    return '';
+  };
+
   const basicAccessoryOptions = ["본체", "제품 박스", "충전기", "케이블"];
   const transactionOptions = ["직거래", "택배거래", "안전거래"];
 
@@ -89,10 +106,17 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
             <Input
               id="purchaseDate"
               data-testid="input-purchase-date"
-              type="date"
+              type="text"
+              inputMode="numeric"
+              placeholder="예: 20240212 또는 202402"
               value={formData.purchaseDate}
               onChange={(e) => handleChange("purchaseDate", e.target.value)}
             />
+            {formData.purchaseDate && parseDateText(formData.purchaseDate) && (
+              <p className="text-sm text-muted-foreground" data-testid="text-parsed-purchase-date">
+                {parseDateText(formData.purchaseDate)}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
