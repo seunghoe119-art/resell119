@@ -251,14 +251,27 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="features">제품 특징</Label>
-          <Textarea
-            id="features"
-            data-testid="textarea-features"
-            placeholder="제품의 장점을 한 줄씩 입력해주세요"
-            value={formData.features}
-            onChange={(e) => handleChange("features", e.target.value)}
-            rows={4}
-          />
+          <div className="flex gap-2">
+            <Textarea
+              id="features"
+              data-testid="textarea-features"
+              placeholder="제품의 장점을 한 줄씩 입력해주세요"
+              value={formData.features}
+              onChange={(e) => handleChange("features", e.target.value)}
+              rows={4}
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="button-add-features"
+              onClick={() => {
+                // 기능은 나중에 추가 예정
+              }}
+            >
+              추가
+            </Button>
+          </div>
         </div>
       </div>
 
