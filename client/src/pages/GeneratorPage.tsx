@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import Navigation from "@/components/Navigation";
 import ProductForm from "@/components/ProductForm";
 import PreviewPane from "@/components/PreviewPane";
+import AiDraftForm from "@/components/AiDraftForm";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -119,12 +120,37 @@ export default function GeneratorPage() {
     setLocation("/");
   };
 
+  const handleAiDraftGenerated = (draft: any) => {
+    setFormData({
+      productName: draft.productName || "",
+      brand: draft.brand || "",
+      purchaseDate: "",
+      usageCount: "",
+      condition: draft.condition || "",
+      additionalDescription: draft.additionalDescription || "",
+      basicAccessories: draft.basicAccessories || [],
+      otherAccessories: draft.otherAccessories || "",
+      features: draft.features || "",
+      originalPrice: draft.originalPrice?.toString() || "",
+      sellingPrice: draft.sellingPrice?.toString() || "",
+      transactionMethods: draft.transactionMethods || [],
+      directLocation: draft.directLocation || "",
+      negotiable: draft.negotiable || "",
+    });
+    
+    toast({
+      title: "AI 초안 생성 완료",
+      description: "아래 폼에서 내용을 수정할 수 있습니다.",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
       <div className="container mx-auto p-6">
         <div className="grid lg:grid-cols-2 gap-8">
           <div className="overflow-y-auto">
+            <AiDraftForm onDraftGenerated={handleAiDraftGenerated} />
             <ProductForm formData={formData} onChange={setFormData} />
           </div>
           <div className="lg:sticky lg:top-24 h-fit">

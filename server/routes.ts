@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPostSchema } from "@shared/schema";
+import { generateListingDraft, type GenerateDraftInput } from "./openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/posts", async (_req, res) => {
@@ -46,6 +47,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(post);
     } catch (error) {
       res.status(400).json({ error: "Failed to update post" });
+    }
+  });
+
+  app.post("/api/generate-draft", async (req, res) => {
+    try {
+      const input: GenerateDraftInput = req.body;
+      
+      if (!input.productName || input.productName.trim() === "") {
+        return res.status(400).json({ error: "제품명은 필수입니다" });
+      }
+
+      const draft = await generateListingDraft(input);
+      res.json(draft);
+    } catch (error: any) {
+      console.error("AI draft generation error:", error);
+      console.error("Error stack:", error.stack);
+      res.status(500).json({ error: error.message || "AI 초안 생성 실패" });
     }
   });
 
