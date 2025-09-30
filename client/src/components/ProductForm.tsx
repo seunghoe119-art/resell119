@@ -195,30 +195,56 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
 
         <div className="space-y-2">
           <Label htmlFor="basicAccessories">기본 구성품</Label>
-          <Input
-            id="basicAccessories"
-            data-testid="input-basic-accessories"
-            placeholder="예: 본체, 제품 박스, 충전기, 케이블"
-            value={formData.basicAccessories?.join(", ") || ""}
-            onChange={(e) => {
-              const accessories = e.target.value
-                .split(",")
-                .map(item => item.trim())
-                .filter(item => item !== "");
-              handleChange("basicAccessories", accessories);
-            }}
-          />
+          <div className="flex gap-2">
+            <Input
+              id="basicAccessories"
+              data-testid="input-basic-accessories"
+              placeholder="예: 본체, 제품 박스, 충전기, 케이블"
+              value={formData.basicAccessories?.join(", ") || ""}
+              onChange={(e) => {
+                const accessories = e.target.value
+                  .split(",")
+                  .map(item => item.trim())
+                  .filter(item => item !== "");
+                handleChange("basicAccessories", accessories);
+              }}
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="button-add-basic-accessories"
+              onClick={() => {
+                // 기능은 나중에 추가 예정
+              }}
+            >
+              추가
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="otherAccessories">별도로 구입한 구성품</Label>
-          <Input
-            id="otherAccessories"
-            data-testid="input-other-accessories"
-            placeholder="예: 보호필름, 케이스"
-            value={formData.otherAccessories}
-            onChange={(e) => handleChange("otherAccessories", e.target.value)}
-          />
+          <div className="flex gap-2">
+            <Input
+              id="otherAccessories"
+              data-testid="input-other-accessories"
+              placeholder="예: 보호필름, 케이스"
+              value={formData.otherAccessories}
+              onChange={(e) => handleChange("otherAccessories", e.target.value)}
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="button-add-other-accessories"
+              onClick={() => {
+                // 기능은 나중에 추가 예정
+              }}
+            >
+              추가
+            </Button>
+          </div>
         </div>
       </div>
 
