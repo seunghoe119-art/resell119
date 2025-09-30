@@ -49,7 +49,7 @@ export default function AiDraftForm({ onDraftGenerated }: AiDraftFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (productName.trim()) {
+    if (briefDescription.trim()) {
       generateMutation.mutate();
     }
   };
@@ -83,7 +83,7 @@ export default function AiDraftForm({ onDraftGenerated }: AiDraftFormProps) {
             data-testid="button-generate-ai-draft"
             type="submit"
             className="w-full"
-            disabled={!productName.trim() || generateMutation.isPending}
+            disabled={!briefDescription.trim() || generateMutation.isPending}
           >
             {generateMutation.isPending ? (
               <>
