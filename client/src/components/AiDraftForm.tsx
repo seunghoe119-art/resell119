@@ -69,19 +69,6 @@ export default function AiDraftForm({ onDraftGenerated }: AiDraftFormProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-sm font-medium mb-1.5 block">
-              제품명 <span className="text-destructive">*</span>
-            </label>
-            <Input
-              data-testid="input-ai-product-name"
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
-              placeholder="예: 아이폰 15 Pro"
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">
               간단한 설명 (선택)
             </label>
             <Textarea
