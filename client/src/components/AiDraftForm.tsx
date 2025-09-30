@@ -82,7 +82,7 @@ export default function AiDraftForm({ onPreviewUpdate }: AiDraftFormProps) {
           AI 글 생성
         </CardTitle>
         <CardDescription>
-          제품 정보를 입력하고 AI 작성하기 버튼을 눌러주세요
+          배터리 횟수, 구매시기, 특이사항, 구성품, 판매가
         </CardDescription>
       </CardHeader>
       <CardContent>
