@@ -147,20 +147,16 @@ export default function GeneratorPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <div className="container mx-auto p-6">
-        <div className="grid lg:grid-cols-2 gap-8">
-          <div className="overflow-y-auto">
-            <AiDraftForm onDraftGenerated={handleAiDraftGenerated} />
-            <ProductForm formData={formData} onChange={setFormData} />
-          </div>
-          <div className="lg:sticky lg:top-24 h-fit">
-            <PreviewPane
-              formData={formData}
-              onSave={() => saveMutation.mutate()}
-              onReset={handleReset}
-              isSaving={saveMutation.isPending}
-            />
-          </div>
+      <div className="container mx-auto p-6 max-w-4xl">
+        <div className="space-y-8">
+          <AiDraftForm onDraftGenerated={handleAiDraftGenerated} />
+          <PreviewPane
+            formData={formData}
+            onSave={() => saveMutation.mutate()}
+            onReset={handleReset}
+            isSaving={saveMutation.isPending}
+          />
+          <ProductForm formData={formData} onChange={setFormData} />
         </div>
       </div>
     </div>
