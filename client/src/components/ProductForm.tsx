@@ -101,40 +101,6 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
     <div className="space-y-6">
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">판매 정보</h2>
-
-        <div className="space-y-2">
-          <Label htmlFor="productName">
-            제품명 <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="productName"
-            data-testid="input-product-name"
-            placeholder="예: 아이폰 15 Pro"
-            value={formData.productName}
-            onChange={(e) => handleChange("productName", e.target.value)}
-          />
-          <Button
-            type="button"
-            variant="default"
-            onClick={handleCopyProductName}
-            className="w-fit"
-            data-testid="button-copy-product-name"
-          >
-            <Copy className="h-4 w-4 mr-2" />
-            복사하기
-          </Button>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="brand">브랜드</Label>
-          <Input
-            id="brand"
-            data-testid="input-brand"
-            placeholder="예: Apple"
-            value={formData.brand}
-            onChange={(e) => handleChange("brand", e.target.value)}
-          />
-        </div>
       </div>
 
       <div className="space-y-4">

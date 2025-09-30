@@ -14,6 +14,7 @@ export default function GeneratorPage() {
   const { toast } = useToast();
   const params = new URLSearchParams(window.location.search);
   const postId = params.get("id");
+  const [aiPreview, setAiPreview] = useState("");
 
   const [formData, setFormData] = useState({
     productName: "",
@@ -61,12 +62,12 @@ export default function GeneratorPage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       const postData = {
-        productName: formData.productName,
+        productName: formData.productName || "AI 생성 판매글",
         brand: formData.brand || null,
         purchaseDate: formData.purchaseDate || null,
         usageCount: formData.usageCount ? parseInt(formData.usageCount) : null,
         condition: formData.condition || null,
-        additionalDescription: formData.additionalDescription || null,
+        additionalDescription: aiPreview || formData.additionalDescription || null,
         basicAccessories: formData.basicAccessories.length > 0 ? formData.basicAccessories : null,
         otherAccessories: formData.otherAccessories || null,
         features: formData.features || null,
@@ -120,29 +121,6 @@ export default function GeneratorPage() {
     setLocation("/");
   };
 
-  const handleAiDraftGenerated = (draft: any) => {
-    setFormData({
-      productName: draft.productName || "",
-      brand: draft.brand || "",
-      purchaseDate: "",
-      usageCount: "",
-      condition: draft.condition || "",
-      additionalDescription: draft.additionalDescription || "",
-      basicAccessories: draft.basicAccessories || [],
-      otherAccessories: draft.otherAccessories || "",
-      features: draft.features || "",
-      originalPrice: draft.originalPrice?.toString() || "",
-      sellingPrice: draft.sellingPrice?.toString() || "",
-      transactionMethods: draft.transactionMethods || [],
-      directLocation: draft.directLocation || "",
-      negotiable: draft.negotiable || "",
-    });
-    
-    toast({
-      title: "AI 초안 생성 완료",
-      description: "아래 폼에서 내용을 수정할 수 있습니다.",
-    });
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -151,13 +129,14 @@ export default function GeneratorPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* AI Draft Form - always first on mobile, first in left column on desktop */}
           <div className="order-1 lg:col-span-1">
-            <AiDraftForm onDraftGenerated={handleAiDraftGenerated} />
+            <AiDraftForm onPreviewUpdate={setAiPreview} />
           </div>
 
           {/* Preview Pane - second on mobile, right column (sticky) on desktop */}
           <div className="order-2 lg:order-3 lg:row-span-2 lg:sticky lg:top-24 lg:h-fit">
             <PreviewPane
               formData={formData}
+              aiPreview={aiPreview}
               onSave={() => saveMutation.mutate()}
               onReset={handleReset}
               isSaving={saveMutation.isPending}

@@ -21,15 +21,19 @@ interface FormData {
 
 interface PreviewPaneProps {
   formData: FormData;
+  aiPreview: string;
   onSave: () => void;
   onReset: () => void;
   isSaving?: boolean;
 }
 
-export default function PreviewPane({ formData, onSave, onReset, isSaving }: PreviewPaneProps) {
+export default function PreviewPane({ formData, aiPreview, onSave, onReset, isSaving }: PreviewPaneProps) {
   const { toast } = useToast();
 
   const generatePreview = () => {
+    if (aiPreview) {
+      return aiPreview;
+    }
     let preview = "";
 
     if (formData.brand) {
@@ -148,7 +152,7 @@ export default function PreviewPane({ formData, onSave, onReset, isSaving }: Pre
           variant="default"
           className="flex-1"
           onClick={onSave}
-          disabled={isSaving || !formData.productName}
+          disabled={isSaving || (!formData.productName && !aiPreview)}
           data-testid="button-save"
         >
           <Save className="h-4 w-4 mr-2" />

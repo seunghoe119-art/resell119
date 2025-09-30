@@ -1,6 +1,4 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Sparkles } from "lucide-react";
@@ -9,28 +7,24 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface AiDraftFormProps {
-  onDraftGenerated: (draft: any) => void;
+  onPreviewUpdate: (preview: string) => void;
 }
 
-export default function AiDraftForm({ onDraftGenerated }: AiDraftFormProps) {
-  const [productName, setProductName] = useState("");
-  const [brand, setBrand] = useState("");
+export default function AiDraftForm({ onPreviewUpdate }: AiDraftFormProps) {
   const [briefDescription, setBriefDescription] = useState("");
+  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   const generateMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (description: string) => {
       return apiRequest("POST", "/api/generate-draft", {
-        productName,
-        brand: brand || undefined,
-        briefDescription: briefDescription || undefined,
+        briefDescription: description,
       });
     },
-    onSuccess: (data) => {
-      onDraftGenerated(data);
-      setProductName("");
-      setBrand("");
-      setBriefDescription("");
+    onSuccess: (data: any) => {
+      if (data.content) {
+        onPreviewUpdate(data.content);
+      }
     },
     onError: (error: any) => {
       const errorMessage = error.message?.includes("요청이 너무 많습니다")
@@ -47,57 +41,52 @@ export default function AiDraftForm({ onDraftGenerated }: AiDraftFormProps) {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (briefDescription.trim()) {
-      generateMutation.mutate();
+  useEffect(() => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
     }
-  };
+
+    if (briefDescription.trim().length > 5) {
+      const timer = setTimeout(() => {
+        generateMutation.mutate(briefDescription);
+      }, 1500);
+      
+      setDebounceTimer(timer);
+    } else {
+      onPreviewUpdate("");
+    }
+
+    return () => {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+    };
+  }, [briefDescription, onPreviewUpdate]);
 
   return (
     <Card className="mb-6">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          AI 초안 생성
+          AI 판매글 생성
         </CardTitle>
         <CardDescription>
-          제품 정보를 간단히 입력하면 AI가 판매글 초안을 작성해드립니다
+          제품 정보를 입력하면 AI가 자동으로 판매글을 작성합니다
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">
-              간단한 설명 (선택)
-            </label>
-            <Textarea
-              data-testid="input-ai-description"
-              value={briefDescription}
-              onChange={(e) => setBriefDescription(e.target.value)}
-              placeholder="예: 거의 사용하지 않은 깨끗한 상태입니다"
-              rows={3}
-            />
-          </div>
-          <Button
-            data-testid="button-generate-ai-draft"
-            type="submit"
-            className="w-full"
-            disabled={!briefDescription.trim() || generateMutation.isPending}
-          >
-            {generateMutation.isPending ? (
-              <>
-                <Sparkles className="mr-2 h-4 w-4 animate-pulse" />
-                AI 초안 생성 중...
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                AI 초안 생성하기
-              </>
-            )}
-          </Button>
-        </form>
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">
+            제품 정보 입력 {generateMutation.isPending && <span className="text-muted-foreground">(생성 중...)</span>}
+          </label>
+          <Textarea
+            data-testid="input-ai-description"
+            value={briefDescription}
+            onChange={(e) => setBriefDescription(e.target.value)}
+            placeholder="예: 아이폰 16 프로 이상없음"
+            rows={4}
+          />
+        </div>
       </CardContent>
     </Card>
   );

@@ -54,12 +54,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const input: GenerateDraftInput = req.body;
       
-      if (!input.productName || input.productName.trim() === "") {
-        return res.status(400).json({ error: "제품명은 필수입니다" });
+      if (!input.briefDescription || input.briefDescription.trim() === "") {
+        return res.status(400).json({ error: "제품 정보를 입력해주세요" });
       }
 
       const draft = await generateListingDraft(input);
-      res.json(draft);
+      res.json({ content: draft });
     } catch (error: any) {
       if (error.message?.includes("API key")) {
         return res.status(500).json({ error: "API 키 설정 오류가 발생했습니다" });
