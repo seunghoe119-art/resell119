@@ -95,7 +95,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
   };
 
   const basicAccessoryOptions = ["본체", "제품 박스", "충전기", "케이블"];
-  const transactionOptions = ["직거래", "택배거래", "안전거래"];
+  const transactionOptions = ["직거래", "택배거래", "비대면거래 작전삼성홈타운"];
 
   return (
     <div className="space-y-6">
