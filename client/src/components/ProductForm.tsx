@@ -70,7 +70,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">판매 정보 입력</h2>
+        <h2 className="text-xl font-semibold">판매 정보</h2>
 
         <div className="space-y-2">
           <Label htmlFor="productName">
