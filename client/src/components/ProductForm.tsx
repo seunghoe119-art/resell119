@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -273,35 +274,38 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
         </div>
       </div>
 
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">판매 가격</h3>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">판매 가격</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="originalPrice">초기 구매가 (원)</Label>
+              <Input
+                id="originalPrice"
+                data-testid="input-original-price"
+                type="number"
+                placeholder="500000"
+                value={formData.originalPrice}
+                onChange={(e) => handleChange("originalPrice", e.target.value)}
+              />
+            </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="originalPrice">초기 구매가 (원)</Label>
-            <Input
-              id="originalPrice"
-              data-testid="input-original-price"
-              type="number"
-              placeholder="500000"
-              value={formData.originalPrice}
-              onChange={(e) => handleChange("originalPrice", e.target.value)}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="sellingPrice">판매 희망가 (원)</Label>
+              <Input
+                id="sellingPrice"
+                data-testid="input-selling-price"
+                type="number"
+                placeholder="350000"
+                value={formData.sellingPrice}
+                onChange={(e) => handleChange("sellingPrice", e.target.value)}
+              />
+            </div>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="sellingPrice">판매 희망가 (원)</Label>
-            <Input
-              id="sellingPrice"
-              data-testid="input-selling-price"
-              type="number"
-              placeholder="350000"
-              value={formData.sellingPrice}
-              onChange={(e) => handleChange("sellingPrice", e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">거래 방식</h3>
