@@ -126,7 +126,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="usageCount">사용 횟수</Label>
+            <Label htmlFor="usageCount">배터리 사용횟수</Label>
             <Input
               id="usageCount"
               data-testid="input-usage-count"
