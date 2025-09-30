@@ -32,16 +32,12 @@ export default function PreviewPane({ formData, onSave, onReset, isSaving }: Pre
   const generatePreview = () => {
     let preview = "";
 
-    if (formData.productName) {
-      preview += `🚁 ${formData.productName} 판매합니다\n\n`;
-    }
-
     if (formData.brand) {
-      preview += `🔹 브랜드\n${formData.brand} 정품입니다.\n\n`;
+      preview += `브랜드\n${formData.brand} 정품입니다.\n\n`;
     }
 
     if (formData.purchaseDate || formData.usageCount || formData.condition || formData.additionalDescription) {
-      preview += `🔹 상태\n`;
+      preview += `상태\n`;
       if (formData.purchaseDate) {
         preview += `- 최초 구매일: ${formData.purchaseDate}\n`;
       }
@@ -62,7 +58,7 @@ export default function PreviewPane({ formData, onSave, onReset, isSaving }: Pre
     }
 
     if (formData.basicAccessories?.length > 0 || formData.otherAccessories) {
-      preview += `🔹 구성품\n`;
+      preview += `구성품\n`;
       if (formData.basicAccessories?.length > 0) {
         preview += `- 기본: ${formData.basicAccessories.join(", ")}\n`;
       }
@@ -73,7 +69,7 @@ export default function PreviewPane({ formData, onSave, onReset, isSaving }: Pre
     }
 
     if (formData.features) {
-      preview += `🔹 특징\n`;
+      preview += `특징\n`;
       const features = formData.features.split("\n").filter((f) => f.trim());
       features.forEach((feature) => {
         preview += `- ${feature.trim()}\n`;
@@ -82,7 +78,7 @@ export default function PreviewPane({ formData, onSave, onReset, isSaving }: Pre
     }
 
     if (formData.originalPrice || formData.sellingPrice) {
-      preview += `💰 판매가\n`;
+      preview += `판매가\n`;
       if (formData.originalPrice && formData.sellingPrice) {
         preview += `- 초기 구매가 ${Number(formData.originalPrice).toLocaleString()}원 → 현재 ${Number(formData.sellingPrice).toLocaleString()}원에 판매합니다.\n\n`;
       } else if (formData.sellingPrice) {
@@ -91,7 +87,7 @@ export default function PreviewPane({ formData, onSave, onReset, isSaving }: Pre
     }
 
     if (formData.transactionMethods?.length > 0 || formData.directLocation) {
-      preview += `📍 거래 방식\n`;
+      preview += `거래 방식\n`;
       if (formData.transactionMethods?.length > 0) {
         preview += `- ${formData.transactionMethods.join(", ")} 가능합니다.\n`;
       }
@@ -102,10 +98,10 @@ export default function PreviewPane({ formData, onSave, onReset, isSaving }: Pre
     }
 
     if (formData.negotiable) {
-      preview += `✔️ ${formData.negotiable}. 빠른 거래 원합니다.`;
+      preview += `${formData.negotiable}. 빠른 거래 원합니다.`;
     }
 
-    return preview || "🚁 제목\n\n🔹 구성품\n- 예시 구성품들\n\n🔹 특이사항\n- 특별한 점들을 입력하세요";
+    return preview || "왼쪽 입력 내용이 실시간으로 반영됩니다";
   };
 
   const previewText = generatePreview();
