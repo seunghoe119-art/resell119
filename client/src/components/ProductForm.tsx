@@ -388,6 +388,20 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
             </div>
           </RadioGroup>
         </div>
+
+        <div className="pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            data-testid="button-add-transaction"
+            onClick={() => {
+              // 기능은 나중에 추가 예정
+            }}
+            className="w-full"
+          >
+            추가
+          </Button>
+        </div>
       </div>
     </div>
   );
