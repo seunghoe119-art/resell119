@@ -370,15 +370,29 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="directLocation">직거래 지역</Label>
-          <Input
-            id="directLocation"
-            data-testid="input-direct-location"
-            placeholder="예: 서울 강남구"
-            value={formData.directLocation}
-            onChange={(e) => handleChange("directLocation", e.target.value)}
-          />
+        <div className="space-y-3">
+          <Label>직거래 가능지역</Label>
+          <div className="grid grid-cols-2 gap-3">
+            {["인천 서구", "계양", "부천", "강서", "목동", "홍대입구역", "강남역인근"].map((area) => (
+              <div key={area} className="flex items-center gap-2">
+                <Checkbox
+                  id={`area-${area}`}
+                  data-testid={`checkbox-area-${area}`}
+                  checked={formData.directLocation?.includes(area)}
+                  onCheckedChange={(checked) => {
+                    const currentAreas = formData.directLocation?.split(", ").filter(a => a.trim()) || [];
+                    const updatedAreas = checked
+                      ? [...currentAreas, area]
+                      : currentAreas.filter(a => a !== area);
+                    handleChange("directLocation", updatedAreas.join(", "));
+                  }}
+                />
+                <Label htmlFor={`area-${area}`} className="font-normal cursor-pointer">
+                  {area}
+                </Label>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-3">
