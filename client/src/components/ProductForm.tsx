@@ -115,8 +115,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
           />
           <Button
             type="button"
-            variant="outline"
-            size="sm"
+            variant="default"
             onClick={handleCopyProductName}
             className="w-fit"
             data-testid="button-copy-product-name"
