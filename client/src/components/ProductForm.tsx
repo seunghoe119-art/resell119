@@ -355,6 +355,19 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
               </div>
             ))}
           </div>
+          <div className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="button-add-transaction"
+              onClick={() => {
+                // 기능은 나중에 추가 예정
+              }}
+              className="w-full"
+            >
+              추가
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -387,20 +400,6 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
               </Label>
             </div>
           </RadioGroup>
-        </div>
-
-        <div className="pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            data-testid="button-add-transaction"
-            onClick={() => {
-              // 기능은 나중에 추가 예정
-            }}
-            className="w-full"
-          >
-            추가
-          </Button>
         </div>
       </div>
     </div>
