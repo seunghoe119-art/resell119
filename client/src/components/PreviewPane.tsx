@@ -105,7 +105,7 @@ export default function PreviewPane({ formData, onSave, onReset, isSaving }: Pre
       preview += `✔️ ${formData.negotiable}. 빠른 거래 원합니다.`;
     }
 
-    return preview || "제품에 대한 추가 설명을 입력하세요";
+    return preview || "🚁 제목\n\n🔹 구성품\n- 예시 구성품들\n\n🔹 특이사항\n- 특별한 점들을 입력하세요";
   };
 
   const previewText = generatePreview();
@@ -130,9 +130,6 @@ export default function PreviewPane({ formData, onSave, onReset, isSaving }: Pre
     <div className="flex flex-col h-full">
       <div className="mb-4">
         <h2 className="text-xl font-semibold mb-2">실시간 미리보기</h2>
-        <p className="text-sm text-muted-foreground">
-          왼쪽 입력 내용이 실시간으로 반영됩니다
-        </p>
       </div>
 
       <div className="flex-1 rounded-lg bg-card border p-6 overflow-y-auto mb-4">
