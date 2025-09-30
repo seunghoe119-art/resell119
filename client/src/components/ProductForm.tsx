@@ -166,14 +166,27 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
 
         <div className="space-y-2">
           <Label htmlFor="additionalDescription">추가 상태 설명</Label>
-          <Textarea
-            id="additionalDescription"
-            data-testid="textarea-additional-description"
-            placeholder="제품의 상태를 자세히 설명해주세요"
-            value={formData.additionalDescription}
-            onChange={(e) => handleChange("additionalDescription", e.target.value)}
-            rows={3}
-          />
+          <div className="flex gap-2">
+            <Textarea
+              id="additionalDescription"
+              data-testid="textarea-additional-description"
+              placeholder="제품의 상태를 자세히 설명해주세요"
+              value={formData.additionalDescription}
+              onChange={(e) => handleChange("additionalDescription", e.target.value)}
+              rows={3}
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="button-add-additional-description"
+              onClick={() => {
+                // 기능은 나중에 추가 예정
+              }}
+            >
+              추가
+            </Button>
+          </div>
         </div>
       </div>
 
