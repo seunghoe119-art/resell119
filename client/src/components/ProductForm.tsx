@@ -139,23 +139,6 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="condition">제품 컨디션</Label>
-          <Select
-            value={formData.condition}
-            onValueChange={(value) => handleChange("condition", value)}
-          >
-            <SelectTrigger id="condition" data-testid="select-condition">
-              <SelectValue placeholder="컨디션을 선택하세요" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="신품급">신품급</SelectItem>
-              <SelectItem value="상태 좋음">상태 좋음</SelectItem>
-              <SelectItem value="사용감 있음">사용감 있음</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
           <Label htmlFor="additionalDescription">추가 상태 설명</Label>
           <Textarea
             id="additionalDescription"
