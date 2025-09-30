@@ -282,26 +282,52 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="originalPrice">초기 구매가 (원)</Label>
-              <Input
-                id="originalPrice"
-                data-testid="input-original-price"
-                type="number"
-                placeholder="500000"
-                value={formData.originalPrice}
-                onChange={(e) => handleChange("originalPrice", e.target.value)}
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="originalPrice"
+                  data-testid="input-original-price"
+                  type="number"
+                  placeholder="500000"
+                  value={formData.originalPrice}
+                  onChange={(e) => handleChange("originalPrice", e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  data-testid="button-add-original-price"
+                  onClick={() => {
+                    // 기능은 나중에 추가 예정
+                  }}
+                >
+                  추가
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="sellingPrice">판매 희망가 (원)</Label>
-              <Input
-                id="sellingPrice"
-                data-testid="input-selling-price"
-                type="number"
-                placeholder="350000"
-                value={formData.sellingPrice}
-                onChange={(e) => handleChange("sellingPrice", e.target.value)}
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="sellingPrice"
+                  data-testid="input-selling-price"
+                  type="number"
+                  placeholder="350000"
+                  value={formData.sellingPrice}
+                  onChange={(e) => handleChange("sellingPrice", e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  data-testid="button-add-selling-price"
+                  onClick={() => {
+                    // 기능은 나중에 추가 예정
+                  }}
+                >
+                  추가
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
