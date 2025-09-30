@@ -147,16 +147,27 @@ export default function GeneratorPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <div className="container mx-auto p-6 max-w-4xl">
-        <div className="space-y-8">
-          <AiDraftForm onDraftGenerated={handleAiDraftGenerated} />
-          <PreviewPane
-            formData={formData}
-            onSave={() => saveMutation.mutate()}
-            onReset={handleReset}
-            isSaving={saveMutation.isPending}
-          />
-          <ProductForm formData={formData} onChange={setFormData} />
+      <div className="container mx-auto p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* AI Draft Form - always first on mobile, first in left column on desktop */}
+          <div className="order-1 lg:col-span-1">
+            <AiDraftForm onDraftGenerated={handleAiDraftGenerated} />
+          </div>
+
+          {/* Preview Pane - second on mobile, right column (sticky) on desktop */}
+          <div className="order-2 lg:order-3 lg:row-span-2 lg:sticky lg:top-24 lg:h-fit">
+            <PreviewPane
+              formData={formData}
+              onSave={() => saveMutation.mutate()}
+              onReset={handleReset}
+              isSaving={saveMutation.isPending}
+            />
+          </div>
+
+          {/* Product Form - third on mobile, second in left column on desktop */}
+          <div className="order-3 lg:order-2 lg:col-span-1">
+            <ProductForm formData={formData} onChange={setFormData} />
+          </div>
         </div>
       </div>
     </div>
