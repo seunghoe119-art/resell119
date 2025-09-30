@@ -37,7 +37,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/posts/:id", async (req, res) => {
     try {
-      const post = await storage.updatePost(req.params.id, req.body);
+      const updateSchema = insertPostSchema.partial();
+      const validatedData = updateSchema.parse(req.body);
+      const post = await storage.updatePost(req.params.id, validatedData);
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
       }
