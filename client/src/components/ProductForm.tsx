@@ -79,7 +79,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
 
   const parseDateText = (dateText: string): string => {
     const cleaned = dateText.replace(/\D/g, '');
-    
+
     if (cleaned.length === 8) {
       const year = cleaned.substring(0, 4);
       const month = parseInt(cleaned.substring(4, 6), 10);
@@ -90,7 +90,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
       const month = parseInt(cleaned.substring(4, 6), 10);
       return `${year}년 ${month}월 구매한 물품입니다`;
     }
-    
+
     return '';
   };
 
@@ -100,7 +100,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">판매 정보</h2>
+        <h2 className="text-xl font-semibold">추가 정보</h2>
       </div>
 
       <div className="space-y-4">
