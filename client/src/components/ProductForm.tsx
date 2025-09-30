@@ -126,15 +126,18 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="usageCount">배터리 사용횟수</Label>
-            <Input
-              id="usageCount"
-              data-testid="input-usage-count"
-              type="number"
-              placeholder="예: 5"
-              value={formData.usageCount}
-              onChange={(e) => handleChange("usageCount", e.target.value)}
-            />
+            <Label>배터리 사용횟수</Label>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start"
+              data-testid="button-add-usage-count"
+              onClick={() => {
+                // 기능은 나중에 추가 예정
+              }}
+            >
+              추가
+            </Button>
           </div>
         </div>
 
