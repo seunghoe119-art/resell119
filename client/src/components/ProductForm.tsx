@@ -172,7 +172,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="otherAccessories">기타 구성품</Label>
+          <Label htmlFor="otherAccessories">별도로 구입한 구성품</Label>
           <Input
             id="otherAccessories"
             data-testid="input-other-accessories"
