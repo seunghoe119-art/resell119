@@ -1,5 +1,6 @@
-import { type Post, type InsertPost } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { type Post, type InsertPost, posts } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   getPosts(): Promise<Post[]>;
@@ -8,58 +9,29 @@ export interface IStorage {
   updatePost(id: string, post: Partial<InsertPost>): Promise<Post | undefined>;
 }
 
-export class MemStorage implements IStorage {
-  private posts: Map<string, Post>;
-
-  constructor() {
-    this.posts = new Map();
-  }
-
+export class DbStorage implements IStorage {
   async getPosts(): Promise<Post[]> {
-    return Array.from(this.posts.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    return await db.select().from(posts).orderBy(desc(posts.createdAt));
   }
 
   async getPost(id: string): Promise<Post | undefined> {
-    return this.posts.get(id);
+    const result = await db.select().from(posts).where(eq(posts.id, id));
+    return result[0];
   }
 
   async createPost(insertPost: InsertPost): Promise<Post> {
-    const id = randomUUID();
-    const post: Post = {
-      id,
-      productName: insertPost.productName,
-      brand: insertPost.brand ?? null,
-      purchaseDate: insertPost.purchaseDate ?? null,
-      usageCount: insertPost.usageCount ?? null,
-      condition: insertPost.condition ?? null,
-      additionalDescription: insertPost.additionalDescription ?? null,
-      basicAccessories: insertPost.basicAccessories ?? null,
-      otherAccessories: insertPost.otherAccessories ?? null,
-      features: insertPost.features ?? null,
-      originalPrice: insertPost.originalPrice ?? null,
-      sellingPrice: insertPost.sellingPrice ?? null,
-      transactionMethods: insertPost.transactionMethods ?? null,
-      directLocation: insertPost.directLocation ?? null,
-      negotiable: insertPost.negotiable ?? null,
-      createdAt: new Date(),
-    };
-    this.posts.set(id, post);
-    return post;
+    const result = await db.insert(posts).values(insertPost).returning();
+    return result[0];
   }
 
   async updatePost(id: string, updateData: Partial<InsertPost>): Promise<Post | undefined> {
-    const existingPost = this.posts.get(id);
-    if (!existingPost) return undefined;
-
-    const updatedPost: Post = {
-      ...existingPost,
-      ...updateData,
-    };
-    this.posts.set(id, updatedPost);
-    return updatedPost;
+    const result = await db
+      .update(posts)
+      .set(updateData)
+      .where(eq(posts.id, id))
+      .returning();
+    return result[0];
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DbStorage();
