@@ -451,6 +451,20 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
               </div>
             ))}
           </div>
+          <div className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="button-add-default-areas"
+              onClick={() => {
+                const defaultAreas = ["인천 서구", "계양", "부천", "강서", "목동"];
+                handleChange("directLocation", defaultAreas.join(", "));
+              }}
+              className="w-full"
+            >
+              기본 추가
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-3">
