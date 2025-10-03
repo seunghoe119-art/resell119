@@ -414,7 +414,12 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
               type="button"
               variant="outline"
               data-testid="button-add-transaction"
-              onClick={handleAddAllInfo}
+              onClick={() => {
+                // 모든 거래 방식 체크
+                handleChange("transactionMethods", transactionOptions);
+                // AI 수정 호출
+                handleAddAllInfo();
+              }}
               disabled={modifyContentMutation.isPending}
               className="w-full"
             >
