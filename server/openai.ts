@@ -96,3 +96,78 @@ ${input.briefDescription || ''}
     throw new Error("AI draft generation failed");
   }
 }
+
+export async function modifyListingContent(existingContent: string, additionalInfo: string): Promise<string> {
+  console.log("Starting content modification");
+  
+  try {
+    const systemPrompt = `너는 이미 작성된 중고 판매글을 받아서, 새로운 정보를 자연스럽게 추가하고 다듬어주는 글쓰기 전문가야.
+
+아래 '기존 판매글'의 내용과 톤을 유지하면서, '새로 추가할 정보'를 가장 적절한 위치에 자연스럽게 녹여서 전체 글을 수정해줘.
+
+예를 들어:
+- 추가 구성품 정보는 기존 '구성품' 항목에 합쳐주고
+- 추가 상태 설명은 '보관 상태' 항목에 자연스럽게 녹여줘
+- 거래방식이나 거래 장소도 자연스럽게 글에 녹여줘
+- 가격 정보가 추가되면 적절한 위치에 반영해줘
+
+기존 글의 구조와 ✔ 기호 사용 방식을 그대로 유지하면서, 새 정보를 자연스럽게 통합해줘.`;
+
+    const userPrompt = `기존 판매글:
+${existingContent}
+
+새로 추가할 정보:
+${additionalInfo}
+
+위의 기존 판매글에 새로운 정보를 자연스럽게 추가하여 수정된 판매글을 작성해줘.`;
+
+    // Clean API key: remove all non-printable and non-ASCII characters
+    const apiKey = (process.env.OPENAI_API_KEY || '')
+      .replace(/[\r\n\t\f\v]/g, '')
+      .replace(/[^\x20-\x7E]/g, '')
+      .trim();
+    
+    if (!apiKey) {
+      throw new Error("OpenAI API key is not configured");
+    }
+    
+    const requestData = {
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+        {
+          role: "user",
+          content: userPrompt,
+        },
+      ],
+    };
+
+    const response = await axios.post("https://api.openai.com/v1/chat/completions", requestData, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      timeout: 30000,
+    });
+
+    const result = response.data.choices[0].message.content || "";
+    return result;
+  } catch (error: any) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const code = error.code;
+      console.error(`OpenAI API error: status=${status}, code=${code}`);
+      
+      const newError: any = new Error("AI content modification failed");
+      newError.status = status;
+      newError.code = code;
+      throw newError;
+    }
+    
+    console.error("AI content modification error:", error.message);
+    throw new Error("AI content modification failed");
+  }
+}

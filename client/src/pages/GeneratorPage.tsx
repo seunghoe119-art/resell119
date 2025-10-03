@@ -145,7 +145,12 @@ export default function GeneratorPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Left Column - Product Form */}
             <div>
-              <ProductForm formData={formData} onChange={setFormData} />
+              <ProductForm 
+                formData={formData} 
+                onChange={setFormData}
+                aiPreview={aiPreview}
+                onPreviewUpdate={setAiPreview}
+              />
             </div>
 
             {/* Right Column - Preview (Desktop only) */}

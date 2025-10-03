@@ -15,6 +15,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useMutation } from "@tanstack/react-query";
+
+// Mock API call for AI modification
+const modifyContentWithAI = async (content: string) => {
+  console.log("AI Modification called with:", content);
+  // Simulate API call delay
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  // In a real scenario, you would send `content` to your backend API
+  // and return the modified content.
+  return `AI Modified: ${content}`;
+};
+
 
 interface FormData {
   productName: string;
@@ -98,6 +110,48 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
   const basicAccessoryOptions = ["본체", "제품 박스", "충전기", "케이블"];
   const transactionOptions = ["직거래", "택배거래", "비대면거래 작전삼성홈타운"];
 
+  const modifyContentMutation = useMutation({
+    mutationFn: modifyContentWithAI,
+    onSuccess: (data) => {
+      toast({
+        title: "AI 수정 완료",
+        description: "글이 성공적으로 수정되었습니다.",
+      });
+      // In a real app, you would likely update your form data or state with the AI-generated content
+      console.log("AI Modification Result:", data);
+    },
+    onError: (error) => {
+      toast({
+        title: "AI 수정 실패",
+        description: "글 수정 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+      console.error("AI Modification Error:", error);
+    },
+  });
+
+  const handleAddAllInfo = () => {
+    // Combine all form data into a single string to be sent to the AI
+    // This is a simplified example; you'd want to format this more robustly
+    const combinedContent = `
+      제품명: ${formData.productName || ''}
+      브랜드: ${formData.brand || ''}
+      구매일: ${formData.purchaseDate ? parseDateText(formData.purchaseDate) : ''}
+      사용횟수: ${formData.usageCount || ''}
+      상태 설명: ${formData.additionalDescription || ''}
+      기본 구성품: ${formData.basicAccessories?.join(", ") || ''}
+      별도 구성품: ${formData.otherAccessories || ''}
+      제품 특징: ${formData.features || ''}
+      초기 구매가: ${formData.originalPrice || ''}원
+      판매 희망가: ${formData.sellingPrice || ''}원
+      거래 방식: ${formData.transactionMethods?.join(", ") || ''}
+      직거래 장소: ${formData.directLocation || ''}
+      네고 가능 여부: ${formData.negotiable || ''}
+    `;
+    modifyContentMutation.mutate(combinedContent.trim());
+  };
+
+
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -127,7 +181,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                   // 기능은 나중에 추가 예정
                 }}
               >
-                추가
+                전체추가
               </Button>
             </div>
             {formData.purchaseDate && parseDateText(formData.purchaseDate) && (
@@ -157,7 +211,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                   // 기능은 나중에 추가 예정
                 }}
               >
-                추가
+                전체추가
               </Button>
             </div>
           </div>
@@ -183,7 +237,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                 // 기능은 나중에 추가 예정
               }}
             >
-              추가
+              전체추가
             </Button>
           </div>
         </div>
@@ -217,7 +271,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                 // 기능은 나중에 추가 예정
               }}
             >
-              추가
+              전체추가
             </Button>
           </div>
         </div>
@@ -241,7 +295,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                 // 기능은 나중에 추가 예정
               }}
             >
-              추가
+              전체추가
             </Button>
           </div>
         </div>
@@ -268,7 +322,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                 // 기능은 나중에 추가 예정
               }}
             >
-              추가
+              전체추가
             </Button>
           </div>
         </div>
@@ -300,7 +354,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                     // 기능은 나중에 추가 예정
                   }}
                 >
-                  추가
+                  전체추가
                 </Button>
               </div>
             </div>
@@ -325,7 +379,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                     // 기능은 나중에 추가 예정
                   }}
                 >
-                  추가
+                  전체추가
                 </Button>
               </div>
             </div>
@@ -360,12 +414,11 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
               type="button"
               variant="outline"
               data-testid="button-add-transaction"
-              onClick={() => {
-                // 기능은 나중에 추가 예정
-              }}
+              onClick={handleAddAllInfo}
+              disabled={modifyContentMutation.isPending}
               className="w-full"
             >
-              추가
+              {modifyContentMutation.isPending ? "수정 중..." : "전체추가"}
             </Button>
           </div>
         </div>
