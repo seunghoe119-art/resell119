@@ -48,9 +48,11 @@ interface FormData {
 interface ProductFormProps {
   formData: FormData;
   onChange: (data: FormData) => void;
+  aiPreview?: string;
+  onPreviewUpdate?: (preview: string) => void;
 }
 
-export default function ProductForm({ formData, onChange }: ProductFormProps) {
+export default function ProductForm({ formData, onChange, aiPreview, onPreviewUpdate }: ProductFormProps) {
   const { toast } = useToast();
 
   const handleChange = (field: keyof FormData, value: any) => {

@@ -14,7 +14,8 @@ export default function GeneratorPage() {
   const { toast } = useToast();
   const params = new URLSearchParams(window.location.search);
   const postId = params.get("id");
-  const [aiPreview, setAiPreview] = useState("");
+  const [aiDraft, setAiDraft] = useState("");
+  const [mergedContent, setMergedContent] = useState("");
 
   const [formData, setFormData] = useState({
     productName: "",
@@ -56,6 +57,9 @@ export default function GeneratorPage() {
         directLocation: loadedPost.directLocation || "",
         negotiable: loadedPost.negotiable || "",
       });
+      if (loadedPost.additionalDescription) {
+        setAiDraft(loadedPost.additionalDescription);
+      }
     }
   }, [loadedPost]);
 
@@ -67,7 +71,7 @@ export default function GeneratorPage() {
         purchaseDate: formData.purchaseDate || null,
         usageCount: formData.usageCount ? parseInt(formData.usageCount) : null,
         condition: formData.condition || null,
-        additionalDescription: aiPreview || formData.additionalDescription || null,
+        additionalDescription: mergedContent || aiDraft || formData.additionalDescription || null,
         basicAccessories: formData.basicAccessories.length > 0 ? formData.basicAccessories : null,
         otherAccessories: formData.otherAccessories || null,
         features: formData.features || null,
@@ -118,9 +122,86 @@ export default function GeneratorPage() {
       directLocation: "",
       negotiable: "",
     });
+    setAiDraft("");
+    setMergedContent("");
     setLocation("/");
   };
 
+  const mergeMutation = useMutation({
+    mutationFn: async () => {
+      const additionalInfo = generateAdditionalInfo();
+      return apiRequest("POST", "/api/modify-content", {
+        existingContent: aiDraft,
+        additionalInfo: additionalInfo,
+      });
+    },
+    onSuccess: (data: any) => {
+      if (data.content) {
+        setMergedContent(data.content);
+        toast({
+          title: "병합 완료",
+          description: "AI 초안과 추가 정보가 성공적으로 병합되었습니다.",
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        title: "병합 실패",
+        description: "다시 시도해주세요.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const generateAdditionalInfo = () => {
+    let info = "";
+    
+    if (formData.purchaseDate) {
+      info += `✔ 최초 구매일: ${formData.purchaseDate}\n`;
+    }
+    
+    if (formData.usageCount) {
+      info += `✔ 배터리 사용횟수: ${formData.usageCount}\n`;
+    }
+    
+    if (formData.additionalDescription) {
+      info += `✔ 상태 설명: ${formData.additionalDescription}\n`;
+    }
+    
+    if (formData.basicAccessories?.length > 0) {
+      info += `✔ 기본 구성품: ${formData.basicAccessories.join(", ")}\n`;
+    }
+    
+    if (formData.otherAccessories) {
+      info += `✔ 별도 구성품: ${formData.otherAccessories}\n`;
+    }
+    
+    if (formData.features) {
+      info += `✔ 제품 특징: ${formData.features}\n`;
+    }
+    
+    if (formData.originalPrice) {
+      info += `✔ 초기 구매가: ${formData.originalPrice}원\n`;
+    }
+    
+    if (formData.sellingPrice) {
+      info += `✔ 판매 희망가: ${formData.sellingPrice}원\n`;
+    }
+    
+    if (formData.transactionMethods?.length > 0) {
+      info += `✔ 거래 방식: ${formData.transactionMethods.join(", ")}\n`;
+    }
+    
+    if (formData.directLocation) {
+      info += `✔ 직거래 장소: ${formData.directLocation}\n`;
+    }
+    
+    if (formData.negotiable) {
+      info += `✔ 네고 여부: ${formData.negotiable}\n`;
+    }
+    
+    return info;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -128,16 +209,19 @@ export default function GeneratorPage() {
       <div className="container mx-auto p-6">
         <div className="space-y-8">
           {/* AI Draft Form */}
-          <AiDraftForm onPreviewUpdate={setAiPreview} />
+          <AiDraftForm onPreviewUpdate={setAiDraft} />
 
           {/* Mobile Preview - Shows after AI form on mobile only */}
           <div className="lg:hidden">
             <PreviewPane
               formData={formData}
-              aiPreview={aiPreview}
+              aiDraft={aiDraft}
+              mergedContent={mergedContent}
               onSave={() => saveMutation.mutate()}
               onReset={handleReset}
+              onMerge={() => mergeMutation.mutate()}
               isSaving={saveMutation.isPending}
+              isMerging={mergeMutation.isPending}
             />
           </div>
 
@@ -148,8 +232,8 @@ export default function GeneratorPage() {
               <ProductForm 
                 formData={formData} 
                 onChange={setFormData}
-                aiPreview={aiPreview}
-                onPreviewUpdate={setAiPreview}
+                aiPreview={aiDraft}
+                onPreviewUpdate={setAiDraft}
               />
             </div>
 
@@ -157,10 +241,13 @@ export default function GeneratorPage() {
             <div className="hidden lg:block lg:sticky lg:top-24 lg:h-fit">
               <PreviewPane
                 formData={formData}
-                aiPreview={aiPreview}
+                aiDraft={aiDraft}
+                mergedContent={mergedContent}
                 onSave={() => saveMutation.mutate()}
                 onReset={handleReset}
+                onMerge={() => mergeMutation.mutate()}
                 isSaving={saveMutation.isPending}
+                isMerging={mergeMutation.isPending}
               />
             </div>
           </div>
