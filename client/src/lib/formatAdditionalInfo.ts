@@ -51,6 +51,11 @@ export function formatAdditionalInfo(formData: FormData): string {
   
   if (formData.transactionMethods?.length > 0) {
     info += `✔ 거래 방식: ${formData.transactionMethods.join(", ")}\n`;
+    
+    // 택배거래만 선택된 경우 특별 멘트 추가
+    if (formData.transactionMethods.length === 1 && formData.transactionMethods[0] === "택배거래") {
+      info += `(직거래 약속등을 잡을 시간이 없어 택배거래만 가능한점을 양해 부탁드립니다)\n`;
+    }
   }
   
   if (formData.directLocation) {
