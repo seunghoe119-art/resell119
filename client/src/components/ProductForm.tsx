@@ -537,29 +537,71 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
 
         <div className="space-y-3">
           <Label>택배비</Label>
-          <RadioGroup
-            value={formData.deliveryFee}
-            onValueChange={(value) => handleChange("deliveryFee", value)}
-          >
+          <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <RadioGroupItem value="택배비 포함" id="delivery-included" data-testid="radio-delivery-included" />
+              <Checkbox
+                id="delivery-included"
+                data-testid="checkbox-delivery-included"
+                checked={formData.deliveryFee === "택배비 포함"}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    handleChange("deliveryFee", "택배비 포함");
+                  } else {
+                    handleChange("deliveryFee", "");
+                  }
+                }}
+              />
               <Label htmlFor="delivery-included" className="font-normal cursor-pointer">
                 택배비 포함
               </Label>
             </div>
             <div className="flex items-center gap-2">
-              <RadioGroupItem value="택배비 4500원" id="delivery-4500" data-testid="radio-delivery-4500" />
+              <Checkbox
+                id="delivery-4500"
+                data-testid="checkbox-delivery-4500"
+                checked={formData.deliveryFee?.includes("택배비 4500원") || false}
+                onCheckedChange={(checked) => {
+                  const current = formData.deliveryFee || "";
+                  const fees = current.split(", ").filter(f => f.trim() && f !== "택배비 포함");
+                  
+                  if (checked) {
+                    const updated = [...fees, "택배비 4500원"];
+                    handleChange("deliveryFee", updated.join(", "));
+                  } else {
+                    const updated = fees.filter(f => f !== "택배비 4500원");
+                    handleChange("deliveryFee", updated.join(", "));
+                  }
+                }}
+                disabled={formData.deliveryFee === "택배비 포함"}
+              />
               <Label htmlFor="delivery-4500" className="font-normal cursor-pointer">
                 택배비 4500원
               </Label>
             </div>
             <div className="flex items-center gap-2">
-              <RadioGroupItem value="반값택배 2200원" id="delivery-2200" data-testid="radio-delivery-2200" />
+              <Checkbox
+                id="delivery-2200"
+                data-testid="checkbox-delivery-2200"
+                checked={formData.deliveryFee?.includes("반값택배 2200원") || false}
+                onCheckedChange={(checked) => {
+                  const current = formData.deliveryFee || "";
+                  const fees = current.split(", ").filter(f => f.trim() && f !== "택배비 포함");
+                  
+                  if (checked) {
+                    const updated = [...fees, "반값택배 2200원"];
+                    handleChange("deliveryFee", updated.join(", "));
+                  } else {
+                    const updated = fees.filter(f => f !== "반값택배 2200원");
+                    handleChange("deliveryFee", updated.join(", "));
+                  }
+                }}
+                disabled={formData.deliveryFee === "택배비 포함"}
+              />
               <Label htmlFor="delivery-2200" className="font-normal cursor-pointer">
                 반값택배 2200원
               </Label>
             </div>
-          </RadioGroup>
+          </div>
         </div>
       </div>
     </div>
