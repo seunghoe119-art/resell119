@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Sparkles, Copy } from "lucide-react";
+import { Sparkles, Copy, Plus } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +47,56 @@ export default function AiDraftForm({ onPreviewUpdate }: AiDraftFormProps) {
     if (briefDescription.trim().length > 5) {
       generateMutation.mutate(briefDescription);
     }
+  };
+
+  const continueMutation = useMutation({
+    mutationFn: async (additionalInfo: string) => {
+      return apiRequest("POST", "/api/modify-content", {
+        existingContent: generatedContent,
+        additionalInfo: additionalInfo,
+      });
+    },
+    onSuccess: (data: any) => {
+      if (data.content) {
+        setGeneratedContent(data.content);
+        onPreviewUpdate(data.content);
+      }
+    },
+    onError: (error: any) => {
+      const errorMessage = error.message?.includes("요청이 너무 많습니다")
+        ? "요청이 너무 많습니다. 잠시 후 다시 시도해주세요"
+        : error.message?.includes("시간이 초과")
+        ? "요청 시간이 초과되었습니다. 다시 시도해주세요"
+        : "추가 답변 생성에 실패했습니다. 다시 시도해주세요";
+      
+      toast({
+        title: "생성 실패",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleContinue = () => {
+    if (!generatedContent) {
+      toast({
+        title: "추가할 내용이 없습니다",
+        description: "먼저 AI 작성하기를 눌러주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (briefDescription.trim().length === 0) {
+      toast({
+        title: "추가 정보를 입력해주세요",
+        description: "제품 정보 입력란에 추가할 내용을 입력해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    continueMutation.mutate(briefDescription);
   };
 
   const handleCopy = async () => {
@@ -115,6 +165,24 @@ export default function AiDraftForm({ onPreviewUpdate }: AiDraftFormProps) {
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
                   AI 작성하기
+                </>
+              )}
+            </Button>
+            <Button
+              data-testid="button-continue-ai-content"
+              variant="outline"
+              onClick={handleContinue}
+              disabled={!generatedContent || briefDescription.trim().length === 0 || continueMutation.isPending}
+            >
+              {continueMutation.isPending ? (
+                <>
+                  <Plus className="mr-2 h-4 w-4 animate-pulse" />
+                  추가 중...
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  추가답하기
                 </>
               )}
             </Button>
