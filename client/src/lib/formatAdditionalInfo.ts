@@ -12,6 +12,7 @@ interface FormData {
   transactionMethods: string[];
   directLocation: string;
   negotiable: string;
+  deliveryFee: string;
 }
 
 export function formatAdditionalInfo(formData: FormData): string {
@@ -64,6 +65,10 @@ export function formatAdditionalInfo(formData: FormData): string {
   
   if (formData.negotiable) {
     info += `✔ 네고 여부: ${formData.negotiable}\n`;
+  }
+  
+  if (formData.deliveryFee) {
+    info += `✔ ${formData.deliveryFee}\n`;
   }
   
   return info || "입력한 추가 정보가 여기에 실시간으로 반영됩니다";

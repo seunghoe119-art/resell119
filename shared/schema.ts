@@ -22,9 +22,19 @@ export const posts = pgTable("posts", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertPostSchema = createInsertSchema(posts).omit({
-  id: true,
-  createdAt: true,
+export const insertPostSchema = createInsertSchema(posts, {
+  purchaseDate: z.string().nullable(),
+  usageCount: z.number().nullable(),
+  condition: z.string().nullable(),
+  additionalDescription: z.string().nullable(),
+  basicAccessories: z.array(z.string()).nullable(),
+  otherAccessories: z.string().nullable(),
+  features: z.string().nullable(),
+  originalPrice: z.string().nullable(),
+  sellingPrice: z.string().nullable(),
+  transactionMethods: z.array(z.string()).nullable(),
+  directLocation: z.string().nullable(),
+  negotiable: z.string().nullable(),
 });
 
 export type InsertPost = z.infer<typeof insertPostSchema>;

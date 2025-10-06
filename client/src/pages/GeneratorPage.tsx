@@ -33,6 +33,7 @@ export default function GeneratorPage() {
     transactionMethods: [] as string[],
     directLocation: "",
     negotiable: "",
+    deliveryFee: "",
   });
 
   const { data: loadedPost } = useQuery<Post>({

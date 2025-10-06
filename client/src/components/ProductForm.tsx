@@ -43,6 +43,7 @@ interface FormData {
   transactionMethods: string[];
   directLocation: string;
   negotiable: string;
+  deliveryFee: string;
 }
 
 interface ProductFormProps {
@@ -529,6 +530,33 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               <RadioGroupItem value="전화번호 010-4056-1290" id="phone-2" data-testid="radio-phone-2" />
               <Label htmlFor="phone-2" className="font-normal cursor-pointer">
                 전화번호 010-4056-1290
+              </Label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        <div className="space-y-3">
+          <Label>택배비</Label>
+          <RadioGroup
+            value={formData.deliveryFee}
+            onValueChange={(value) => handleChange("deliveryFee", value)}
+          >
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="택배비 포함" id="delivery-included" data-testid="radio-delivery-included" />
+              <Label htmlFor="delivery-included" className="font-normal cursor-pointer">
+                택배비 포함
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="택배비 4500원" id="delivery-4500" data-testid="radio-delivery-4500" />
+              <Label htmlFor="delivery-4500" className="font-normal cursor-pointer">
+                택배비 4500원
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="반값택배 2200원" id="delivery-2200" data-testid="radio-delivery-2200" />
+              <Label htmlFor="delivery-2200" className="font-normal cursor-pointer">
+                반값택배 2200원
               </Label>
             </div>
           </RadioGroup>
