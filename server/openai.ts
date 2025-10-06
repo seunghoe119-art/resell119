@@ -59,7 +59,7 @@ ${input.briefDescription || ''}
     }
     
     const requestData = {
-      model: "gpt-4o",
+      model: "gpt-5-mini",
       messages: [
         {
           role: "system",
@@ -134,7 +134,7 @@ ${additionalInfo}
     }
     
     const requestData = {
-      model: "gpt-4o",
+      model: "gpt-5-mini",
       messages: [
         {
           role: "system",
