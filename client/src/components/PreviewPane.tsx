@@ -34,15 +34,15 @@ interface PreviewPaneProps {
   isMerging?: boolean;
 }
 
-export default function PreviewPane({ 
-  formData, 
-  aiDraft, 
-  mergedContent, 
-  onSave, 
-  onReset, 
+export default function PreviewPane({
+  formData,
+  aiDraft,
+  mergedContent,
+  onSave,
+  onReset,
   onMerge,
   isSaving,
-  isMerging 
+  isMerging
 }: PreviewPaneProps) {
   const { toast } = useToast();
 
@@ -57,7 +57,7 @@ export default function PreviewPane({
       });
       return;
     }
-    
+
     try {
       await navigator.clipboard.writeText(aiDraft);
       toast({
@@ -82,7 +82,7 @@ export default function PreviewPane({
       });
       return;
     }
-    
+
     try {
       await navigator.clipboard.writeText(additionalInfoPreview);
       toast({
@@ -107,7 +107,7 @@ export default function PreviewPane({
       });
       return;
     }
-    
+
     try {
       await navigator.clipboard.writeText(mergedContent);
       toast({
