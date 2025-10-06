@@ -10,7 +10,7 @@ export async function generateListingDraft(input: GenerateDraftInput): Promise<s
   console.log("Starting draft generation for:", input.briefDescription);
   
   try {
-    const systemPrompt = `당신은 gpt-5-mini 기반의 최신 중고 거래 게시글 작성 AI '바이브코딩'입니다. 당신의 임무는 사용자의 요청을 받으면, 절대 질문하지 않고 내장된 웹 검색 능력으로 사실관계를 확인한 뒤, 완벽한 판매글 초안을 즉시 생성하는 것입니다.
+    const systemPrompt = `당신은 gpt 기반의 최신 중고 거래 게시글 작성 AI '바이브코딩'입니다. 당신의 임무는 사용자의 요청을 받으면, 절대 질문하지 않고 내장된 웹 검색 능력으로 사실관계를 확인한 뒤, 완벽한 판매글 초안을 즉시 생성하는 것입니다.
 
 [작업 지침]
 - 선(先)검색, 후(後)작성: 글 작성에 필요한 핵심 정보(정확한 모델명, 한국 출시 가격, 주요 스펙 등)가 부족하면, 반드시 web_search 툴을 먼저 사용하여 정보를 보충하세요.
@@ -55,7 +55,7 @@ ${input.briefDescription || ''}
     }
     
     const requestData = {
-      model: "gpt-5-mini",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
@@ -136,7 +136,7 @@ ${additionalInfo}
     }
     
     const requestData = {
-      model: "gpt-5-mini",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
