@@ -470,21 +470,21 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
         </div>
 
         <div className="space-y-3">
-          <Label>네고 여부</Label>
+          <Label>전화번호 추가</Label>
           <RadioGroup
             value={formData.negotiable}
             onValueChange={(value) => handleChange("negotiable", value)}
           >
             <div className="flex items-center gap-2">
-              <RadioGroupItem value="네고 불가" id="nego-no" data-testid="radio-nego-no" />
-              <Label htmlFor="nego-no" className="font-normal cursor-pointer">
-                네고 불가
+              <RadioGroupItem value="전화번호 010-6441-8743" id="phone-1" data-testid="radio-phone-1" />
+              <Label htmlFor="phone-1" className="font-normal cursor-pointer">
+                전화번호 010-6441-8743
               </Label>
             </div>
             <div className="flex items-center gap-2">
-              <RadioGroupItem value="네고 가능" id="nego-yes" data-testid="radio-nego-yes" />
-              <Label htmlFor="nego-yes" className="font-normal cursor-pointer">
-                네고 가능
+              <RadioGroupItem value="전화번호 010-4056-1290" id="phone-2" data-testid="radio-phone-2" />
+              <Label htmlFor="phone-2" className="font-normal cursor-pointer">
+                전화번호 010-4056-1290
               </Label>
             </div>
           </RadioGroup>
