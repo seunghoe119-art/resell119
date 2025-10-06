@@ -27,14 +27,12 @@ Instructions (지침):
 ✔ 제품의 특징 (특장점 강조)
 ✔ 구성품 리스트
 ✔ 보관 상태
-✔ 배터리 사이클
 ✔ 거래 방식
 
 Constraints(제약사항):
 - 제품 미입력 시 문구 생성 금지
 - 문구는 300자~600자 사이로 유지
 - 단락 구분은 보기 쉽게
-- 배터리 정보 입력 없을 시 "사이클 관련 언급 없음, 상태 양호함" 작성
 - 항상 한국어로 답변
 
 거래 방식 (고정):
@@ -57,7 +55,7 @@ ${input.briefDescription || ''}
     }
     
     const requestData = {
-      model: "gpt-4o",
+      model: "gpt-5-mini",
       messages: [
         {
           role: "system",
@@ -132,7 +130,7 @@ ${additionalInfo}
     }
     
     const requestData = {
-      model: "gpt-4o",
+      model: "gpt-5-mini",
       messages: [
         {
           role: "system",
