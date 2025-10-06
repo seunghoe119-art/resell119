@@ -342,10 +342,18 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                 <Input
                   id="originalPrice"
                   data-testid="input-original-price"
-                  type="number"
-                  placeholder="500000"
+                  type="text"
+                  placeholder="500000 또는 만원/ㅁㅇ, 천원/ㅊㅇ"
                   value={formData.originalPrice}
-                  onChange={(e) => handleChange("originalPrice", e.target.value)}
+                  onChange={(e) => {
+                    let value = e.target.value;
+                    if (value === 'ㅁㅇ') {
+                      value = '만원';
+                    } else if (value === 'ㅊㅇ') {
+                      value = '천원';
+                    }
+                    handleChange("originalPrice", value);
+                  }}
                   className="flex-1"
                 />
                 <Button
@@ -367,10 +375,18 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                 <Input
                   id="sellingPrice"
                   data-testid="input-selling-price"
-                  type="number"
-                  placeholder="350000"
+                  type="text"
+                  placeholder="350000 또는 만원/ㅁㅇ, 천원/ㅊㅇ"
                   value={formData.sellingPrice}
-                  onChange={(e) => handleChange("sellingPrice", e.target.value)}
+                  onChange={(e) => {
+                    let value = e.target.value;
+                    if (value === 'ㅁㅇ') {
+                      value = '만원';
+                    } else if (value === 'ㅊㅇ') {
+                      value = '천원';
+                    }
+                    handleChange("sellingPrice", value);
+                  }}
                   className="flex-1"
                 />
                 <Button
