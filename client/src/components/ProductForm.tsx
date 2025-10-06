@@ -180,10 +180,12 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                 variant="destructive"
                 data-testid="button-add-purchase-date"
                 onClick={() => {
-                  // 기능은 나중에 추가 예정
+                  if (formData.purchaseDate) {
+                    handleChange("purchaseDate", "");
+                  }
                 }}
               >
-                추가
+                {formData.purchaseDate ? "삭제" : "추가"}
               </Button>
             </div>
             {formData.purchaseDate && parseDateText(formData.purchaseDate) && (
@@ -210,10 +212,12 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                 variant="destructive"
                 data-testid="button-add-usage-count"
                 onClick={() => {
-                  // 기능은 나중에 추가 예정
+                  if (formData.usageCount) {
+                    handleChange("usageCount", "");
+                  }
                 }}
               >
-                추가
+                {formData.usageCount ? "삭제" : "추가"}
               </Button>
             </div>
           </div>
@@ -236,10 +240,12 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               variant="destructive"
               data-testid="button-add-additional-description"
               onClick={() => {
-                // 기능은 나중에 추가 예정
+                if (formData.additionalDescription) {
+                  handleChange("additionalDescription", "");
+                }
               }}
             >
-              추가
+              {formData.additionalDescription ? "삭제" : "추가"}
             </Button>
           </div>
         </div>
@@ -270,10 +276,12 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               variant="destructive"
               data-testid="button-add-basic-accessories"
               onClick={() => {
-                // 기능은 나중에 추가 예정
+                if (formData.basicAccessories && formData.basicAccessories.length > 0) {
+                  handleChange("basicAccessories", []);
+                }
               }}
             >
-              추가
+              {formData.basicAccessories && formData.basicAccessories.length > 0 ? "삭제" : "추가"}
             </Button>
           </div>
         </div>
@@ -294,10 +302,12 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               variant="destructive"
               data-testid="button-add-other-accessories"
               onClick={() => {
-                // 기능은 나중에 추가 예정
+                if (formData.otherAccessories) {
+                  handleChange("otherAccessories", "");
+                }
               }}
             >
-              추가
+              {formData.otherAccessories ? "삭제" : "추가"}
             </Button>
           </div>
         </div>
@@ -321,10 +331,12 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               variant="destructive"
               data-testid="button-add-features"
               onClick={() => {
-                // 기능은 나중에 추가 예정
+                if (formData.features) {
+                  handleChange("features", "");
+                }
               }}
             >
-              추가
+              {formData.features ? "삭제" : "추가"}
             </Button>
           </div>
         </div>
@@ -361,10 +373,12 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                   variant="destructive"
                   data-testid="button-add-original-price"
                   onClick={() => {
-                    // 기능은 나중에 추가 예정
+                    if (formData.originalPrice) {
+                      handleChange("originalPrice", "");
+                    }
                   }}
                 >
-                  추가
+                  {formData.originalPrice ? "삭제" : "추가"}
                 </Button>
               </div>
             </div>
@@ -394,10 +408,12 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                   variant="destructive"
                   data-testid="button-add-selling-price"
                   onClick={() => {
-                    // 기능은 나중에 추가 예정
+                    if (formData.sellingPrice) {
+                      handleChange("sellingPrice", "");
+                    }
                   }}
                 >
-                  추가
+                  {formData.sellingPrice ? "삭제" : "추가"}
                 </Button>
               </div>
             </div>
@@ -433,15 +449,19 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               variant="destructive"
               data-testid="button-add-transaction"
               onClick={() => {
-                // 모든 거래 방식 체크
-                handleChange("transactionMethods", transactionOptions);
-                // AI 수정 호출
-                handleAddAllInfo();
+                if (formData.transactionMethods && formData.transactionMethods.length > 0) {
+                  handleChange("transactionMethods", []);
+                } else {
+                  handleChange("transactionMethods", transactionOptions);
+                  handleAddAllInfo();
+                }
               }}
               disabled={modifyContentMutation.isPending}
               className="w-full"
             >
-              {modifyContentMutation.isPending ? "수정 중..." : "추가"}
+              {modifyContentMutation.isPending 
+                ? "수정 중..." 
+                : (formData.transactionMethods && formData.transactionMethods.length > 0 ? "삭제" : "추가")}
             </Button>
           </div>
         </div>
@@ -475,12 +495,16 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               variant="destructive"
               data-testid="button-add-default-areas"
               onClick={() => {
-                const defaultAreas = ["인천 서구", "계양", "부천", "강서", "목동"];
-                handleChange("directLocation", defaultAreas.join(", "));
+                if (formData.directLocation) {
+                  handleChange("directLocation", "");
+                } else {
+                  const defaultAreas = ["인천 서구", "계양", "부천", "강서", "목동"];
+                  handleChange("directLocation", defaultAreas.join(", "));
+                }
               }}
               className="w-full"
             >
-              추가
+              {formData.directLocation ? "삭제" : "추가"}
             </Button>
           </div>
         </div>
