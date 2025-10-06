@@ -359,10 +359,12 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                   value={formData.originalPrice}
                   onChange={(e) => {
                     let value = e.target.value;
-                    if (value === 'ㅁㅇ') {
-                      value = '만원';
-                    } else if (value === 'ㅊㅇ') {
-                      value = '천원';
+                    // ㅁㅇ 또는 ㅊㅇ이 포함되어 있으면 자동 변환
+                    if (value.includes('ㅁㅇ')) {
+                      value = value.replace(/ㅁㅇ/g, '만원');
+                    }
+                    if (value.includes('ㅊㅇ')) {
+                      value = value.replace(/ㅊㅇ/g, '천원');
                     }
                     handleChange("originalPrice", value);
                   }}
@@ -394,10 +396,12 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                   value={formData.sellingPrice}
                   onChange={(e) => {
                     let value = e.target.value;
-                    if (value === 'ㅁㅇ') {
-                      value = '만원';
-                    } else if (value === 'ㅊㅇ') {
-                      value = '천원';
+                    // ㅁㅇ 또는 ㅊㅇ이 포함되어 있으면 자동 변환
+                    if (value.includes('ㅁㅇ')) {
+                      value = value.replace(/ㅁㅇ/g, '만원');
+                    }
+                    if (value.includes('ㅊㅇ')) {
+                      value = value.replace(/ㅊㅇ/g, '천원');
                     }
                     handleChange("sellingPrice", value);
                   }}
