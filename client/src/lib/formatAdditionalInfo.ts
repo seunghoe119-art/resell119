@@ -1,3 +1,5 @@
+import { formatPrice } from './parseKoreanPrice';
+
 interface FormData {
   purchaseDate: string;
   usageCount: string;
@@ -40,11 +42,11 @@ export function formatAdditionalInfo(formData: FormData): string {
   }
   
   if (formData.originalPrice) {
-    info += `✔ 초기 구매가: ${Number(formData.originalPrice).toLocaleString()}원\n`;
+    info += `✔ 초기 구매가: ${formatPrice(formData.originalPrice)}\n`;
   }
   
   if (formData.sellingPrice) {
-    info += `✔ 판매 희망가: ${Number(formData.sellingPrice).toLocaleString()}원\n`;
+    info += `✔ 판매 희망가: ${formatPrice(formData.sellingPrice)}\n`;
   }
   
   if (formData.transactionMethods?.length > 0) {
