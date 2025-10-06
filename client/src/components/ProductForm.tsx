@@ -181,7 +181,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                   // 기능은 나중에 추가 예정
                 }}
               >
-                전체추가
+                추가 예정
               </Button>
             </div>
             {formData.purchaseDate && parseDateText(formData.purchaseDate) && (
@@ -211,7 +211,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                   // 기능은 나중에 추가 예정
                 }}
               >
-                전체추가
+                추가 예정
               </Button>
             </div>
           </div>
@@ -237,7 +237,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                 // 기능은 나중에 추가 예정
               }}
             >
-              전체추가
+              추가 예정
             </Button>
           </div>
         </div>
@@ -271,7 +271,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                 // 기능은 나중에 추가 예정
               }}
             >
-              전체추가
+              추가 예정
             </Button>
           </div>
         </div>
@@ -295,7 +295,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                 // 기능은 나중에 추가 예정
               }}
             >
-              전체추가
+              추가 예정
             </Button>
           </div>
         </div>
@@ -322,7 +322,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                 // 기능은 나중에 추가 예정
               }}
             >
-              전체추가
+              추가 예정
             </Button>
           </div>
         </div>
@@ -354,7 +354,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                     // 기능은 나중에 추가 예정
                   }}
                 >
-                  전체추가
+                  추가 예정
                 </Button>
               </div>
             </div>
@@ -379,7 +379,7 @@ export default function ProductForm({ formData, onChange }: ProductFormProps) {
                     // 기능은 나중에 추가 예정
                   }}
                 >
-                  전체추가
+                  추가 예정
                 </Button>
               </div>
             </div>
