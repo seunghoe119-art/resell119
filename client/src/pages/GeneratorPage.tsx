@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Post } from "@shared/schema";
+import { formatAdditionalInfo } from "@/lib/formatAdditionalInfo";
 
 export default function GeneratorPage() {
   const [, setLocation] = useLocation();
@@ -129,7 +130,7 @@ export default function GeneratorPage() {
 
   const mergeMutation = useMutation({
     mutationFn: async () => {
-      const additionalInfo = generateAdditionalInfo();
+      const additionalInfo = formatAdditionalInfo(formData);
       return apiRequest("POST", "/api/modify-content", {
         existingContent: aiDraft,
         additionalInfo: additionalInfo,
@@ -153,55 +154,12 @@ export default function GeneratorPage() {
     },
   });
 
-  const generateAdditionalInfo = () => {
-    let info = "";
-    
-    if (formData.purchaseDate) {
-      info += `✔ 최초 구매일: ${formData.purchaseDate}\n`;
+  // Reset merged content when AI draft or form data changes
+  useEffect(() => {
+    if (mergedContent) {
+      setMergedContent("");
     }
-    
-    if (formData.usageCount) {
-      info += `✔ 배터리 사용횟수: ${formData.usageCount}\n`;
-    }
-    
-    if (formData.additionalDescription) {
-      info += `✔ 상태 설명: ${formData.additionalDescription}\n`;
-    }
-    
-    if (formData.basicAccessories?.length > 0) {
-      info += `✔ 기본 구성품: ${formData.basicAccessories.join(", ")}\n`;
-    }
-    
-    if (formData.otherAccessories) {
-      info += `✔ 별도 구성품: ${formData.otherAccessories}\n`;
-    }
-    
-    if (formData.features) {
-      info += `✔ 제품 특징: ${formData.features}\n`;
-    }
-    
-    if (formData.originalPrice) {
-      info += `✔ 초기 구매가: ${formData.originalPrice}원\n`;
-    }
-    
-    if (formData.sellingPrice) {
-      info += `✔ 판매 희망가: ${formData.sellingPrice}원\n`;
-    }
-    
-    if (formData.transactionMethods?.length > 0) {
-      info += `✔ 거래 방식: ${formData.transactionMethods.join(", ")}\n`;
-    }
-    
-    if (formData.directLocation) {
-      info += `✔ 직거래 장소: ${formData.directLocation}\n`;
-    }
-    
-    if (formData.negotiable) {
-      info += `✔ 네고 여부: ${formData.negotiable}\n`;
-    }
-    
-    return info;
-  };
+  }, [aiDraft, formData]);
 
   return (
     <div className="min-h-screen bg-background">

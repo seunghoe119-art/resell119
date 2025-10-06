@@ -4,6 +4,7 @@ import { Copy, RotateCcw, Save, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { formatAdditionalInfo } from "@/lib/formatAdditionalInfo";
 
 interface FormData {
   productName: string;
@@ -45,57 +46,7 @@ export default function PreviewPane({
 }: PreviewPaneProps) {
   const { toast } = useToast();
 
-  const generateAdditionalInfoPreview = () => {
-    let preview = "";
-    
-    if (formData.purchaseDate) {
-      preview += `✔ 최초 구매일: ${formData.purchaseDate}\n`;
-    }
-    
-    if (formData.usageCount) {
-      preview += `✔ 배터리 사용횟수: ${formData.usageCount}\n`;
-    }
-    
-    if (formData.additionalDescription) {
-      preview += `✔ 상태 설명: ${formData.additionalDescription}\n`;
-    }
-    
-    if (formData.basicAccessories?.length > 0) {
-      preview += `✔ 기본 구성품: ${formData.basicAccessories.join(", ")}\n`;
-    }
-    
-    if (formData.otherAccessories) {
-      preview += `✔ 별도 구성품: ${formData.otherAccessories}\n`;
-    }
-    
-    if (formData.features) {
-      preview += `✔ 제품 특징:\n${formData.features}\n`;
-    }
-    
-    if (formData.originalPrice) {
-      preview += `✔ 초기 구매가: ${Number(formData.originalPrice).toLocaleString()}원\n`;
-    }
-    
-    if (formData.sellingPrice) {
-      preview += `✔ 판매 희망가: ${Number(formData.sellingPrice).toLocaleString()}원\n`;
-    }
-    
-    if (formData.transactionMethods?.length > 0) {
-      preview += `✔ 거래 방식: ${formData.transactionMethods.join(", ")}\n`;
-    }
-    
-    if (formData.directLocation) {
-      preview += `✔ 직거래 장소: ${formData.directLocation}\n`;
-    }
-    
-    if (formData.negotiable) {
-      preview += `✔ 네고 여부: ${formData.negotiable}\n`;
-    }
-    
-    return preview || "입력한 추가 정보가 여기에 실시간으로 반영됩니다";
-  };
-
-  const additionalInfoPreview = generateAdditionalInfoPreview();
+  const additionalInfoPreview = formatAdditionalInfo(formData);
 
   const handleCopyAiDraft = async () => {
     if (!aiDraft) {
