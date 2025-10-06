@@ -177,13 +177,13 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               />
               <Button
                 type="button"
-                variant="outline"
+                variant="destructive"
                 data-testid="button-add-purchase-date"
                 onClick={() => {
                   // 기능은 나중에 추가 예정
                 }}
               >
-                추가 예정
+                추가
               </Button>
             </div>
             {formData.purchaseDate && parseDateText(formData.purchaseDate) && (
@@ -207,13 +207,13 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               />
               <Button
                 type="button"
-                variant="outline"
+                variant="destructive"
                 data-testid="button-add-usage-count"
                 onClick={() => {
                   // 기능은 나중에 추가 예정
                 }}
               >
-                추가 예정
+                추가
               </Button>
             </div>
           </div>
@@ -233,13 +233,13 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
             />
             <Button
               type="button"
-              variant="outline"
+              variant="destructive"
               data-testid="button-add-additional-description"
               onClick={() => {
                 // 기능은 나중에 추가 예정
               }}
             >
-              추가 예정
+              추가
             </Button>
           </div>
         </div>
@@ -267,13 +267,13 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
             />
             <Button
               type="button"
-              variant="outline"
+              variant="destructive"
               data-testid="button-add-basic-accessories"
               onClick={() => {
                 // 기능은 나중에 추가 예정
               }}
             >
-              추가 예정
+              추가
             </Button>
           </div>
         </div>
@@ -291,13 +291,13 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
             />
             <Button
               type="button"
-              variant="outline"
+              variant="destructive"
               data-testid="button-add-other-accessories"
               onClick={() => {
                 // 기능은 나중에 추가 예정
               }}
             >
-              추가 예정
+              추가
             </Button>
           </div>
         </div>
@@ -318,13 +318,13 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
             />
             <Button
               type="button"
-              variant="outline"
+              variant="destructive"
               data-testid="button-add-features"
               onClick={() => {
                 // 기능은 나중에 추가 예정
               }}
             >
-              추가 예정
+              추가
             </Button>
           </div>
         </div>
@@ -342,21 +342,29 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                 <Input
                   id="originalPrice"
                   data-testid="input-original-price"
-                  type="number"
-                  placeholder="500000"
+                  type="text"
+                  placeholder="500000 또는 만원/ㅁㅇ, 천원/ㅊㅇ"
                   value={formData.originalPrice}
-                  onChange={(e) => handleChange("originalPrice", e.target.value)}
+                  onChange={(e) => {
+                    let value = e.target.value;
+                    if (value === 'ㅁㅇ') {
+                      value = '만원';
+                    } else if (value === 'ㅊㅇ') {
+                      value = '천원';
+                    }
+                    handleChange("originalPrice", value);
+                  }}
                   className="flex-1"
                 />
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="destructive"
                   data-testid="button-add-original-price"
                   onClick={() => {
                     // 기능은 나중에 추가 예정
                   }}
                 >
-                  추가 예정
+                  추가
                 </Button>
               </div>
             </div>
@@ -367,21 +375,29 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                 <Input
                   id="sellingPrice"
                   data-testid="input-selling-price"
-                  type="number"
-                  placeholder="350000"
+                  type="text"
+                  placeholder="350000 또는 만원/ㅁㅇ, 천원/ㅊㅇ"
                   value={formData.sellingPrice}
-                  onChange={(e) => handleChange("sellingPrice", e.target.value)}
+                  onChange={(e) => {
+                    let value = e.target.value;
+                    if (value === 'ㅁㅇ') {
+                      value = '만원';
+                    } else if (value === 'ㅊㅇ') {
+                      value = '천원';
+                    }
+                    handleChange("sellingPrice", value);
+                  }}
                   className="flex-1"
                 />
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="destructive"
                   data-testid="button-add-selling-price"
                   onClick={() => {
                     // 기능은 나중에 추가 예정
                   }}
                 >
-                  추가 예정
+                  추가
                 </Button>
               </div>
             </div>
@@ -414,7 +430,7 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
           <div className="pt-2">
             <Button
               type="button"
-              variant="outline"
+              variant="destructive"
               data-testid="button-add-transaction"
               onClick={() => {
                 // 모든 거래 방식 체크
@@ -425,7 +441,7 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               disabled={modifyContentMutation.isPending}
               className="w-full"
             >
-              {modifyContentMutation.isPending ? "수정 중..." : "전체추가"}
+              {modifyContentMutation.isPending ? "수정 중..." : "추가"}
             </Button>
           </div>
         </div>
@@ -456,7 +472,7 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
           <div className="pt-2">
             <Button
               type="button"
-              variant="outline"
+              variant="destructive"
               data-testid="button-add-default-areas"
               onClick={() => {
                 const defaultAreas = ["인천 서구", "계양", "부천", "강서", "목동"];
@@ -464,7 +480,7 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               }}
               className="w-full"
             >
-              기본 추가
+              추가
             </Button>
           </div>
         </div>
