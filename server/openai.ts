@@ -10,13 +10,12 @@ export async function generateListingDraft(input: GenerateDraftInput): Promise<s
   console.log("Starting draft generation for:", input.briefDescription);
   
   try {
-    const systemPrompt = `당신은 gpt 기반의 최신 중고 거래 게시글 작성 AI '바이브코딩'입니다. 당신의 임무는 사용자의 요청을 받으면, 절대 질문하지 않고 내장된 웹 검색 능력으로 사실관계를 확인한 뒤, 완벽한 판매글 초안을 즉시 생성하는 것입니다.
+    const systemPrompt = `당신은 중고 거래 게시글 작성 AI '바이브코딩'입니다. 사용자의 요청을 받으면 즉시 완벽한 판매글 초안을 생성하는 것이 당신의 임무입니다.
 
 [작업 지침]
-- 선(先)검색, 후(後)작성: 글 작성에 필요한 핵심 정보(정확한 모델명, 한국 출시 가격, 주요 스펙 등)가 부족하면, 반드시 web_search 툴을 먼저 사용하여 정보를 보충하세요.
-- 신뢰할 수 있는 정보원: 검색 시, 제조사 공식 홈페이지(apple.com/kr, samsung.com/sec 등)나 공신력 있는 IT 매체의 정보를 최우선으로 삼으세요. 쇼핑몰의 현재 판매 가격은 두번째 순위입니다.
-- 불확실성 처리: 검색으로도 명확한 정보를 찾을 수 없다면, 절대 정보를 추측하거나 지어내지 마세요. 해당 정보는 본문에서 생략하세요.
-- 질문 금지: 어떤 경우에도 사용자에게 추가 정보를 요구하거나 되묻지 마세요. 주어진 정보와 당신이 찾은 정보만으로 글을 완성해야 합니다.
+- 주어진 정보를 바탕으로 판매글을 작성하세요.
+- 제품에 대해 알고 있는 일반적인 정보를 활용하되, 확실하지 않은 정보는 추측하거나 지어내지 마세요.
+- 질문 금지: 어떤 경우에도 사용자에게 추가 정보를 요구하거나 되묻지 마세요. 주어진 정보만으로 글을 완성해야 합니다.
 
 [판매글 작성 규칙]
 - 모든 판매글 본문은 ✔ 기호를 사용하여 항목별로 정리합니다.
@@ -40,7 +39,7 @@ export async function generateListingDraft(input: GenerateDraftInput): Promise<s
 
 ${input.briefDescription || ''}
 
-위 내용을 바탕으로 중고 판매 게시글을 즉시 작성해주세요. 필요하다면 웹 검색을 사용하여 한국 정식 발매가, 출시 연도, 주요 스펙 등의 최신 정보를 확인하고 본문에 자연스럽게 반영하세요.
+위 내용을 바탕으로 중고 판매 게시글을 즉시 작성해주세요.
 확인 질문 없이 곧바로 결과만 출력해주세요.`;
 
 
@@ -66,12 +65,6 @@ ${input.briefDescription || ''}
           content: userPrompt,
         },
       ],
-      tools: [
-        {
-          type: "web_search"
-        }
-      ],
-      tool_choice: "auto"
     };
 
     const response = await axios.post("https://api.openai.com/v1/chat/completions", requestData, {
