@@ -32,8 +32,10 @@ export async function generateListingDraft(input: GenerateDraftInput): Promise<s
 ✔ 보관 상태
 ✔ 거래 방식
 
+
 거래 방식 (고정):
 직거래(인천 작전동) 또는 목동, 그외지역 채팅주세요 / 택배 거래 가능, 네고는 죄송합니다ㅎㅎ 올려진 가격으로만 팝니다.`;
+
 
     const userPrompt = `다음 제품 정보를 바탕으로 중고 판매글을 작성해주세요:
 
