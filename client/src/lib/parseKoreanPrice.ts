@@ -1,3 +1,4 @@
+
 export function parseKoreanPrice(input: string): number | null {
   if (!input || input.trim() === '') {
     return null;
@@ -5,9 +6,9 @@ export function parseKoreanPrice(input: string): number | null {
 
   const trimmed = input.trim();
 
-  // 이미 숫자인 경우
+  // 이미 숫자인 경우 (쉼표 제거)
   const numericValue = Number(trimmed.replace(/,/g, ''));
-  if (!isNaN(numericValue)) {
+  if (!isNaN(numericValue) && /^\d+$/.test(trimmed.replace(/,/g, ''))) {
     return numericValue;
   }
 
@@ -19,7 +20,63 @@ export function parseKoreanPrice(input: string): number | null {
     return 1000;
   }
 
-  // 한글 숫자 매핑
+  // 아라비아 숫자 + 한글 단위 조합 처리 (예: "3천원", "50만원", "3천5백원")
+  let text = trimmed.replace(/원$/, '');
+  
+  // 아라비아 숫자가 포함된 경우
+  if (/\d/.test(text)) {
+    let result = 0;
+    
+    // 억 단위 처리
+    if (text.includes('억')) {
+      const parts = text.split('억');
+      const billions = parseInt(parts[0].replace(/[^\d]/g, '')) || 1;
+      result += billions * 100000000;
+      text = parts[1] || '';
+    }
+    
+    // 만 단위 처리
+    if (text.includes('만')) {
+      const parts = text.split('만');
+      const tenThousands = parseInt(parts[0].replace(/[^\d]/g, '')) || 1;
+      result += tenThousands * 10000;
+      text = parts[1] || '';
+    }
+    
+    // 천 단위 처리
+    if (text.includes('천')) {
+      const parts = text.split('천');
+      const thousands = parseInt(parts[0].replace(/[^\d]/g, '')) || 1;
+      result += thousands * 1000;
+      text = parts[1] || '';
+    }
+    
+    // 백 단위 처리
+    if (text.includes('백')) {
+      const parts = text.split('백');
+      const hundreds = parseInt(parts[0].replace(/[^\d]/g, '')) || 1;
+      result += hundreds * 100;
+      text = parts[1] || '';
+    }
+    
+    // 십 단위 처리
+    if (text.includes('십')) {
+      const parts = text.split('십');
+      const tens = parseInt(parts[0].replace(/[^\d]/g, '')) || 1;
+      result += tens * 10;
+      text = parts[1] || '';
+    }
+    
+    // 남은 숫자 처리
+    const remaining = parseInt(text.replace(/[^\d]/g, ''));
+    if (!isNaN(remaining)) {
+      result += remaining;
+    }
+    
+    return result > 0 ? result : null;
+  }
+
+  // 한글 숫자 매핑 (기존 로직)
   const koreanNumbers: { [key: string]: number } = {
     '영': 0, '일': 1, '이': 2, '삼': 3, '사': 4,
     '오': 5, '육': 6, '칠': 7, '팔': 8, '구': 9
@@ -37,9 +94,6 @@ export function parseKoreanPrice(input: string): number | null {
   let currentNumber = 0;
   let currentUnit = 1;
 
-  // "원" 제거
-  let text = trimmed.replace(/원$/, '');
-
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
 
@@ -49,7 +103,6 @@ export function parseKoreanPrice(input: string): number | null {
       const unit = units[char];
       
       if (char === '만' || char === '억') {
-        // 만, 억은 큰 단위이므로 현재까지 계산한 값에 곱함
         if (currentNumber === 0) {
           currentNumber = 1;
         }
@@ -57,7 +110,6 @@ export function parseKoreanPrice(input: string): number | null {
         currentNumber = 0;
         currentUnit = 1;
       } else {
-        // 십, 백, 천
         if (currentNumber === 0) {
           currentNumber = 1;
         }
@@ -69,7 +121,6 @@ export function parseKoreanPrice(input: string): number | null {
     }
   }
 
-  // 남은 숫자 처리
   if (currentNumber > 0) {
     result += currentNumber * currentUnit;
   }
@@ -88,6 +139,5 @@ export function formatPrice(input: string): string {
     return `${parsedPrice.toLocaleString()}원`;
   }
 
-  // 파싱 실패 시 원본 반환
   return input;
 }
