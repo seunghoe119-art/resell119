@@ -9,12 +9,20 @@ import { useToast } from "@/hooks/use-toast";
 
 interface AiDraftFormProps {
   onPreviewUpdate: (preview: string) => void;
+  onBriefDescriptionChange?: (description: string) => void;
 }
 
-export default function AiDraftForm({ onPreviewUpdate }: AiDraftFormProps) {
+export default function AiDraftForm({ onPreviewUpdate, onBriefDescriptionChange }: AiDraftFormProps) {
   const [briefDescription, setBriefDescription] = useState("");
   const [generatedContent, setGeneratedContent] = useState("");
   const { toast } = useToast();
+
+  const handleDescriptionChange = (value: string) => {
+    setBriefDescription(value);
+    if (onBriefDescriptionChange) {
+      onBriefDescriptionChange(value);
+    }
+  };
 
   const generateMutation = useMutation({
     mutationFn: async (description: string) => {
@@ -144,7 +152,7 @@ export default function AiDraftForm({ onPreviewUpdate }: AiDraftFormProps) {
             <Textarea
               data-testid="input-ai-description"
               value={briefDescription}
-              onChange={(e) => setBriefDescription(e.target.value)}
+              onChange={(e) => handleDescriptionChange(e.target.value)}
               placeholder="예: 아이폰 16 프로 이상없음"
               rows={4}
             />

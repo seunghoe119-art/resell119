@@ -17,6 +17,7 @@ export default function GeneratorPage() {
   const postId = params.get("id");
   const [aiDraft, setAiDraft] = useState("");
   const [mergedContent, setMergedContent] = useState("");
+  const [briefDescription, setBriefDescription] = useState("");
 
   const [formData, setFormData] = useState({
     productName: "",
@@ -58,6 +59,7 @@ export default function GeneratorPage() {
         transactionMethods: loadedPost.transactionMethods || [],
         directLocation: loadedPost.directLocation || "",
         negotiable: loadedPost.negotiable || "",
+        deliveryFee: "",
       });
       if (loadedPost.additionalDescription) {
         setAiDraft(loadedPost.additionalDescription);
@@ -68,7 +70,7 @@ export default function GeneratorPage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       const postData = {
-        productName: formData.productName || "AI 생성 판매글",
+        productName: briefDescription || formData.productName || "AI 생성 판매글",
         brand: formData.brand || null,
         purchaseDate: formData.purchaseDate || null,
         usageCount: formData.usageCount ? parseInt(formData.usageCount) : null,
@@ -96,7 +98,6 @@ export default function GeneratorPage() {
         title: "저장 완료",
         description: "판매글이 성공적으로 저장되었습니다.",
       });
-      setLocation("/saved");
     },
     onError: () => {
       toast({
@@ -123,9 +124,11 @@ export default function GeneratorPage() {
       transactionMethods: [],
       directLocation: "",
       negotiable: "",
+      deliveryFee: "",
     });
     setAiDraft("");
     setMergedContent("");
+    setBriefDescription("");
     setLocation("/");
   };
 
@@ -168,7 +171,10 @@ export default function GeneratorPage() {
       <div className="container mx-auto p-6">
         <div className="space-y-8">
           {/* AI Draft Form */}
-          <AiDraftForm onPreviewUpdate={setAiDraft} />
+          <AiDraftForm 
+            onPreviewUpdate={setAiDraft}
+            onBriefDescriptionChange={setBriefDescription}
+          />
 
           {/* Mobile Preview - Shows after AI form on mobile only */}
           <div className="lg:hidden">
