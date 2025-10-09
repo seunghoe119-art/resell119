@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import Navigation from "@/components/Navigation";
-import ProductForm from "@/components/ProductForm";
 import PreviewPane from "@/components/PreviewPane";
 import AiDraftForm from "@/components/AiDraftForm";
 import { useToast } from "@/hooks/use-toast";
@@ -194,31 +193,18 @@ export default function GeneratorPage() {
             />
           </div>
 
-          {/* Two Column Layout for Form and Preview (Desktop) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Column - Product Form */}
-            <div>
-              <ProductForm 
-                formData={formData} 
-                onChange={setFormData}
-                aiPreview={aiDraft}
-                onPreviewUpdate={setAiDraft}
-              />
-            </div>
-
-            {/* Right Column - Preview (Desktop only) */}
-            <div className="hidden lg:block lg:sticky lg:top-24 lg:h-fit">
-              <PreviewPane
-                formData={formData}
-                aiDraft={aiDraft}
-                mergedContent={mergedContent}
-                onSave={() => saveMutation.mutate()}
-                onReset={handleReset}
-                onMerge={() => mergeMutation.mutate()}
-                isSaving={saveMutation.isPending}
-                isMerging={mergeMutation.isPending}
-              />
-            </div>
+          {/* Desktop Preview */}
+          <div className="hidden lg:block">
+            <PreviewPane
+              formData={formData}
+              aiDraft={aiDraft}
+              mergedContent={mergedContent}
+              onSave={() => saveMutation.mutate()}
+              onReset={handleReset}
+              onMerge={() => mergeMutation.mutate()}
+              isSaving={saveMutation.isPending}
+              isMerging={mergeMutation.isPending}
+            />
           </div>
         </div>
       </div>

@@ -206,7 +206,7 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                 data-testid="input-usage-count"
                 type="text"
                 placeholder="예: 100회"
-                value={formData.usageCount.toString()}
+                value={formData.usageCount?.toString() || ""}
                 onChange={(e) => handleChange("usageCount", parseInt(e.target.value, 10) || 0)}
                 className="flex-1"
               />
@@ -370,7 +370,7 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                   data-testid="input-purchase-price"
                   type="text"
                   placeholder="500000"
-                  value={formData.purchasePrice.toString()}
+                  value={formData.purchasePrice?.toString() || ""}
                   onChange={(e) => {
                     const value = parseInt(e.target.value, 10);
                     handleChange("purchasePrice", isNaN(value) ? 0 : value);
@@ -400,7 +400,7 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                   data-testid="input-asking-price"
                   type="text"
                   placeholder="350000"
-                  value={formData.askingPrice.toString()}
+                  value={formData.askingPrice?.toString() || ""}
                   onChange={(e) => {
                     const value = parseInt(e.target.value, 10);
                     handleChange("askingPrice", isNaN(value) ? 0 : value);
