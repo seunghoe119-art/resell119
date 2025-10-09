@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Copy, RotateCcw, Save, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { formatAdditionalInfo } from "@/lib/formatAdditionalInfo";
 import { parseKoreanPrice } from "@/lib/parseKoreanPrice";
@@ -49,6 +50,9 @@ export default function PreviewPane({
 }: PreviewPaneProps) {
   const { toast } = useToast();
   const [generatedTitles, setGeneratedTitles] = useState<string[]>([]);
+  const [editableAiDraft, setEditableAiDraft] = useState("");
+  const [editableAdditionalInfo, setEditableAdditionalInfo] = useState("");
+  const [editableMergedContent, setEditableMergedContent] = useState("");
 
   const additionalInfoPreview = formatAdditionalInfo(formData);
 
@@ -82,7 +86,16 @@ export default function PreviewPane({
     } else {
       setGeneratedTitles([]);
     }
+    setEditableAiDraft(aiDraft);
   }, [aiDraft]);
+
+  useEffect(() => {
+    setEditableAdditionalInfo(additionalInfoPreview);
+  }, [additionalInfoPreview]);
+
+  useEffect(() => {
+    setEditableMergedContent(mergedContent);
+  }, [mergedContent]);
 
   const parsedPrice = formData.askingPrice ? parseKoreanPrice(formData.askingPrice.toString()) : null;
 
@@ -215,9 +228,16 @@ export default function PreviewPane({
           <CardContent className="space-y-3">
             {generatedTitles.map((title, index) => (
               <div key={index} className="flex items-center gap-2">
-                <div className="flex-1 p-3 bg-muted/50 rounded-md text-sm" data-testid={`text-title-${index}`}>
-                  {title}
-                </div>
+                <Input
+                  value={title}
+                  onChange={(e) => {
+                    const newTitles = [...generatedTitles];
+                    newTitles[index] = e.target.value;
+                    setGeneratedTitles(newTitles);
+                  }}
+                  className="flex-1"
+                  data-testid={`input-title-${index}`}
+                />
                 <Button
                   variant="outline"
                   size="icon"
@@ -266,15 +286,37 @@ export default function PreviewPane({
         </CardHeader>
         <CardContent className="space-y-3">
           <Textarea
-            value={aiDraft || "AI 작성하기를 눌러 초안을 생성해주세요"}
-            readOnly
-            className="min-h-[200px] font-mono text-sm leading-relaxed resize-none bg-muted/50"
+            value={editableAiDraft || "AI 작성하기를 눌러 초안을 생성해주세요"}
+            onChange={(e) => setEditableAiDraft(e.target.value)}
+            className="min-h-[200px] font-mono text-sm leading-relaxed resize-none"
             data-testid="text-ai-draft-preview"
           />
           <Button
             variant="outline"
-            onClick={handleCopyAiDraft}
-            disabled={!aiDraft}
+            onClick={async () => {
+              if (!editableAiDraft) {
+                toast({
+                  title: "복사할 내용이 없습니다",
+                  description: "AI 초안을 먼저 생성해주세요.",
+                  variant: "destructive",
+                });
+                return;
+              }
+              try {
+                await navigator.clipboard.writeText(editableAiDraft);
+                toast({
+                  title: "복사 완료",
+                  description: "AI 초안이 클립보드에 복사되었습니다.",
+                });
+              } catch (error) {
+                toast({
+                  title: "복사 실패",
+                  description: "다시 시도해주세요.",
+                  variant: "destructive",
+                });
+              }
+            }}
+            disabled={!editableAiDraft}
             data-testid="button-copy-ai-draft"
             className="w-full"
           >
@@ -291,15 +333,37 @@ export default function PreviewPane({
         </CardHeader>
         <CardContent className="space-y-3">
           <Textarea
-            value={additionalInfoPreview}
-            readOnly
-            className="min-h-[200px] font-mono text-sm leading-relaxed resize-none bg-muted/50"
+            value={editableAdditionalInfo}
+            onChange={(e) => setEditableAdditionalInfo(e.target.value)}
+            className="min-h-[200px] font-mono text-sm leading-relaxed resize-none"
             data-testid="text-additional-info-preview"
           />
           <Button
             variant="outline"
-            onClick={handleCopyAdditionalInfo}
-            disabled={!hasAdditionalInfo}
+            onClick={async () => {
+              if (!editableAdditionalInfo || editableAdditionalInfo === "입력한 추가 정보가 여기에 실시간으로 반영됩니다") {
+                toast({
+                  title: "복사할 내용이 없습니다",
+                  description: "추가 정보를 입력해주세요.",
+                  variant: "destructive",
+                });
+                return;
+              }
+              try {
+                await navigator.clipboard.writeText(editableAdditionalInfo);
+                toast({
+                  title: "복사 완료",
+                  description: "추가 정보가 클립보드에 복사되었습니다.",
+                });
+              } catch (error) {
+                toast({
+                  title: "복사 실패",
+                  description: "다시 시도해주세요.",
+                  variant: "destructive",
+                });
+              }
+            }}
+            disabled={!editableAdditionalInfo || editableAdditionalInfo === "입력한 추가 정보가 여기에 실시간으로 반영됩니다"}
             data-testid="button-copy-additional-info"
             className="w-full"
           >
@@ -333,14 +397,36 @@ export default function PreviewPane({
           </CardHeader>
           <CardContent className="space-y-3">
             <Textarea
-              value={mergedContent}
-              readOnly
+              value={editableMergedContent}
+              onChange={(e) => setEditableMergedContent(e.target.value)}
               className="min-h-[300px] font-mono text-sm leading-relaxed resize-none"
               data-testid="text-final-preview"
             />
             <Button
               variant="outline"
-              onClick={handleCopyMerged}
+              onClick={async () => {
+                if (!editableMergedContent) {
+                  toast({
+                    title: "복사할 내용이 없습니다",
+                    description: "먼저 AI와 합성하기를 눌러주세요.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                try {
+                  await navigator.clipboard.writeText(editableMergedContent);
+                  toast({
+                    title: "복사 완료",
+                    description: "최종 완성본이 클립보드에 복사되었습니다.",
+                  });
+                } catch (error) {
+                  toast({
+                    title: "복사 실패",
+                    description: "다시 시도해주세요.",
+                    variant: "destructive",
+                  });
+                }
+              }}
               data-testid="button-copy-final"
               className="w-full"
             >
