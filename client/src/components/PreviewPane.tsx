@@ -260,13 +260,38 @@ export default function PreviewPane({
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <div className="flex-1 p-3 bg-muted/50 rounded-md text-sm font-mono" data-testid="text-price">
-                {parsedPrice.toLocaleString()}원
-              </div>
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={parsedPrice.toLocaleString()}
+                onChange={(e) => {
+                  const numericValue = e.target.value.replace(/[^\d]/g, '');
+                  if (numericValue) {
+                    formData.askingPrice = parseInt(numericValue);
+                  }
+                }}
+                className="flex-1 font-mono"
+                data-testid="input-price"
+              />
+              <span className="text-sm">원</span>
               <Button
                 variant="outline"
                 size="icon"
-                onClick={handleCopyPrice}
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(parsedPrice.toLocaleString());
+                    toast({
+                      title: "복사 완료",
+                      description: "가격이 클립보드에 복사되었습니다.",
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "복사 실패",
+                      description: "다시 시도해주세요.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
                 data-testid="button-copy-price"
               >
                 <Copy className="h-4 w-4" />
