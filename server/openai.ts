@@ -59,7 +59,7 @@ ${input.briefDescription || ''}
     }
     
     const requestData = {
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -77,7 +77,7 @@ ${input.briefDescription || ''}
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`,
       },
-      timeout: 30000,
+      timeout: 60000,
     });
 
     const result = response.data.choices[0].message.content || "";
@@ -134,7 +134,7 @@ ${additionalInfo}
     }
     
     const requestData = {
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -152,7 +152,7 @@ ${additionalInfo}
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`,
       },
-      timeout: 30000,
+      timeout: 60000,
     });
 
     const result = response.data.choices[0].message.content || "";
@@ -171,5 +171,109 @@ ${additionalInfo}
     
     console.error("AI content modification error:", error.message);
     throw new Error("AI content modification failed");
+  }
+}
+
+export interface GenerateTitlesInput {
+  productName?: string;
+  brand?: string;
+  condition?: string;
+  features?: string;
+  aiDraft?: string;
+}
+
+export async function generateTitles(input: GenerateTitlesInput): Promise<string[]> {
+  console.log("Starting title generation");
+  
+  try {
+    const systemPrompt = `짧고 임팩트 있는 제목을 뽑는 것이 목표입니다.
+
+Context:  
+- 사용자가 입력한 제품명, 상태, 구성품, 특징을 기반으로 제목을 생성합니다.  
+- 중고거래 플랫폼(예: 번개장터, 당근, 중고나라 등)에 올릴 때 클릭을 유도할 만한 문체로 작성해야 합니다.  
+- 브랜드명, 모델명, 상태(예: 새것같음, 미개봉, A급 등), 주요 키워드(예: 구성품풀세트, 가격대비최상) 등을 포함합니다.  
+- 제목은 35자 이내로 concise하게 작성합니다.  
+
+제목 구성 패턴:
+[브랜드/기기명] + [세대 또는 모델명] + [상태 강조 (A급/미개봉 등)] + [강조 포인트 (풀박/급처/구성품 등)] + [구매 유도 문구 (시세↓/빠른 거래 등)]
+
+예시:
+- 갤럭시 Z 플립4 · 상태A급 · 구성품풀세트 · 시세↓ 빠른판매
+- Z플립4 · 박스풀구성 · 생활기스 無 · 급처합니다
+- 갤럭시 Z플립4 256GB · 외관깨끗 · 직거래 환영
+- 삼성 Z플립 중고 · 미개봉급 컨디션 · 저렴히 팝니다
+
+내부 알고리즘 기준:
+- 기기명 & 브랜드명은 무조건 포함 → 검색 최우선
+- 모델 세대(예: 플립3/플립4) → 시세 구분에 핵심
+- 상태 강조 키워드 → 클릭 유도 ("상태A급", "생활기스 無" 등)
+- 급처/시세↓/빠른판매 → 구매욕 유발 문구 삽입
+- 구성품 강조 → '가성비' 매력 상승
+- 불필요한 문장부호, 과도한 이모티콘은 쓰지 않습니다.
+
+제약사항:
+- 제목에 가격을 적지 않습니다.
+- 정확히 3개의 제목을 생성합니다.
+- 각 제목은 클릭 유도형, 깔끔한 정보형, 감성형으로 각각 다르게 작성합니다.`;
+
+    const userPrompt = `다음 정보를 바탕으로 중고판매글 제목을 3개 제안해줘.
+
+제품 정보:
+${input.productName ? `제품명: ${input.productName}\n` : ''}${input.brand ? `브랜드: ${input.brand}\n` : ''}${input.condition ? `상태: ${input.condition}\n` : ''}${input.features ? `특징: ${input.features}\n` : ''}${input.aiDraft ? `\n판매글 내용:\n${input.aiDraft}\n` : ''}
+
+각 제목은 줄바꿈으로 구분하여 출력해줘. 번호나 다른 표시 없이 제목만 출력해줘.`;
+
+    const apiKey = (process.env.OPENAI_API_KEY || '')
+      .replace(/[\r\n\t\f\v]/g, '')
+      .replace(/[^\x20-\x7E]/g, '')
+      .trim();
+    
+    if (!apiKey) {
+      throw new Error("OpenAI API key is not configured");
+    }
+    
+    const requestData = {
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+        {
+          role: "user",
+          content: userPrompt,
+        },
+      ],
+    };
+
+    const response = await axios.post("https://api.openai.com/v1/chat/completions", requestData, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      timeout: 60000,
+    });
+
+    const result = response.data.choices[0].message.content || "";
+    const titles = result.split('\n')
+      .map((line: string) => line.trim())
+      .filter((line: string) => line.length > 0 && line.length <= 50)
+      .slice(0, 3);
+    
+    return titles;
+  } catch (error: any) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const code = error.code;
+      console.error(`OpenAI API error: status=${status}, code=${code}`);
+      
+      const newError: any = new Error("AI title generation failed");
+      newError.status = status;
+      newError.code = code;
+      throw newError;
+    }
+    
+    console.error("AI title generation error:", error.message);
+    throw new Error("AI title generation failed");
   }
 }

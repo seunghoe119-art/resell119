@@ -1,10 +1,51 @@
 
-export function parseKoreanPrice(input: string): number | null {
+export function parseKoreanPrice(input: string, exchangeRate: number = 1450): number | null {
   if (!input || input.trim() === '') {
     return null;
   }
 
-  const trimmed = input.trim();
+  let trimmed = input.trim();
+
+  // 원화가 괄호 밖에 있으면 원화 우선 (예: "100,000원 (약 $70)")
+  const wonOutsideParenMatch = trimmed.match(/^([^(]*원)/);
+  if (wonOutsideParenMatch) {
+    // 괄호 밖에 원화가 있으므로 원화로 파싱
+    trimmed = wonOutsideParenMatch[1].trim();
+  } else {
+    // 원화가 괄호 밖에 없으면 USD 패턴 체크
+    // 패턴: "약 $70", "$100", "100 USD", "USD 약 100" 등
+    const dollarPatterns = [
+      /\$\s*(?:약\s*)?(\d+(?:,\d+)*(?:\.\d+)?)/i,           // $100, $ 약 70, $약 70
+      /(\d+(?:,\d+)*(?:\.\d+)?)\s*\$/i,                     // 100$
+      /달러\s*(?:약\s*)?(\d+(?:,\d+)*(?:\.\d+)?)/i,         // 달러 100, 달러 약 70
+      /(?:약\s*)?(\d+(?:,\d+)*(?:\.\d+)?)\s*달러/i,         // 100달러, 약 100달러
+      /USD\s*(?:약\s*)?(\d+(?:,\d+)*(?:\.\d+)?)/i,          // USD 100, USD 약 70
+      /(?:약\s*)?(\d+(?:,\d+)*(?:\.\d+)?)\s*USD/i,          // 100 USD, 약 100 USD
+      /usd\s*(?:약\s*)?(\d+(?:,\d+)*(?:\.\d+)?)/i,          // usd 100, usd 약 70
+      /(?:약\s*)?(\d+(?:,\d+)*(?:\.\d+)?)\s*usd/i,          // 100 usd, 약 100 usd
+      /dollar\s*(?:약\s*)?(\d+(?:,\d+)*(?:\.\d+)?)/i,       // dollar 100, dollar 약 70
+      /(?:약\s*)?(\d+(?:,\d+)*(?:\.\d+)?)\s*dollar/i,       // 100 dollar, 약 100 dollar
+    ];
+
+    for (const pattern of dollarPatterns) {
+      const match = trimmed.match(pattern);
+      if (match) {
+        const dollarAmount = parseFloat(match[1].replace(/,/g, ''));
+        if (!isNaN(dollarAmount)) {
+          return Math.round(dollarAmount * exchangeRate);
+        }
+      }
+    }
+
+    // USD 패턴도 없고 원화가 있으면 원화 파싱 (괄호 안 포함)
+    if (trimmed.includes('원')) {
+      // 전체 문자열에서 원화 금액 추출 (괄호 안 포함)
+      const wonMatch = trimmed.match(/(\d[\d,]*(?:\.\d+)?(?:[만천백십억]+)?)\s*원/);
+      if (wonMatch) {
+        trimmed = wonMatch[0];  // "100,000원" 또는 "50만원" 형태로 추출
+      }
+    }
+  }
 
   // 이미 숫자인 경우 (쉼표 제거)
   const numericValue = Number(trimmed.replace(/,/g, ''));

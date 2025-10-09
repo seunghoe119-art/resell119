@@ -5,6 +5,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { formatAdditionalInfo } from "@/lib/formatAdditionalInfo";
+import { parseKoreanPrice } from "@/lib/parseKoreanPrice";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface FormData {
   productName: string;
@@ -21,6 +24,7 @@ interface FormData {
   transactionMethods: string[];
   directLocation: string;
   negotiable: string;
+  deliveryFee: string;
 }
 
 interface PreviewPaneProps {
@@ -45,8 +49,43 @@ export default function PreviewPane({
   isMerging
 }: PreviewPaneProps) {
   const { toast } = useToast();
+  const [generatedTitles, setGeneratedTitles] = useState<string[]>([]);
 
   const additionalInfoPreview = formatAdditionalInfo(formData);
+
+  const generateTitlesMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/generate-titles", {
+        productName: formData.productName,
+        brand: formData.brand,
+        condition: formData.condition,
+        features: formData.features,
+        aiDraft: aiDraft,
+      });
+    },
+    onSuccess: (data: any) => {
+      if (data.titles && Array.isArray(data.titles)) {
+        setGeneratedTitles(data.titles);
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "제목 생성 실패",
+        description: error.message || "제목 생성에 실패했습니다. 다시 시도해주세요",
+        variant: "destructive",
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (aiDraft && aiDraft.trim()) {
+      generateTitlesMutation.mutate();
+    } else {
+      setGeneratedTitles([]);
+    }
+  }, [aiDraft]);
+
+  const parsedPrice = formData.sellingPrice ? parseKoreanPrice(formData.sellingPrice) : null;
 
   const handleCopyAiDraft = async () => {
     if (!aiDraft) {
@@ -123,10 +162,101 @@ export default function PreviewPane({
     }
   };
 
+  const handleCopyTitle = async (title: string) => {
+    try {
+      await navigator.clipboard.writeText(title);
+      toast({
+        title: "복사 완료",
+        description: "제목이 클립보드에 복사되었습니다.",
+      });
+    } catch (error) {
+      toast({
+        title: "복사 실패",
+        description: "다시 시도해주세요.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopyPrice = async () => {
+    if (!parsedPrice) {
+      toast({
+        title: "복사할 가격이 없습니다",
+        description: "판매 희망가를 입력해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(parsedPrice.toLocaleString());
+      toast({
+        title: "복사 완료",
+        description: "가격이 클립보드에 복사되었습니다.",
+      });
+    } catch (error) {
+      toast({
+        title: "복사 실패",
+        description: "다시 시도해주세요.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const hasAdditionalInfo = additionalInfoPreview !== "입력한 추가 정보가 여기에 실시간으로 반영됩니다";
 
   return (
     <div className="flex flex-col space-y-6">
+      {/* 제목 미리보기 */}
+      {generatedTitles.length > 0 && (
+        <Card data-testid="card-title-preview">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">제목 미리보기</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {generatedTitles.map((title, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <div className="flex-1 p-3 bg-muted/50 rounded-md text-sm" data-testid={`text-title-${index}`}>
+                  {title}
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleCopyTitle(title)}
+                  data-testid={`button-copy-title-${index}`}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 가격 표시 */}
+      {parsedPrice && (
+        <Card data-testid="card-price-display">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">가격</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 p-3 bg-muted/50 rounded-md text-sm font-mono" data-testid="text-price">
+                {parsedPrice.toLocaleString()}원
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleCopyPrice}
+                data-testid="button-copy-price"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* AI 초안 미리보기 */}
       <Card data-testid="card-ai-draft-preview">
         <CardHeader>
