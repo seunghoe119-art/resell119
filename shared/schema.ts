@@ -1,4 +1,3 @@
-
 import { sql } from "drizzle-orm";
 import { pgTable, text, uuid, timestamp, integer, date, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -33,3 +32,23 @@ export const insertPostSchema = createInsertSchema(posts).omit({
 
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type Post = typeof posts.$inferSelect;
+
+export interface FormData {
+  productName: string;
+  brand: string;
+  purchaseDate: string;
+  usageCount: string | number;
+  condition: string;
+  conditionNote: string;
+  baseItems: string[];
+  extraItems: string[];
+  features: string[];
+  purchasePrice: string | number;
+  askingPrice: string | number;
+  tradeTypes: string[];
+  tradeArea: string;
+  nego: string;
+  aiDraft?: string;
+  pendingDraft?: string;
+  finalDraft?: string;
+}

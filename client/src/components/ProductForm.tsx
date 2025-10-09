@@ -172,8 +172,7 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                 id="purchaseDate"
                 data-testid="input-purchase-date"
                 type="text"
-                inputMode="numeric"
-                placeholder="예: 20240212 또는 202402"
+                placeholder="예: 2024년 2월 12일 또는 자유 입력"
                 value={formData.purchaseDate}
                 onChange={(e) => handleChange("purchaseDate", e.target.value)}
                 className="flex-1"
@@ -205,9 +204,9 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                 id="usageCount"
                 data-testid="input-usage-count"
                 type="text"
-                placeholder="예: 100회"
+                placeholder="예: 100회 또는 자유 입력"
                 value={formData.usageCount?.toString() || ""}
-                onChange={(e) => handleChange("usageCount", parseInt(e.target.value, 10) || 0)}
+                onChange={(e) => handleChange("usageCount", e.target.value)}
                 className="flex-1"
               />
               <Button
@@ -369,12 +368,9 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                   id="purchasePrice"
                   data-testid="input-purchase-price"
                   type="text"
-                  placeholder="500000"
+                  placeholder="예: 500000 또는 자유 입력"
                   value={formData.purchasePrice?.toString() || ""}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value, 10);
-                    handleChange("purchasePrice", isNaN(value) ? 0 : value);
-                  }}
+                  onChange={(e) => handleChange("purchasePrice", e.target.value)}
                   className="flex-1"
                 />
                 <Button
@@ -399,12 +395,9 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                   id="askingPrice"
                   data-testid="input-asking-price"
                   type="text"
-                  placeholder="350000"
+                  placeholder="예: 350000 또는 자유 입력"
                   value={formData.askingPrice?.toString() || ""}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value, 10);
-                    handleChange("askingPrice", isNaN(value) ? 0 : value);
-                  }}
+                  onChange={(e) => handleChange("askingPrice", e.target.value)}
                   className="flex-1"
                 />
                 <Button
