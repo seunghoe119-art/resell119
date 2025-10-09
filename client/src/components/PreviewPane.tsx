@@ -13,18 +13,17 @@ interface FormData {
   productName: string;
   brand: string;
   purchaseDate: string;
-  usageCount: string;
+  usageCount: number;
   condition: string;
-  additionalDescription: string;
-  basicAccessories: string[];
-  otherAccessories: string;
-  features: string;
-  originalPrice: string;
-  sellingPrice: string;
-  transactionMethods: string[];
-  directLocation: string;
-  negotiable: string;
-  deliveryFee: string;
+  conditionNote: string;
+  baseItems: string[];
+  extraItems: string[];
+  features: string[];
+  purchasePrice: number;
+  askingPrice: number;
+  tradeTypes: string[];
+  tradeArea: string;
+  nego: string;
 }
 
 interface PreviewPaneProps {
@@ -85,7 +84,7 @@ export default function PreviewPane({
     }
   }, [aiDraft]);
 
-  const parsedPrice = formData.sellingPrice ? parseKoreanPrice(formData.sellingPrice) : null;
+  const parsedPrice = formData.askingPrice ? parseKoreanPrice(formData.askingPrice.toString()) : null;
 
   const handleCopyAiDraft = async () => {
     if (!aiDraft) {
@@ -339,30 +338,31 @@ export default function PreviewPane({
               className="min-h-[300px] font-mono text-sm leading-relaxed resize-none"
               data-testid="text-final-preview"
             />
-            <div className="flex gap-3">
-              <Button
-                variant="default"
-                className="flex-1"
-                onClick={handleCopyMerged}
-                data-testid="button-copy-final"
-              >
-                <Copy className="h-4 w-4 mr-2" />
-                복사하기
-              </Button>
-              <Button
-                variant="default"
-                className="flex-1"
-                onClick={onSave}
-                disabled={isSaving}
-                data-testid="button-save-final"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {isSaving ? "저장 중..." : "저장하기"}
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              onClick={handleCopyMerged}
+              data-testid="button-copy-final"
+              className="w-full"
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              복사하기
+            </Button>
           </CardContent>
         </Card>
       )}
+
+      {/* 저장 버튼 */}
+      <Button
+        variant="default"
+        size="lg"
+        onClick={onSave}
+        disabled={isSaving || !aiDraft}
+        data-testid="button-save"
+        className="w-full"
+      >
+        <Save className="h-4 w-4 mr-2" />
+        {isSaving ? "저장 중..." : "저장하기"}
+      </Button>
 
       {/* 초기화 버튼 */}
       <Button

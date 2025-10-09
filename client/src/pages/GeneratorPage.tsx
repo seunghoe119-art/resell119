@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import Navigation from "@/components/Navigation";
+import ProductForm from "@/components/ProductForm";
 import PreviewPane from "@/components/PreviewPane";
 import AiDraftForm from "@/components/AiDraftForm";
 import { useToast } from "@/hooks/use-toast";
@@ -22,18 +23,17 @@ export default function GeneratorPage() {
     productName: "",
     brand: "",
     purchaseDate: "",
-    usageCount: "",
+    usageCount: 0,
     condition: "",
-    additionalDescription: "",
-    basicAccessories: [] as string[],
-    otherAccessories: "",
-    features: "",
-    originalPrice: "",
-    sellingPrice: "",
-    transactionMethods: [] as string[],
-    directLocation: "",
-    negotiable: "",
-    deliveryFee: "",
+    conditionNote: "",
+    baseItems: [] as string[],
+    extraItems: [] as string[],
+    features: [] as string[],
+    purchasePrice: 0,
+    askingPrice: 0,
+    tradeTypes: [] as string[],
+    tradeArea: "",
+    nego: "",
   });
 
   const { data: loadedPost } = useQuery<Post>({
@@ -47,24 +47,23 @@ export default function GeneratorPage() {
         productName: loadedPost.productName || "",
         brand: loadedPost.brand || "",
         purchaseDate: loadedPost.purchaseDate || "",
-        usageCount: loadedPost.usageCount?.toString() || "",
+        usageCount: loadedPost.usageCount || 0,
         condition: loadedPost.condition || "",
-        additionalDescription: loadedPost.additionalDescription || "",
-        basicAccessories: loadedPost.basicAccessories || [],
-        otherAccessories: loadedPost.otherAccessories || "",
-        features: loadedPost.features || "",
-        originalPrice: loadedPost.originalPrice?.toString() || "",
-        sellingPrice: loadedPost.sellingPrice?.toString() || "",
-        transactionMethods: loadedPost.transactionMethods || [],
-        directLocation: loadedPost.directLocation || "",
-        negotiable: loadedPost.negotiable || "",
-        deliveryFee: "",
+        conditionNote: loadedPost.conditionNote || "",
+        baseItems: loadedPost.baseItems || [],
+        extraItems: loadedPost.extraItems || [],
+        features: loadedPost.features || [],
+        purchasePrice: loadedPost.purchasePrice || 0,
+        askingPrice: loadedPost.askingPrice || 0,
+        tradeTypes: loadedPost.tradeTypes || [],
+        tradeArea: loadedPost.tradeArea || "",
+        nego: loadedPost.nego || "",
       });
       if (loadedPost.productName && loadedPost.productName !== "AI 생성 판매글") {
         setBriefDescription(loadedPost.productName);
       }
-      if (loadedPost.additionalDescription) {
-        setAiDraft(loadedPost.additionalDescription);
+      if (loadedPost.aiDraft) {
+        setAiDraft(loadedPost.aiDraft);
       }
     }
   }, [loadedPost]);
@@ -75,17 +74,20 @@ export default function GeneratorPage() {
         productName: briefDescription || formData.productName || "AI 생성 판매글",
         brand: formData.brand || null,
         purchaseDate: formData.purchaseDate || null,
-        usageCount: formData.usageCount ? parseInt(formData.usageCount) : null,
+        usageCount: formData.usageCount || null,
         condition: formData.condition || null,
-        additionalDescription: mergedContent || aiDraft || formData.additionalDescription || null,
-        basicAccessories: formData.basicAccessories.length > 0 ? formData.basicAccessories : null,
-        otherAccessories: formData.otherAccessories || null,
-        features: formData.features || null,
-        originalPrice: formData.originalPrice || null,
-        sellingPrice: formData.sellingPrice || null,
-        transactionMethods: formData.transactionMethods.length > 0 ? formData.transactionMethods : null,
-        directLocation: formData.directLocation || null,
-        negotiable: formData.negotiable || null,
+        conditionNote: formData.conditionNote || null,
+        baseItems: formData.baseItems.length > 0 ? formData.baseItems : null,
+        extraItems: formData.extraItems.length > 0 ? formData.extraItems : null,
+        features: formData.features.length > 0 ? formData.features : null,
+        purchasePrice: formData.purchasePrice || null,
+        askingPrice: formData.askingPrice || null,
+        tradeTypes: formData.tradeTypes.length > 0 ? formData.tradeTypes : null,
+        tradeArea: formData.tradeArea || null,
+        nego: formData.nego || null,
+        aiDraft: mergedContent || aiDraft || null,
+        pendingDraft: null,
+        finalDraft: null,
       };
 
       if (postId) {
@@ -115,18 +117,17 @@ export default function GeneratorPage() {
       productName: "",
       brand: "",
       purchaseDate: "",
-      usageCount: "",
+      usageCount: 0,
       condition: "",
-      additionalDescription: "",
-      basicAccessories: [],
-      otherAccessories: "",
-      features: "",
-      originalPrice: "",
-      sellingPrice: "",
-      transactionMethods: [],
-      directLocation: "",
-      negotiable: "",
-      deliveryFee: "",
+      conditionNote: "",
+      baseItems: [],
+      extraItems: [],
+      features: [],
+      purchasePrice: 0,
+      askingPrice: 0,
+      tradeTypes: [],
+      tradeArea: "",
+      nego: "",
     });
     setAiDraft("");
     setMergedContent("");
@@ -193,18 +194,31 @@ export default function GeneratorPage() {
             />
           </div>
 
-          {/* Desktop Preview */}
-          <div className="hidden lg:block">
-            <PreviewPane
-              formData={formData}
-              aiDraft={aiDraft}
-              mergedContent={mergedContent}
-              onSave={() => saveMutation.mutate()}
-              onReset={handleReset}
-              onMerge={() => mergeMutation.mutate()}
-              isSaving={saveMutation.isPending}
-              isMerging={mergeMutation.isPending}
-            />
+          {/* Two Column Layout for Form and Preview (Desktop) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Column - Product Form */}
+            <div>
+              <ProductForm 
+                formData={formData} 
+                onChange={setFormData}
+                aiPreview={aiDraft}
+                onPreviewUpdate={setAiDraft}
+              />
+            </div>
+
+            {/* Right Column - Preview (Desktop only) */}
+            <div className="hidden lg:block lg:sticky lg:top-24 lg:h-fit">
+              <PreviewPane
+                formData={formData}
+                aiDraft={aiDraft}
+                mergedContent={mergedContent}
+                onSave={() => saveMutation.mutate()}
+                onReset={handleReset}
+                onMerge={() => mergeMutation.mutate()}
+                isSaving={saveMutation.isPending}
+                isMerging={mergeMutation.isPending}
+              />
+            </div>
           </div>
         </div>
       </div>
