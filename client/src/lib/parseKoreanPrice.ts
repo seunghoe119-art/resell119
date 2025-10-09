@@ -61,6 +61,17 @@ export function parseKoreanPrice(input: string, exchangeRate: number = 1450): nu
     return 1000;
   }
 
+  // 한국어 단축어 처리 (ㅁㅇ = 만원, ㅊㅇ = 천원)
+  // 예: "125ㅁㅇ" -> "125만원", "5ㅊㅇ" -> "5천원"
+  let processedInput = trimmed;
+  processedInput = processedInput.replace(/ㅁㅇ/g, '만원');
+  processedInput = processedInput.replace(/ㅊㅇ/g, '천원');
+  
+  if (processedInput !== trimmed) {
+    // 단축어가 변환되었으면 재귀 호출
+    return parseKoreanPrice(processedInput, exchangeRate);
+  }
+
   // 아라비아 숫자 + 한글 단위 조합 처리 (예: "3천원", "50만원", "3천5백원")
   let text = trimmed.replace(/원$/, '');
   
