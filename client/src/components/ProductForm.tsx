@@ -35,9 +35,9 @@ interface FormData {
   usageCount: number;
   condition: string;
   conditionNote: string;
-  baseItems: string[];
-  extraItems: string[];
-  features: string[];
+  baseItems: string | string[];
+  extraItems: string | string[];
+  features: string | string[];
   purchasePrice: number;
   askingPrice: number;
   tradeTypes: string[];
@@ -259,18 +259,15 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
         <div className="space-y-2">
           <Label htmlFor="baseItems">기본 구성품</Label>
           <div className="flex gap-2">
-            <Input
+            <Textarea
               id="baseItems"
               data-testid="input-base-items"
               placeholder="예: 본체, 제품 박스, 충전기, 케이블"
-              value={formData.baseItems?.join(", ") || ""}
+              value={Array.isArray(formData.baseItems) ? formData.baseItems.join(", ") : formData.baseItems || ""}
               onChange={(e) => {
-                const items = e.target.value
-                  .split(",")
-                  .map(item => item.trim())
-                  .filter(item => item !== "");
-                handleChange("baseItems", items);
+                handleChange("baseItems", e.target.value);
               }}
+              rows={2}
               className="flex-1"
             />
             <Button
@@ -278,12 +275,12 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               variant="destructive"
               data-testid="button-add-base-items"
               onClick={() => {
-                if (formData.baseItems && formData.baseItems.length > 0) {
-                  handleChange("baseItems", []);
+                if (formData.baseItems && (Array.isArray(formData.baseItems) ? formData.baseItems.length > 0 : formData.baseItems)) {
+                  handleChange("baseItems", "");
                 }
               }}
             >
-              {formData.baseItems && formData.baseItems.length > 0 ? "삭제" : "추가"}
+              {formData.baseItems && (Array.isArray(formData.baseItems) ? formData.baseItems.length > 0 : formData.baseItems) ? "삭제" : "추가"}
             </Button>
           </div>
         </div>
@@ -291,18 +288,15 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
         <div className="space-y-2">
           <Label htmlFor="extraItems">별도로 구입한 구성품</Label>
           <div className="flex gap-2">
-            <Input
+            <Textarea
               id="extraItems"
               data-testid="input-extra-items"
               placeholder="예: 보호필름, 케이스"
-              value={formData.extraItems?.join(", ") || ""}
+              value={Array.isArray(formData.extraItems) ? formData.extraItems.join(", ") : formData.extraItems || ""}
               onChange={(e) => {
-                const items = e.target.value
-                  .split(",")
-                  .map(item => item.trim())
-                  .filter(item => item !== "");
-                handleChange("extraItems", items);
+                handleChange("extraItems", e.target.value);
               }}
+              rows={2}
               className="flex-1"
             />
             <Button
@@ -310,12 +304,12 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               variant="destructive"
               data-testid="button-add-extra-items"
               onClick={() => {
-                if (formData.extraItems && formData.extraItems.length > 0) {
-                  handleChange("extraItems", []);
+                if (formData.extraItems && (Array.isArray(formData.extraItems) ? formData.extraItems.length > 0 : formData.extraItems)) {
+                  handleChange("extraItems", "");
                 }
               }}
             >
-              {formData.extraItems && formData.extraItems.length > 0 ? "삭제" : "추가"}
+              {formData.extraItems && (Array.isArray(formData.extraItems) ? formData.extraItems.length > 0 : formData.extraItems) ? "삭제" : "추가"}
             </Button>
           </div>
         </div>
@@ -325,18 +319,15 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
         <div className="space-y-2">
           <Label htmlFor="features">제품 특징</Label>
           <div className="flex gap-2">
-            <Input
+            <Textarea
               id="features"
               data-testid="input-features"
-              placeholder="제품의 장점을 한 줄씩 입력해주세요"
-              value={Array.isArray(formData.features) ? formData.features.join(", ") : ""}
+              placeholder="제품의 장점을 자유롭게 입력해주세요"
+              value={Array.isArray(formData.features) ? formData.features.join(", ") : formData.features || ""}
               onChange={(e) => {
-                const features = e.target.value
-                  .split(",")
-                  .map(item => item.trim())
-                  .filter(item => item !== "");
-                handleChange("features", features);
+                handleChange("features", e.target.value);
               }}
+              rows={3}
               className="flex-1"
             />
             <Button
@@ -344,12 +335,12 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               variant="destructive"
               data-testid="button-add-features"
               onClick={() => {
-                if (formData.features && formData.features.length > 0) {
-                  handleChange("features", []);
+                if (formData.features && (Array.isArray(formData.features) ? formData.features.length > 0 : formData.features)) {
+                  handleChange("features", "");
                 }
               }}
             >
-              {formData.features && formData.features.length > 0 ? "삭제" : "추가"}
+              {formData.features && (Array.isArray(formData.features) ? formData.features.length > 0 : formData.features) ? "삭제" : "추가"}
             </Button>
           </div>
         </div>

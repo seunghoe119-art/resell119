@@ -40,9 +40,9 @@ export interface FormData {
   usageCount: string | number;
   condition: string;
   conditionNote: string;
-  baseItems: string[];
-  extraItems: string[];
-  features: string[];
+  baseItems: string | string[];
+  extraItems: string | string[];
+  features: string | string[];
   purchasePrice: string | number;
   askingPrice: string | number;
   tradeTypes: string[];
