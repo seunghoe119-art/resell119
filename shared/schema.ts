@@ -1,40 +1,49 @@
+
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, timestamp, integer, date, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const posts = pgTable("posts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+export const posts = pgTable("resell_posts", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   productName: text("product_name").notNull(),
   brand: text("brand"),
-  purchaseDate: text("purchase_date"),
+  purchaseDate: date("purchase_date"),
   usageCount: integer("usage_count"),
   condition: text("condition"),
-  additionalDescription: text("additional_description"),
-  basicAccessories: text("basic_accessories").array(),
-  otherAccessories: text("other_accessories"),
-  features: text("features"),
-  originalPrice: text("original_price"),
-  sellingPrice: text("selling_price"),
-  transactionMethods: text("transaction_methods").array(),
-  directLocation: text("direct_location"),
-  negotiable: text("negotiable"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  conditionNote: text("condition_note"),
+  baseItems: text("base_items").array(),
+  extraItems: text("extra_items").array(),
+  features: text("features").array(),
+  purchasePrice: integer("purchase_price"),
+  askingPrice: integer("asking_price"),
+  tradeTypes: text("trade_types").array(),
+  tradeArea: text("trade_area"),
+  nego: text("nego"),
+  aiDraft: text("ai_draft"),
+  pendingDraft: text("pending_draft"),
+  finalDraft: text("final_draft"),
+  fields: jsonb("fields"),
 });
 
 export const insertPostSchema = createInsertSchema(posts, {
-  purchaseDate: z.string().nullable(),
+  purchaseDate: z.union([z.string(), z.date()]).nullable(),
   usageCount: z.number().nullable(),
   condition: z.string().nullable(),
-  additionalDescription: z.string().nullable(),
-  basicAccessories: z.array(z.string()).nullable(),
-  otherAccessories: z.string().nullable(),
-  features: z.string().nullable(),
-  originalPrice: z.string().nullable(),
-  sellingPrice: z.string().nullable(),
-  transactionMethods: z.array(z.string()).nullable(),
-  directLocation: z.string().nullable(),
-  negotiable: z.string().nullable(),
+  conditionNote: z.string().nullable(),
+  baseItems: z.array(z.string()).nullable(),
+  extraItems: z.array(z.string()).nullable(),
+  features: z.array(z.string()).nullable(),
+  purchasePrice: z.number().nullable(),
+  askingPrice: z.number().nullable(),
+  tradeTypes: z.array(z.string()).nullable(),
+  tradeArea: z.string().nullable(),
+  nego: z.string().nullable(),
+  aiDraft: z.string().nullable(),
+  pendingDraft: z.string().nullable(),
+  finalDraft: z.string().nullable(),
+  fields: z.any().nullable(),
 });
 
 export type InsertPost = z.infer<typeof insertPostSchema>;

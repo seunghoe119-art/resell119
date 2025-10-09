@@ -32,18 +32,20 @@ interface FormData {
   productName: string;
   brand: string;
   purchaseDate: string;
-  usageCount: string;
+  usageCount: number;
   condition: string;
-  additionalDescription: string;
-  basicAccessories: string[];
-  otherAccessories: string;
-  features: string;
-  originalPrice: string;
-  sellingPrice: string;
-  transactionMethods: string[];
-  directLocation: string;
-  negotiable: string;
-  deliveryFee: string;
+  conditionNote: string;
+  baseItems: string[];
+  extraItems: string[];
+  features: string[];
+  purchasePrice: number;
+  askingPrice: number;
+  tradeTypes: string[];
+  tradeArea: string;
+  nego: string;
+  aiDraft: string;
+  pendingDraft: string;
+  finalDraft: string;
 }
 
 interface ProductFormProps {
@@ -85,7 +87,7 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
     }
   };
 
-  const handleCheckboxChange = (field: "basicAccessories" | "transactionMethods", value: string, checked: boolean) => {
+  const handleCheckboxChange = (field: "baseItems" | "tradeTypes", value: string, checked: boolean) => {
     const current = formData[field] || [];
     const updated = checked
       ? [...current, value]
@@ -110,7 +112,7 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
     return '';
   };
 
-  const basicAccessoryOptions = ["본체", "제품 박스", "충전기", "케이블"];
+  const baseItemOptions = ["본체", "제품 박스", "충전기", "케이블"];
   const transactionOptions = ["직거래", "택배거래", "비대면거래 작전삼성홈타운"];
 
   const modifyContentMutation = useMutation({
@@ -141,15 +143,15 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
       브랜드: ${formData.brand || ''}
       구매일: ${formData.purchaseDate ? parseDateText(formData.purchaseDate) : ''}
       사용횟수: ${formData.usageCount || ''}
-      상태 설명: ${formData.additionalDescription || ''}
-      기본 구성품: ${formData.basicAccessories?.join(", ") || ''}
-      별도 구성품: ${formData.otherAccessories || ''}
-      제품 특징: ${formData.features || ''}
-      초기 구매가: ${formData.originalPrice || ''}원
-      판매 희망가: ${formData.sellingPrice || ''}원
-      거래 방식: ${formData.transactionMethods?.join(", ") || ''}
-      직거래 장소: ${formData.directLocation || ''}
-      네고 가능 여부: ${formData.negotiable || ''}
+      상태 설명: ${formData.conditionNote || ''}
+      기본 구성품: ${formData.baseItems?.join(", ") || ''}
+      별도 구성품: ${formData.extraItems?.join(", ") || ''}
+      제품 특징: ${formData.features?.join(", ") || ''}
+      초기 구매가: ${formData.purchasePrice || ''}원
+      판매 희망가: ${formData.askingPrice || ''}원
+      거래 방식: ${formData.tradeTypes?.join(", ") || ''}
+      직거래 장소: ${formData.tradeArea || ''}
+      네고 가능 여부: ${formData.nego || ''}
     `;
     modifyContentMutation.mutate(combinedContent.trim());
   };
@@ -204,8 +206,8 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                 data-testid="input-usage-count"
                 type="text"
                 placeholder="예: 100회"
-                value={formData.usageCount}
-                onChange={(e) => handleChange("usageCount", e.target.value)}
+                value={formData.usageCount.toString()}
+                onChange={(e) => handleChange("usageCount", parseInt(e.target.value, 10) || 0)}
                 className="flex-1"
               />
               <Button
@@ -213,40 +215,40 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                 variant="destructive"
                 data-testid="button-add-usage-count"
                 onClick={() => {
-                  if (formData.usageCount) {
-                    handleChange("usageCount", "");
+                  if (formData.usageCount !== 0) {
+                    handleChange("usageCount", 0);
                   }
                 }}
               >
-                {formData.usageCount ? "삭제" : "추가"}
+                {formData.usageCount !== 0 ? "삭제" : "추가"}
               </Button>
             </div>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="additionalDescription">추가 상태 설명</Label>
+          <Label htmlFor="conditionNote">추가 상태 설명</Label>
           <div className="flex gap-2">
             <Textarea
-              id="additionalDescription"
-              data-testid="textarea-additional-description"
+              id="conditionNote"
+              data-testid="textarea-condition-note"
               placeholder="제품의 상태를 자세히 설명해주세요"
-              value={formData.additionalDescription}
-              onChange={(e) => handleChange("additionalDescription", e.target.value)}
+              value={formData.conditionNote}
+              onChange={(e) => handleChange("conditionNote", e.target.value)}
               rows={3}
               className="flex-1"
             />
             <Button
               type="button"
               variant="destructive"
-              data-testid="button-add-additional-description"
+              data-testid="button-add-condition-note"
               onClick={() => {
-                if (formData.additionalDescription) {
-                  handleChange("additionalDescription", "");
+                if (formData.conditionNote) {
+                  handleChange("conditionNote", "");
                 }
               }}
             >
-              {formData.additionalDescription ? "삭제" : "추가"}
+              {formData.conditionNote ? "삭제" : "추가"}
             </Button>
           </div>
         </div>
@@ -256,59 +258,65 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
         <h3 className="text-lg font-semibold">구성품</h3>
 
         <div className="space-y-2">
-          <Label htmlFor="basicAccessories">기본 구성품</Label>
+          <Label htmlFor="baseItems">기본 구성품</Label>
           <div className="flex gap-2">
             <Input
-              id="basicAccessories"
-              data-testid="input-basic-accessories"
+              id="baseItems"
+              data-testid="input-base-items"
               placeholder="예: 본체, 제품 박스, 충전기, 케이블"
-              value={formData.basicAccessories?.join(", ") || ""}
+              value={formData.baseItems?.join(", ") || ""}
               onChange={(e) => {
-                const accessories = e.target.value
+                const items = e.target.value
                   .split(",")
                   .map(item => item.trim())
                   .filter(item => item !== "");
-                handleChange("basicAccessories", accessories);
+                handleChange("baseItems", items);
               }}
               className="flex-1"
             />
             <Button
               type="button"
               variant="destructive"
-              data-testid="button-add-basic-accessories"
+              data-testid="button-add-base-items"
               onClick={() => {
-                if (formData.basicAccessories && formData.basicAccessories.length > 0) {
-                  handleChange("basicAccessories", []);
+                if (formData.baseItems && formData.baseItems.length > 0) {
+                  handleChange("baseItems", []);
                 }
               }}
             >
-              {formData.basicAccessories && formData.basicAccessories.length > 0 ? "삭제" : "추가"}
+              {formData.baseItems && formData.baseItems.length > 0 ? "삭제" : "추가"}
             </Button>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="otherAccessories">별도로 구입한 구성품</Label>
+          <Label htmlFor="extraItems">별도로 구입한 구성품</Label>
           <div className="flex gap-2">
             <Input
-              id="otherAccessories"
-              data-testid="input-other-accessories"
+              id="extraItems"
+              data-testid="input-extra-items"
               placeholder="예: 보호필름, 케이스"
-              value={formData.otherAccessories}
-              onChange={(e) => handleChange("otherAccessories", e.target.value)}
+              value={formData.extraItems?.join(", ") || ""}
+              onChange={(e) => {
+                const items = e.target.value
+                  .split(",")
+                  .map(item => item.trim())
+                  .filter(item => item !== "");
+                handleChange("extraItems", items);
+              }}
               className="flex-1"
             />
             <Button
               type="button"
               variant="destructive"
-              data-testid="button-add-other-accessories"
+              data-testid="button-add-extra-items"
               onClick={() => {
-                if (formData.otherAccessories) {
-                  handleChange("otherAccessories", "");
+                if (formData.extraItems && formData.extraItems.length > 0) {
+                  handleChange("extraItems", []);
                 }
               }}
             >
-              {formData.otherAccessories ? "삭제" : "추가"}
+              {formData.extraItems && formData.extraItems.length > 0 ? "삭제" : "추가"}
             </Button>
           </div>
         </div>
@@ -318,13 +326,18 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
         <div className="space-y-2">
           <Label htmlFor="features">제품 특징</Label>
           <div className="flex gap-2">
-            <Textarea
+            <Input
               id="features"
-              data-testid="textarea-features"
+              data-testid="input-features"
               placeholder="제품의 장점을 한 줄씩 입력해주세요"
-              value={formData.features}
-              onChange={(e) => handleChange("features", e.target.value)}
-              rows={4}
+              value={formData.features?.join(", ") || ""}
+              onChange={(e) => {
+                const features = e.target.value
+                  .split(",")
+                  .map(item => item.trim())
+                  .filter(item => item !== "");
+                handleChange("features", features);
+              }}
               className="flex-1"
             />
             <Button
@@ -332,12 +345,12 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               variant="destructive"
               data-testid="button-add-features"
               onClick={() => {
-                if (formData.features) {
-                  handleChange("features", "");
+                if (formData.features && formData.features.length > 0) {
+                  handleChange("features", []);
                 }
               }}
             >
-              {formData.features ? "삭제" : "추가"}
+              {formData.features && formData.features.length > 0 ? "삭제" : "추가"}
             </Button>
           </div>
         </div>
@@ -350,75 +363,61 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="originalPrice">초기 구매가 (원)</Label>
+              <Label htmlFor="purchasePrice">초기 구매가 (원)</Label>
               <div className="flex gap-2">
                 <Input
-                  id="originalPrice"
-                  data-testid="input-original-price"
+                  id="purchasePrice"
+                  data-testid="input-purchase-price"
                   type="text"
-                  placeholder="500000 또는 만원/ㅁㅇ, 천원/ㅊㅇ"
-                  value={formData.originalPrice}
+                  placeholder="500000"
+                  value={formData.purchasePrice.toString()}
                   onChange={(e) => {
-                    let value = e.target.value;
-                    // ㅁㅇ 또는 ㅊㅇ이 포함되어 있으면 자동 변환
-                    if (value.includes('ㅁㅇ')) {
-                      value = value.replace(/ㅁㅇ/g, '만원');
-                    }
-                    if (value.includes('ㅊㅇ')) {
-                      value = value.replace(/ㅊㅇ/g, '천원');
-                    }
-                    handleChange("originalPrice", value);
+                    const value = parseInt(e.target.value, 10);
+                    handleChange("purchasePrice", isNaN(value) ? 0 : value);
                   }}
                   className="flex-1"
                 />
                 <Button
                   type="button"
                   variant="destructive"
-                  data-testid="button-add-original-price"
+                  data-testid="button-add-purchase-price"
                   onClick={() => {
-                    if (formData.originalPrice) {
-                      handleChange("originalPrice", "");
+                    if (formData.purchasePrice !== 0) {
+                      handleChange("purchasePrice", 0);
                     }
                   }}
                 >
-                  {formData.originalPrice ? "삭제" : "추가"}
+                  {formData.purchasePrice !== 0 ? "삭제" : "추가"}
                 </Button>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sellingPrice">판매 희망가 (원)</Label>
+              <Label htmlFor="askingPrice">판매 희망가 (원)</Label>
               <div className="flex gap-2">
                 <Input
-                  id="sellingPrice"
-                  data-testid="input-selling-price"
+                  id="askingPrice"
+                  data-testid="input-asking-price"
                   type="text"
-                  placeholder="350000 또는 만원/ㅁㅇ, 천원/ㅊㅇ"
-                  value={formData.sellingPrice}
+                  placeholder="350000"
+                  value={formData.askingPrice.toString()}
                   onChange={(e) => {
-                    let value = e.target.value;
-                    // ㅁㅇ 또는 ㅊㅇ이 포함되어 있으면 자동 변환
-                    if (value.includes('ㅁㅇ')) {
-                      value = value.replace(/ㅁㅇ/g, '만원');
-                    }
-                    if (value.includes('ㅊㅇ')) {
-                      value = value.replace(/ㅊㅇ/g, '천원');
-                    }
-                    handleChange("sellingPrice", value);
+                    const value = parseInt(e.target.value, 10);
+                    handleChange("askingPrice", isNaN(value) ? 0 : value);
                   }}
                   className="flex-1"
                 />
                 <Button
                   type="button"
                   variant="destructive"
-                  data-testid="button-add-selling-price"
+                  data-testid="button-add-asking-price"
                   onClick={() => {
-                    if (formData.sellingPrice) {
-                      handleChange("sellingPrice", "");
+                    if (formData.askingPrice !== 0) {
+                      handleChange("askingPrice", 0);
                     }
                   }}
                 >
-                  {formData.sellingPrice ? "삭제" : "추가"}
+                  {formData.askingPrice !== 0 ? "삭제" : "추가"}
                 </Button>
               </div>
             </div>
@@ -437,9 +436,9 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                 <Checkbox
                   id={`transaction-${item}`}
                   data-testid={`checkbox-transaction-${item}`}
-                  checked={formData.transactionMethods?.includes(item)}
+                  checked={formData.tradeTypes?.includes(item)}
                   onCheckedChange={(checked) =>
-                    handleCheckboxChange("transactionMethods", item, checked as boolean)
+                    handleCheckboxChange("tradeTypes", item, checked as boolean)
                   }
                 />
                 <Label htmlFor={`transaction-${item}`} className="font-normal cursor-pointer">
@@ -454,10 +453,10 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               variant="destructive"
               data-testid="button-add-transaction"
               onClick={() => {
-                if (formData.transactionMethods && formData.transactionMethods.length > 0) {
-                  handleChange("transactionMethods", []);
+                if (formData.tradeTypes && formData.tradeTypes.length > 0) {
+                  handleChange("tradeTypes", []);
                 } else {
-                  handleChange("transactionMethods", transactionOptions);
+                  handleChange("tradeTypes", transactionOptions);
                   handleAddAllInfo();
                 }
               }}
@@ -466,7 +465,7 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
             >
               {modifyContentMutation.isPending 
                 ? "수정 중..." 
-                : (formData.transactionMethods && formData.transactionMethods.length > 0 ? "삭제" : "추가")}
+                : (formData.tradeTypes && formData.tradeTypes.length > 0 ? "삭제" : "추가")}
             </Button>
           </div>
         </div>
@@ -479,13 +478,13 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                 <Checkbox
                   id={`area-${area}`}
                   data-testid={`checkbox-area-${area}`}
-                  checked={formData.directLocation?.includes(area)}
+                  checked={formData.tradeArea?.includes(area)}
                   onCheckedChange={(checked) => {
-                    const currentAreas = formData.directLocation?.split(", ").filter(a => a.trim()) || [];
+                    const currentAreas = formData.tradeArea?.split(", ").filter(a => a.trim()) || [];
                     const updatedAreas = checked
                       ? [...currentAreas, area]
                       : currentAreas.filter(a => a !== area);
-                    handleChange("directLocation", updatedAreas.join(", "));
+                    handleChange("tradeArea", updatedAreas.join(", "));
                   }}
                 />
                 <Label htmlFor={`area-${area}`} className="font-normal cursor-pointer">
@@ -500,25 +499,25 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               variant="destructive"
               data-testid="button-add-default-areas"
               onClick={() => {
-                if (formData.directLocation) {
-                  handleChange("directLocation", "");
+                if (formData.tradeArea) {
+                  handleChange("tradeArea", "");
                 } else {
                   const defaultAreas = ["인천 서구", "계양", "부천", "강서", "목동"];
-                  handleChange("directLocation", defaultAreas.join(", "));
+                  handleChange("tradeArea", defaultAreas.join(", "));
                 }
               }}
               className="w-full"
             >
-              {formData.directLocation ? "삭제" : "추가"}
+              {formData.tradeArea ? "삭제" : "추가"}
             </Button>
           </div>
         </div>
 
         <div className="space-y-3">
-          <Label>전화번호 추가</Label>
+          <Label>네고 가능 여부</Label>
           <RadioGroup
-            value={formData.negotiable}
-            onValueChange={(value) => handleChange("negotiable", value)}
+            value={formData.nego}
+            onValueChange={(value) => handleChange("nego", value)}
           >
             <div className="flex items-center gap-2">
               <RadioGroupItem value="전화번호 010-6441-8743" id="phone-1" data-testid="radio-phone-1" />
@@ -542,12 +541,12 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               <Checkbox
                 id="delivery-included"
                 data-testid="checkbox-delivery-included"
-                checked={formData.deliveryFee === "택배비 포함"}
+                checked={formData.nego === "택배비 포함"}
                 onCheckedChange={(checked) => {
                   if (checked) {
-                    handleChange("deliveryFee", "택배비 포함");
+                    handleChange("nego", "택배비 포함");
                   } else {
-                    handleChange("deliveryFee", "");
+                    handleChange("nego", "");
                   }
                 }}
               />
@@ -559,20 +558,20 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               <Checkbox
                 id="delivery-4500"
                 data-testid="checkbox-delivery-4500"
-                checked={formData.deliveryFee?.includes("택배비 4500원") || false}
+                checked={formData.nego?.includes("택배비 4500원") || false}
                 onCheckedChange={(checked) => {
-                  const current = formData.deliveryFee || "";
+                  const current = formData.nego || "";
                   const fees = current.split(", ").filter(f => f.trim() && f !== "택배비 포함");
-                  
+
                   if (checked) {
                     const updated = [...fees, "택배비 4500원"];
-                    handleChange("deliveryFee", updated.join(", "));
+                    handleChange("nego", updated.join(", "));
                   } else {
                     const updated = fees.filter(f => f !== "택배비 4500원");
-                    handleChange("deliveryFee", updated.join(", "));
+                    handleChange("nego", updated.join(", "));
                   }
                 }}
-                disabled={formData.deliveryFee === "택배비 포함"}
+                disabled={formData.nego === "택배비 포함"}
               />
               <Label htmlFor="delivery-4500" className="font-normal cursor-pointer">
                 택배비 4500원
@@ -582,20 +581,20 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               <Checkbox
                 id="delivery-2200"
                 data-testid="checkbox-delivery-2200"
-                checked={formData.deliveryFee?.includes("반값택배 2200원") || false}
+                checked={formData.nego?.includes("반값택배 2200원") || false}
                 onCheckedChange={(checked) => {
-                  const current = formData.deliveryFee || "";
+                  const current = formData.nego || "";
                   const fees = current.split(", ").filter(f => f.trim() && f !== "택배비 포함");
-                  
+
                   if (checked) {
                     const updated = [...fees, "반값택배 2200원"];
-                    handleChange("deliveryFee", updated.join(", "));
+                    handleChange("nego", updated.join(", "));
                   } else {
                     const updated = fees.filter(f => f !== "반값택배 2200원");
-                    handleChange("deliveryFee", updated.join(", "));
+                    handleChange("nego", updated.join(", "));
                   }
                 }}
-                disabled={formData.deliveryFee === "택배비 포함"}
+                disabled={formData.nego === "택배비 포함"}
               />
               <Label htmlFor="delivery-2200" className="font-normal cursor-pointer">
                 반값택배 2200원
