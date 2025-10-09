@@ -61,6 +61,9 @@ export default function GeneratorPage() {
         negotiable: loadedPost.negotiable || "",
         deliveryFee: "",
       });
+      if (loadedPost.productName && loadedPost.productName !== "AI 생성 판매글") {
+        setBriefDescription(loadedPost.productName);
+      }
       if (loadedPost.additionalDescription) {
         setAiDraft(loadedPost.additionalDescription);
       }
@@ -172,6 +175,7 @@ export default function GeneratorPage() {
         <div className="space-y-8">
           {/* AI Draft Form */}
           <AiDraftForm 
+            briefDescription={briefDescription}
             onPreviewUpdate={setAiDraft}
             onBriefDescriptionChange={setBriefDescription}
           />

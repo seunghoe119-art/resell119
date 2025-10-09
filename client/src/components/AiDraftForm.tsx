@@ -9,16 +9,15 @@ import { useToast } from "@/hooks/use-toast";
 
 interface AiDraftFormProps {
   onPreviewUpdate: (preview: string) => void;
+  briefDescription?: string;
   onBriefDescriptionChange?: (description: string) => void;
 }
 
-export default function AiDraftForm({ onPreviewUpdate, onBriefDescriptionChange }: AiDraftFormProps) {
-  const [briefDescription, setBriefDescription] = useState("");
+export default function AiDraftForm({ onPreviewUpdate, briefDescription = "", onBriefDescriptionChange }: AiDraftFormProps) {
   const [generatedContent, setGeneratedContent] = useState("");
   const { toast } = useToast();
 
   const handleDescriptionChange = (value: string) => {
-    setBriefDescription(value);
     if (onBriefDescriptionChange) {
       onBriefDescriptionChange(value);
     }
@@ -52,7 +51,7 @@ export default function AiDraftForm({ onPreviewUpdate, onBriefDescriptionChange 
   });
 
   const handleGenerate = () => {
-    if (briefDescription.trim().length > 5) {
+    if (briefDescription && briefDescription.trim().length > 5) {
       generateMutation.mutate(briefDescription);
     }
   };
@@ -95,7 +94,7 @@ export default function AiDraftForm({ onPreviewUpdate, onBriefDescriptionChange 
       return;
     }
 
-    if (briefDescription.trim().length === 0) {
+    if (!briefDescription || briefDescription.trim().length === 0) {
       toast({
         title: "추가 정보를 입력해주세요",
         description: "제품 정보 입력란에 추가할 내용을 입력해주세요.",
@@ -162,7 +161,7 @@ export default function AiDraftForm({ onPreviewUpdate, onBriefDescriptionChange 
               data-testid="button-generate-ai-draft"
               onClick={handleGenerate}
               className="flex-1"
-              disabled={briefDescription.trim().length <= 5 || generateMutation.isPending}
+              disabled={!briefDescription || briefDescription.trim().length <= 5 || generateMutation.isPending}
             >
               {generateMutation.isPending ? (
                 <>
@@ -180,7 +179,7 @@ export default function AiDraftForm({ onPreviewUpdate, onBriefDescriptionChange 
               data-testid="button-continue-ai-content"
               variant="outline"
               onClick={handleContinue}
-              disabled={!generatedContent || briefDescription.trim().length === 0 || continueMutation.isPending}
+              disabled={!generatedContent || !briefDescription || briefDescription.trim().length === 0 || continueMutation.isPending}
             >
               {continueMutation.isPending ? (
                 <>
