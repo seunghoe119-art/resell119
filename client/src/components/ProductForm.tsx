@@ -43,9 +43,9 @@ interface FormData {
   tradeTypes: string[];
   tradeArea: string;
   nego: string;
-  aiDraft: string;
-  pendingDraft: string;
-  finalDraft: string;
+  aiDraft?: string;
+  pendingDraft?: string;
+  finalDraft?: string;
 }
 
 interface ProductFormProps {
@@ -330,7 +330,7 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               id="features"
               data-testid="input-features"
               placeholder="제품의 장점을 한 줄씩 입력해주세요"
-              value={formData.features?.join(", ") || ""}
+              value={Array.isArray(formData.features) ? formData.features.join(", ") : ""}
               onChange={(e) => {
                 const features = e.target.value
                   .split(",")
