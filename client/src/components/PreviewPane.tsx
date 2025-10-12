@@ -1,10 +1,17 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Copy, RotateCcw, Save, Sparkles } from "lucide-react";
+import { Copy, RotateCcw, Save, Sparkles, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { formatAdditionalInfo } from "@/lib/formatAdditionalInfo";
 import { parseKoreanPrice } from "@/lib/parseKoreanPrice";
 import { useMutation } from "@tanstack/react-query";
@@ -37,6 +44,8 @@ export default function PreviewPane({
   const [editableAiDraft, setEditableAiDraft] = useState("");
   const [editableAdditionalInfo, setEditableAdditionalInfo] = useState("");
   const [editableMergedContent, setEditableMergedContent] = useState("");
+  const [showToneDialog, setShowToneDialog] = useState(false);
+  const [transformedContent, setTransformedContent] = useState("");
 
   const additionalInfoPreview = formatAdditionalInfo(formData);
 
@@ -64,6 +73,51 @@ export default function PreviewPane({
     },
   });
 
+  const transformToneMutation = useMutation({
+    mutationFn: async (toneType: string) => {
+      return apiRequest("POST", "/api/transform-tone", {
+        content: editableMergedContent,
+        toneType: toneType,
+      });
+    },
+    onSuccess: (data: any) => {
+      if (data.transformedContent) {
+        setTransformedContent(data.transformedContent);
+        toast({
+          title: "말투 변환 완료",
+          description: "선택한 스타일로 변환되었습니다.",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "말투 변환 실패",
+        description: error.message ?? error.error ?? "말투 변환에 실패했습니다. 다시 시도해주세요",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleToneTransform = (toneType: string) => {
+    if (!editableMergedContent || editableMergedContent.trim() === "") {
+      toast({
+        title: "최종 완성본이 없습니다",
+        description: "먼저 AI와 합성하기를 눌러 최종 완성본을 생성해주세요.",
+        variant: "destructive",
+      });
+      setShowToneDialog(false);
+      return;
+    }
+    
+    setShowToneDialog(false);
+    transformToneMutation.mutate(toneType);
+  };
+
+  const handleReset = () => {
+    setTransformedContent("");
+    onReset();
+  };
+
   useEffect(() => {
     if (aiDraft && aiDraft.trim()) {
       generateTitlesMutation.mutate();
@@ -79,6 +133,7 @@ export default function PreviewPane({
 
   useEffect(() => {
     setEditableMergedContent(mergedContent);
+    setTransformedContent("");
   }, [mergedContent]);
 
   const parsedPrice = formData.askingPrice ? parseKoreanPrice(formData.askingPrice.toString()) : null;
@@ -446,6 +501,49 @@ export default function PreviewPane({
         </Card>
       )}
 
+      {/* 말투변형본 */}
+      {transformedContent && (
+        <Card data-testid="card-transformed">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-purple-500" />
+              말투변형본
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Textarea
+              value={transformedContent}
+              onChange={(e) => setTransformedContent(e.target.value)}
+              className="min-h-[300px] font-mono text-sm leading-relaxed resize-none"
+              data-testid="text-transformed"
+            />
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(transformedContent);
+                  toast({
+                    title: "복사 완료",
+                    description: "말투변형본이 클립보드에 복사되었습니다.",
+                  });
+                } catch (error) {
+                  toast({
+                    title: "복사 실패",
+                    description: "다시 시도해주세요.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              data-testid="button-copy-transformed"
+              className="w-full"
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              복사하기
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* 저장 버튼 */}
       <Button
         variant="default"
@@ -459,16 +557,94 @@ export default function PreviewPane({
         {isSaving ? "저장 중..." : "저장하기"}
       </Button>
 
+      {/* 말투 변환 버튼 */}
+      <Button
+        variant="secondary"
+        onClick={() => setShowToneDialog(true)}
+        disabled={!editableMergedContent || editableMergedContent.trim() === "" || transformToneMutation.isPending}
+        data-testid="button-tone-transform"
+        className="w-full"
+      >
+        <MessageSquare className="h-4 w-4 mr-2" />
+        {transformToneMutation.isPending ? "변환 중..." : "말투 변환하기"}
+      </Button>
+
       {/* 초기화 버튼 */}
       <Button
         variant="outline"
-        onClick={onReset}
+        onClick={handleReset}
         data-testid="button-reset"
         className="w-full"
       >
         <RotateCcw className="h-4 w-4 mr-2" />
         초기화
       </Button>
+
+      {/* 말투 변환 Dialog */}
+      <Dialog open={showToneDialog} onOpenChange={setShowToneDialog}>
+        <DialogContent data-testid="dialog-tone-transform">
+          <DialogHeader>
+            <DialogTitle>말투 변환 스타일 선택</DialogTitle>
+            <DialogDescription>
+              원하는 말투 스타일을 선택하세요
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-3 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => handleToneTransform("professional")}
+              data-testid="button-tone-professional"
+              className="justify-start h-auto py-4"
+            >
+              <div className="text-left">
+                <div className="font-semibold">직장인이 쓴 버전</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  격식있고 전문적인 말투
+                </div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleToneTransform("student")}
+              data-testid="button-tone-student"
+              className="justify-start h-auto py-4"
+            >
+              <div className="text-left">
+                <div className="font-semibold">학생이 쓴 버전</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  친근하고 캐주얼한 말투
+                </div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleToneTransform("simple")}
+              data-testid="button-tone-simple"
+              className="justify-start h-auto py-4"
+            >
+              <div className="text-left">
+                <div className="font-semibold">간단한 버전</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  핵심만 간결하게
+                </div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleToneTransform("brief")}
+              data-testid="button-tone-brief"
+              className="justify-start h-auto py-4"
+            >
+              <div className="text-left">
+                <div className="font-semibold">용건만 있는 버전</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  불필요한 설명 없이 사실만
+                </div>
+              </div>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

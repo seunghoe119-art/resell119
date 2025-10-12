@@ -182,6 +182,102 @@ export interface GenerateTitlesInput {
   aiDraft?: string;
 }
 
+export interface TransformToneInput {
+  content: string;
+  toneType: string;
+}
+
+export async function transformTone(input: TransformToneInput): Promise<string> {
+  console.log("Starting tone transformation with type:", input.toneType);
+  
+  try {
+    const tonePrompts: { [key: string]: string } = {
+      professional: `격식있고 전문적인 직장인의 말투로 변환해줘. 
+존댓말을 사용하고, 정중하고 세련된 표현을 사용해. 
+하지만 너무 딱딱하지 않게 적당히 부드럽게 작성해줘.`,
+      
+      student: `친근하고 캐주얼한 학생의 말투로 변환해줘. 
+반말을 사용하고, 편안하고 친근한 표현을 사용해. 
+이모티콘이나 유행어는 사용하지 말고, 자연스럽게 작성해줘.`,
+      
+      simple: `핵심 정보만 간결하게 전달하는 말투로 변환해줘.
+불필요한 설명이나 부연 설명을 모두 제거하고, 필수 정보만 남겨.
+짧고 명확하게 작성해줘.`,
+      
+      brief: `용건만 간단히 전달하는 말투로 변환해줘.
+인사말, 추가 설명, 감정 표현 등을 모두 제거하고,
+사실과 정보만 나열해줘. 최대한 짧게 작성해줘.`
+    };
+    
+    const tonePrompt = tonePrompts[input.toneType] || tonePrompts.simple;
+    
+    const systemPrompt = `당신은 중고 거래 판매글의 말투를 변환하는 AI입니다.
+
+중요한 규칙:
+1. 말투만 변경하고, 핵심 정보(제품명, 가격, 상태, 구성품 등)는 절대 변경하거나 삭제하지 마세요.
+2. 홈페이지 주소나 URL이 있으면 그대로 유지하세요.
+3. ✔ 기호를 사용한 항목 구조는 그대로 유지하세요.
+4. 제품의 특징이나 상태 정보는 모두 보존하세요.
+5. 숫자, 날짜, 모델명 등은 원본 그대로 유지하세요.
+
+${tonePrompt}`;
+
+    const userPrompt = `다음 판매글을 지정된 말투로 변환해줘:
+
+${input.content}
+
+위 내용의 말투를 변환해서 출력해줘.`;
+
+    const apiKey = (process.env.OPENAI_API_KEY || '')
+      .replace(/[\r\n\t\f\v]/g, '')
+      .replace(/[^\x20-\x7E]/g, '')
+      .trim();
+    
+    if (!apiKey) {
+      throw new Error("OpenAI API key is not configured");
+    }
+    
+    const requestData = {
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+        {
+          role: "user",
+          content: userPrompt,
+        },
+      ],
+    };
+
+    const response = await axios.post("https://api.openai.com/v1/chat/completions", requestData, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      timeout: 60000,
+    });
+
+    const result = response.data.choices[0].message.content || "";
+    return result;
+  } catch (error: any) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const code = error.code;
+      console.error(`OpenAI API error: status=${status}, code=${code}`);
+      
+      const newError: any = new Error("AI tone transformation failed");
+      newError.status = status;
+      newError.code = code;
+      throw newError;
+    }
+    
+    console.error("AI tone transformation error:", error.message);
+    throw new Error("AI tone transformation failed");
+  }
+}
+
 export async function generateTitles(input: GenerateTitlesInput): Promise<string[]> {
   console.log("Starting title generation");
   
