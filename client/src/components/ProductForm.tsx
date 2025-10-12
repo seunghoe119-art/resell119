@@ -510,9 +510,9 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
               </Label>
             </div>
             <div className="flex items-center gap-2">
-              <RadioGroupItem value="전화번호 010-4056-1290" id="phone-2" data-testid="radio-phone-2" />
+              <RadioGroupItem value="하의는 허리 32사이즈, 176cm, 신발, 발볼넓은275~280 입습니다" id="phone-2" data-testid="radio-phone-2" />
               <Label htmlFor="phone-2" className="font-normal cursor-pointer">
-                전화번호 010-4056-1290
+                하의는 허리 32사이즈, 176cm, 신발, 발볼넓은275~280 입습니다
               </Label>
             </div>
           </RadioGroup>
