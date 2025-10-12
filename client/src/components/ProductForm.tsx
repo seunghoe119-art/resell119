@@ -504,9 +504,9 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
             onValueChange={(value) => handleChange("nego", value)}
           >
             <div className="flex items-center gap-2">
-              <RadioGroupItem value="전화번호 010-6441-8743" id="phone-1" data-testid="radio-phone-1" />
+              <RadioGroupItem value="상의는 루즈한 105, XL (키 176cm 80kg)" id="phone-1" data-testid="radio-phone-1" />
               <Label htmlFor="phone-1" className="font-normal cursor-pointer">
-                전화번호 010-6441-8743
+                상의는 루즈한 105, XL (키 176cm 80kg)
               </Label>
             </div>
             <div className="flex items-center gap-2">
