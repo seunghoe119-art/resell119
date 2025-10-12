@@ -17,6 +17,7 @@ export const posts = pgTable("resell_posts", {
   features: text("features").array(),
   purchasePrice: integer("purchase_price"),
   askingPrice: integer("asking_price"),
+  secretPurchasePrice: integer("secret_purchase_price"),
   tradeTypes: text("trade_types").array(),
   tradeArea: text("trade_area"),
   nego: text("nego"),
@@ -45,6 +46,7 @@ export interface FormData {
   features: string | string[];
   purchasePrice: string | number;
   askingPrice: string | number;
+  secretPurchasePrice: string | number;
   tradeTypes: string[];
   tradeArea: string;
   nego: string;

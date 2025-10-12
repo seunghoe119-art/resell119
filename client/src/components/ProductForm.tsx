@@ -40,6 +40,7 @@ interface FormData {
   features: string | string[];
   purchasePrice: number;
   askingPrice: number;
+  secretPurchasePrice: number;
   tradeTypes: string[];
   tradeArea: string;
   nego: string;
@@ -351,57 +352,86 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
           <CardTitle className="text-lg font-semibold">판매 가격</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="purchasePrice">초기 구매가 (원)</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="purchasePrice"
-                  data-testid="input-purchase-price"
-                  type="text"
-                  placeholder="예: 500000 또는 자유 입력"
-                  value={formData.purchasePrice?.toString() || ""}
-                  onChange={(e) => handleChange("purchasePrice", e.target.value)}
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  data-testid="button-add-purchase-price"
-                  onClick={() => {
-                    if (formData.purchasePrice !== 0) {
-                      handleChange("purchasePrice", 0);
-                    }
-                  }}
-                >
-                  {formData.purchasePrice !== 0 ? "삭제" : "추가"}
-                </Button>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="purchasePrice">초기 구매가 (원)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="purchasePrice"
+                    data-testid="input-purchase-price"
+                    type="text"
+                    placeholder="예: 500000 또는 자유 입력"
+                    value={formData.purchasePrice?.toString() || ""}
+                    onChange={(e) => handleChange("purchasePrice", e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    data-testid="button-add-purchase-price"
+                    onClick={() => {
+                      if (formData.purchasePrice !== 0) {
+                        handleChange("purchasePrice", 0);
+                      }
+                    }}
+                  >
+                    {formData.purchasePrice !== 0 ? "삭제" : "추가"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="askingPrice">판매 희망가 (원)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="askingPrice"
+                    data-testid="input-asking-price"
+                    type="text"
+                    placeholder="예: 350000 또는 자유 입력"
+                    value={formData.askingPrice?.toString() || ""}
+                    onChange={(e) => handleChange("askingPrice", e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    data-testid="button-add-asking-price"
+                    onClick={() => {
+                      if (formData.askingPrice !== 0) {
+                        handleChange("askingPrice", 0);
+                      }
+                    }}
+                  >
+                    {formData.askingPrice !== 0 ? "삭제" : "추가"}
+                  </Button>
+                </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="askingPrice">판매 희망가 (원)</Label>
+              <Label htmlFor="secretPurchasePrice">(몰래 구매한 가격) (원)</Label>
               <div className="flex gap-2">
                 <Input
-                  id="askingPrice"
-                  data-testid="input-asking-price"
+                  id="secretPurchasePrice"
+                  data-testid="input-secret-purchase-price"
                   type="text"
-                  placeholder="예: 350000 또는 자유 입력"
-                  value={formData.askingPrice?.toString() || ""}
-                  onChange={(e) => handleChange("askingPrice", e.target.value)}
+                  placeholder="예: 400000 (미리보기에 표시되지 않음)"
+                  value={formData.secretPurchasePrice?.toString() || ""}
+                  onChange={(e) => handleChange("secretPurchasePrice", e.target.value)}
                   className="flex-1"
                 />
                 <Button
                   type="button"
                   variant="destructive"
-                  data-testid="button-add-asking-price"
+                  data-testid="button-add-secret-purchase-price"
                   onClick={() => {
-                    if (formData.askingPrice !== 0) {
-                      handleChange("askingPrice", 0);
+                    if (formData.secretPurchasePrice !== 0) {
+                      handleChange("secretPurchasePrice", 0);
                     }
                   }}
                 >
-                  {formData.askingPrice !== 0 ? "삭제" : "추가"}
+                  {formData.secretPurchasePrice !== 0 ? "삭제" : "추가"}
                 </Button>
               </div>
             </div>
