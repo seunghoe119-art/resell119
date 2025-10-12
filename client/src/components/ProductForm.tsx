@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useMutation } from "@tanstack/react-query";
+import type { FormData } from "@shared/schema";
 
 // Mock API call for AI modification
 const modifyContentWithAI = async (content: string) => {
@@ -26,28 +27,6 @@ const modifyContentWithAI = async (content: string) => {
   // and return the modified content.
   return `AI Modified: ${content}`;
 };
-
-
-interface FormData {
-  productName: string;
-  brand: string;
-  purchaseDate: string;
-  usageCount: number;
-  condition: string;
-  conditionNote: string;
-  baseItems: string | string[];
-  extraItems: string | string[];
-  features: string | string[];
-  purchasePrice: number;
-  askingPrice: number;
-  secretPurchasePrice: number;
-  tradeTypes: string[];
-  tradeArea: string;
-  nego: string;
-  aiDraft?: string;
-  pendingDraft?: string;
-  finalDraft?: string;
-}
 
 interface ProductFormProps {
   formData: FormData;
@@ -88,8 +67,15 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
     }
   };
 
+  // Helper to ensure array type
+  const ensureArray = (value: string | string[] | undefined): string[] => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    return typeof value === 'string' ? value.split(',').map(s => s.trim()).filter(Boolean) : [];
+  };
+
   const handleCheckboxChange = (field: "baseItems" | "tradeTypes", value: string, checked: boolean) => {
-    const current = formData[field] || [];
+    const current = ensureArray(formData[field]);
     const updated = checked
       ? [...current, value]
       : current.filter((item: string) => item !== value);
@@ -139,18 +125,23 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
   const handleAddAllInfo = () => {
     // Combine all form data into a single string to be sent to the AI
     // This is a simplified example; you'd want to format this more robustly
+    const baseItemsArr = ensureArray(formData.baseItems);
+    const extraItemsArr = ensureArray(formData.extraItems);
+    const featuresArr = ensureArray(formData.features);
+    const tradeTypesArr = ensureArray(formData.tradeTypes);
+    
     const combinedContent = `
       제품명: ${formData.productName || ''}
       브랜드: ${formData.brand || ''}
       구매일: ${formData.purchaseDate ? parseDateText(formData.purchaseDate) : ''}
       사용횟수: ${formData.usageCount || ''}
       상태 설명: ${formData.conditionNote || ''}
-      기본 구성품: ${formData.baseItems?.join(", ") || ''}
-      별도 구성품: ${formData.extraItems?.join(", ") || ''}
-      제품 특징: ${formData.features?.join(", ") || ''}
+      기본 구성품: ${baseItemsArr.join(", ") || ''}
+      별도 구성품: ${extraItemsArr.join(", ") || ''}
+      제품 특징: ${featuresArr.join(", ") || ''}
       초기 구매가: ${formData.purchasePrice || ''}원
       판매 희망가: ${formData.askingPrice || ''}원
-      거래 방식: ${formData.tradeTypes?.join(", ") || ''}
+      거래 방식: ${tradeTypesArr.join(", ") || ''}
       직거래 장소: ${formData.tradeArea || ''}
       네고 가능 여부: ${formData.nego || ''}
     `;

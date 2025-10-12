@@ -128,54 +128,50 @@ export function parseKoreanPrice(input: string, exchangeRate: number = 1450): nu
     return result > 0 ? result : null;
   }
 
-  // 한글 숫자 매핑 (기존 로직)
+  // 한글 숫자 파싱 (개선된 로직)
   const koreanNumbers: { [key: string]: number } = {
     '영': 0, '일': 1, '이': 2, '삼': 3, '사': 4,
     '오': 5, '육': 6, '칠': 7, '팔': 8, '구': 9
   };
 
-  const units: { [key: string]: number } = {
-    '십': 10,
-    '백': 100,
-    '천': 1000,
-    '만': 10000,
-    '억': 100000000
-  };
-
   let result = 0;
-  let currentNumber = 0;
-  let currentUnit = 1;
+  let currentBlock = 0;  // 만/억 앞의 숫자를 누적
+  let currentNumber = 0; // 현재 자릿수의 숫자
 
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
 
     if (koreanNumbers.hasOwnProperty(char)) {
       currentNumber = koreanNumbers[char];
-    } else if (units.hasOwnProperty(char)) {
-      const unit = units[char];
-      
-      if (char === '만' || char === '억') {
-        if (currentNumber === 0) {
-          currentNumber = 1;
-        }
-        result += currentNumber * currentUnit * unit;
-        currentNumber = 0;
-        currentUnit = 1;
-      } else {
-        if (currentNumber === 0) {
-          currentNumber = 1;
-        }
-        currentUnit = unit;
-        result += currentNumber * currentUnit;
-        currentNumber = 0;
-        currentUnit = 1;
-      }
+    } else if (char === '십') {
+      const multiplier = currentNumber === 0 ? 1 : currentNumber;
+      currentBlock += multiplier * 10;
+      currentNumber = 0;
+    } else if (char === '백') {
+      const multiplier = currentNumber === 0 ? 1 : currentNumber;
+      currentBlock += multiplier * 100;
+      currentNumber = 0;
+    } else if (char === '천') {
+      const multiplier = currentNumber === 0 ? 1 : currentNumber;
+      currentBlock += multiplier * 1000;
+      currentNumber = 0;
+    } else if (char === '만') {
+      currentBlock += currentNumber;
+      const multiplier = currentBlock === 0 ? 1 : currentBlock;
+      result += multiplier * 10000;
+      currentBlock = 0;
+      currentNumber = 0;
+    } else if (char === '억') {
+      currentBlock += currentNumber;
+      const multiplier = currentBlock === 0 ? 1 : currentBlock;
+      result += multiplier * 100000000;
+      currentBlock = 0;
+      currentNumber = 0;
     }
   }
 
-  if (currentNumber > 0) {
-    result += currentNumber * currentUnit;
-  }
+  // 남은 숫자 처리
+  result += currentBlock + currentNumber;
 
   return result > 0 ? result : null;
 }

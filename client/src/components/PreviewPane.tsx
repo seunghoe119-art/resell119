@@ -9,23 +9,7 @@ import { formatAdditionalInfo } from "@/lib/formatAdditionalInfo";
 import { parseKoreanPrice } from "@/lib/parseKoreanPrice";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-
-interface FormData {
-  productName: string;
-  brand: string;
-  purchaseDate: string;
-  usageCount: number;
-  condition: string;
-  conditionNote: string;
-  baseItems: string[];
-  extraItems: string[];
-  features: string[];
-  purchasePrice: number;
-  askingPrice: number;
-  tradeTypes: string[];
-  tradeArea: string;
-  nego: string;
-}
+import type { FormData } from "@shared/schema";
 
 interface PreviewPaneProps {
   formData: FormData;

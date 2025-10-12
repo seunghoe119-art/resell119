@@ -6,6 +6,7 @@ import { Sparkles, Copy, Plus } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { extractPriceFromDescription } from "@/lib/extractPriceFromDescription";
 
 interface AiDraftFormProps {
   onPreviewUpdate: (preview: string) => void;
@@ -25,8 +26,11 @@ export default function AiDraftForm({ onPreviewUpdate, briefDescription = "", on
 
   const generateMutation = useMutation({
     mutationFn: async (description: string) => {
+      // Extract and remove price pattern (00가격) before sending to AI
+      const { cleanedDescription } = extractPriceFromDescription(description);
+      
       return apiRequest("POST", "/api/generate-draft", {
-        briefDescription: description,
+        briefDescription: cleanedDescription || description,
       });
     },
     onSuccess: (data: any) => {
@@ -58,9 +62,12 @@ export default function AiDraftForm({ onPreviewUpdate, briefDescription = "", on
 
   const continueMutation = useMutation({
     mutationFn: async (additionalInfo: string) => {
+      // Extract and remove price pattern (00가격) before sending to AI
+      const { cleanedDescription } = extractPriceFromDescription(additionalInfo);
+      
       return apiRequest("POST", "/api/modify-content", {
         existingContent: generatedContent,
-        additionalInfo: additionalInfo,
+        additionalInfo: cleanedDescription || additionalInfo,
       });
     },
     onSuccess: (data: any) => {

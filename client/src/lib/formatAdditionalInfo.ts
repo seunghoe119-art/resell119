@@ -1,19 +1,5 @@
 import { formatPrice } from './parseKoreanPrice';
-
-interface FormData {
-  purchaseDate: string;
-  usageCount: number;
-  condition: string;
-  conditionNote: string;
-  baseItems: string | string[];
-  extraItems: string | string[];
-  features: string | string[];
-  purchasePrice: number;
-  askingPrice: number;
-  tradeTypes: string | string[];
-  tradeArea: string;
-  nego: string;
-}
+import type { FormData } from '@shared/schema';
 
 // 날짜 파싱 함수 (202505 → 25년 5월)
 function parseKoreanDate(dateStr: string): string {

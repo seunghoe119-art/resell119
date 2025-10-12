@@ -7,8 +7,9 @@ import AiDraftForm from "@/components/AiDraftForm";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Post } from "@shared/schema";
+import type { Post, FormData } from "@shared/schema";
 import { formatAdditionalInfo } from "@/lib/formatAdditionalInfo";
+import { extractPriceFromDescription } from "@/lib/extractPriceFromDescription";
 
 export default function GeneratorPage() {
   const [, setLocation] = useLocation();
@@ -19,20 +20,20 @@ export default function GeneratorPage() {
   const [mergedContent, setMergedContent] = useState("");
   const [briefDescription, setBriefDescription] = useState("");
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     productName: "",
     brand: "",
     purchaseDate: "",
     usageCount: 0,
     condition: "",
     conditionNote: "",
-    baseItems: [] as string[],
-    extraItems: [] as string[],
-    features: [] as string[],
+    baseItems: "" as string | string[],
+    extraItems: "" as string | string[],
+    features: "" as string | string[],
     purchasePrice: 0,
     askingPrice: 0,
     secretPurchasePrice: 0,
-    tradeTypes: [] as string[],
+    tradeTypes: [],
     tradeArea: "",
     nego: "",
   });
@@ -164,6 +165,21 @@ export default function GeneratorPage() {
       });
     },
   });
+
+  // Extract price from briefDescription when it changes
+  useEffect(() => {
+    if (briefDescription) {
+      const { cleanedDescription, price } = extractPriceFromDescription(briefDescription);
+      
+      // Update askingPrice if price was found
+      if (price !== null && price !== formData.askingPrice) {
+        setFormData(prev => ({
+          ...prev,
+          askingPrice: price
+        }));
+      }
+    }
+  }, [briefDescription]);
 
   // Reset merged content when AI draft or form data changes
   useEffect(() => {
