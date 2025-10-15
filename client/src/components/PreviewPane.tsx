@@ -302,12 +302,10 @@ export default function PreviewPane({
               <Input
                 type="text"
                 inputMode="numeric"
-                value={parsedPrice.toLocaleString()}
+                value={formData.askingPrice?.toLocaleString() || ''}
                 onChange={(e) => {
                   const numericValue = e.target.value.replace(/[^\d]/g, '');
-                  if (numericValue) {
-                    formData.askingPrice = parseInt(numericValue);
-                  }
+                  formData.askingPrice = numericValue ? parseInt(numericValue) : 0;
                 }}
                 className="flex-1 font-mono"
                 data-testid="input-price"
@@ -317,8 +315,17 @@ export default function PreviewPane({
                 variant="outline"
                 size="icon"
                 onClick={async () => {
+                  const currentPrice = formData.askingPrice?.toLocaleString() || '';
+                  if (!currentPrice) {
+                    toast({
+                      title: "복사할 가격이 없습니다",
+                      description: "판매 희망가를 입력해주세요.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
                   try {
-                    await navigator.clipboard.writeText(parsedPrice.toLocaleString());
+                    await navigator.clipboard.writeText(currentPrice);
                     toast({
                       title: "복사 완료",
                       description: "가격이 클립보드에 복사되었습니다.",
