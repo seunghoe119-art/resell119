@@ -209,6 +209,7 @@ export default function GeneratorPage() {
               onSave={() => saveMutation.mutate()}
               onReset={handleReset}
               onMerge={() => mergeMutation.mutate()}
+              onFormDataChange={setFormData}
               isSaving={saveMutation.isPending}
               isMerging={mergeMutation.isPending}
             />
@@ -235,6 +236,7 @@ export default function GeneratorPage() {
                 onSave={() => saveMutation.mutate()}
                 onReset={handleReset}
                 onMerge={() => mergeMutation.mutate()}
+                onFormDataChange={setFormData}
                 isSaving={saveMutation.isPending}
                 isMerging={mergeMutation.isPending}
               />

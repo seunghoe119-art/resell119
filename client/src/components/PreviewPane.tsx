@@ -13,7 +13,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatAdditionalInfo } from "@/lib/formatAdditionalInfo";
-import { parseKoreanPrice } from "@/lib/parseKoreanPrice";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { FormData } from "@shared/schema";
@@ -25,6 +24,7 @@ interface PreviewPaneProps {
   onSave: () => void;
   onReset: () => void;
   onMerge: () => void;
+  onFormDataChange?: (formData: FormData) => void;
   isSaving?: boolean;
   isMerging?: boolean;
 }
@@ -36,6 +36,7 @@ export default function PreviewPane({
   onSave,
   onReset,
   onMerge,
+  onFormDataChange,
   isSaving,
   isMerging
 }: PreviewPaneProps) {
@@ -44,6 +45,7 @@ export default function PreviewPane({
   const [editableAiDraft, setEditableAiDraft] = useState("");
   const [editableAdditionalInfo, setEditableAdditionalInfo] = useState("");
   const [editableMergedContent, setEditableMergedContent] = useState("");
+  const [editablePrice, setEditablePrice] = useState("");
   const [showToneDialog, setShowToneDialog] = useState(false);
   const [transformedContent, setTransformedContent] = useState("");
 
@@ -136,7 +138,9 @@ export default function PreviewPane({
     setTransformedContent("");
   }, [mergedContent]);
 
-  const parsedPrice = formData.askingPrice ? parseKoreanPrice(formData.askingPrice.toString()) : null;
+  useEffect(() => {
+    setEditablePrice(formData.askingPrice ? formData.askingPrice.toLocaleString() : '');
+  }, [formData.askingPrice]);
 
   const handleCopyAiDraft = async () => {
     if (!aiDraft) {
@@ -230,7 +234,7 @@ export default function PreviewPane({
   };
 
   const handleCopyPrice = async () => {
-    if (!parsedPrice) {
+    if (!editablePrice || editablePrice.trim() === '') {
       toast({
         title: "복사할 가격이 없습니다",
         description: "판매 희망가를 입력해주세요.",
@@ -240,7 +244,7 @@ export default function PreviewPane({
     }
 
     try {
-      await navigator.clipboard.writeText(parsedPrice.toLocaleString());
+      await navigator.clipboard.writeText(editablePrice);
       toast({
         title: "복사 완료",
         description: "가격이 클립보드에 복사되었습니다.",
@@ -292,60 +296,42 @@ export default function PreviewPane({
       )}
 
       {/* 가격 표시 */}
-      {parsedPrice && (
-        <Card data-testid="card-price-display">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">가격</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Input
-                type="text"
-                inputMode="numeric"
-                value={formData.askingPrice?.toLocaleString() || ''}
-                onChange={(e) => {
-                  const numericValue = e.target.value.replace(/[^\d]/g, '');
-                  formData.askingPrice = numericValue ? parseInt(numericValue) : 0;
-                }}
-                className="flex-1 font-mono"
-                data-testid="input-price"
-              />
-              <span className="text-sm">원</span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={async () => {
-                  const currentPrice = formData.askingPrice?.toLocaleString() || '';
-                  if (!currentPrice) {
-                    toast({
-                      title: "복사할 가격이 없습니다",
-                      description: "판매 희망가를 입력해주세요.",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  try {
-                    await navigator.clipboard.writeText(currentPrice);
-                    toast({
-                      title: "복사 완료",
-                      description: "가격이 클립보드에 복사되었습니다.",
-                    });
-                  } catch (error) {
-                    toast({
-                      title: "복사 실패",
-                      description: "다시 시도해주세요.",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-                data-testid="button-copy-price"
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Card data-testid="card-price-display">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">가격</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2">
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={editablePrice}
+              onChange={(e) => {
+                const numericValue = e.target.value.replace(/[^\d]/g, '');
+                setEditablePrice(numericValue ? parseInt(numericValue).toLocaleString() : '');
+                const newPrice = numericValue ? parseInt(numericValue) : 0;
+                if (onFormDataChange) {
+                  onFormDataChange({
+                    ...formData,
+                    askingPrice: newPrice
+                  });
+                }
+              }}
+              className="flex-1 font-mono"
+              data-testid="input-price"
+            />
+            <span className="text-sm">원</span>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleCopyPrice}
+              data-testid="button-copy-price"
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* AI 초안 미리보기 */}
       <Card data-testid="card-ai-draft-preview">
