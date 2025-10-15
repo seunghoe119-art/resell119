@@ -6,7 +6,7 @@ import PreviewPane from "@/components/PreviewPane";
 import AiDraftForm from "@/components/AiDraftForm";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { supabase } from "@/lib/supabase";
 import type { Post, FormData } from "@shared/schema";
 import { formatAdditionalInfo } from "@/lib/formatAdditionalInfo";
 import { extractPriceFromDescription } from "@/lib/extractPriceFromDescription";
@@ -39,8 +39,40 @@ export default function GeneratorPage() {
   });
 
   const { data: loadedPost } = useQuery<Post>({
-    queryKey: ["/api/posts", postId],
+    queryKey: ["posts", postId],
     enabled: !!postId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('resell_posts')
+        .select('*')
+        .eq('id', postId)
+        .single();
+      
+      if (error) throw error;
+      
+      return {
+        id: data.id,
+        createdAt: new Date(data.created_at),
+        productName: data.product_name,
+        brand: data.brand,
+        purchaseDate: data.purchase_date,
+        usageCount: data.usage_count,
+        condition: data.condition,
+        conditionNote: data.condition_note,
+        baseItems: data.base_items,
+        extraItems: data.extra_items,
+        features: data.features,
+        purchasePrice: data.purchase_price,
+        askingPrice: data.asking_price,
+        secretPurchasePrice: data.secret_purchase_price,
+        tradeTypes: data.trade_types,
+        tradeArea: data.trade_area,
+        nego: data.nego,
+        aiDraft: data.ai_draft,
+        pendingDraft: data.pending_draft,
+        finalDraft: data.final_draft,
+      } as Post;
+    },
   });
 
   useEffect(() => {
@@ -74,34 +106,42 @@ export default function GeneratorPage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       const postData = {
-        productName: briefDescription || formData.productName || "AI 생성 판매글",
+        product_name: briefDescription || formData.productName || "AI 생성 판매글",
         brand: formData.brand || null,
-        purchaseDate: formData.purchaseDate || null,
-        usageCount: formData.usageCount || null,
+        purchase_date: formData.purchaseDate || null,
+        usage_count: formData.usageCount || null,
         condition: formData.condition || null,
-        conditionNote: formData.conditionNote || null,
-        baseItems: formData.baseItems.length > 0 ? formData.baseItems : null,
-        extraItems: formData.extraItems.length > 0 ? formData.extraItems : null,
+        condition_note: formData.conditionNote || null,
+        base_items: formData.baseItems.length > 0 ? formData.baseItems : null,
+        extra_items: formData.extraItems.length > 0 ? formData.extraItems : null,
         features: formData.features.length > 0 ? formData.features : null,
-        purchasePrice: formData.purchasePrice || null,
-        askingPrice: formData.askingPrice || null,
-        secretPurchasePrice: formData.secretPurchasePrice || null,
-        tradeTypes: formData.tradeTypes.length > 0 ? formData.tradeTypes : null,
-        tradeArea: formData.tradeArea || null,
+        purchase_price: formData.purchasePrice || null,
+        asking_price: formData.askingPrice || null,
+        secret_purchase_price: formData.secretPurchasePrice || null,
+        trade_types: formData.tradeTypes.length > 0 ? formData.tradeTypes : null,
+        trade_area: formData.tradeArea || null,
         nego: formData.nego || null,
-        aiDraft: mergedContent || aiDraft || null,
-        pendingDraft: null,
-        finalDraft: null,
+        ai_draft: mergedContent || aiDraft || null,
+        pending_draft: null,
+        final_draft: null,
       };
 
       if (postId) {
-        return apiRequest("PATCH", `/api/posts/${postId}`, postData);
+        const { error } = await supabase
+          .from('resell_posts')
+          .update(postData)
+          .eq('id', postId);
+        
+        if (error) throw error;
       } else {
-        return apiRequest("POST", "/api/posts", postData);
+        const { error } = await supabase
+          .from('resell_posts')
+          .insert(postData);
+        
+        if (error) throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({
         title: "저장 완료",
         description: "판매글이 성공적으로 저장되었습니다.",
@@ -143,19 +183,16 @@ export default function GeneratorPage() {
   const mergeMutation = useMutation({
     mutationFn: async () => {
       const additionalInfo = formatAdditionalInfo(formData);
-      return apiRequest("POST", "/api/modify-content", {
-        existingContent: aiDraft,
-        additionalInfo: additionalInfo,
-      });
+      // Merge content locally for now - can be enhanced with AI later
+      const merged = `${aiDraft}\n\n${additionalInfo}`;
+      return merged;
     },
-    onSuccess: (data: any) => {
-      if (data.content) {
-        setMergedContent(data.content);
-        toast({
-          title: "병합 완료",
-          description: "AI 초안과 추가 정보가 성공적으로 병합되었습니다.",
-        });
-      }
+    onSuccess: (merged: string) => {
+      setMergedContent(merged);
+      toast({
+        title: "병합 완료",
+        description: "AI 초안과 추가 정보가 성공적으로 병합되었습니다.",
+      });
     },
     onError: () => {
       toast({

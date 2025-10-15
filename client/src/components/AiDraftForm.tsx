@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Sparkles, Copy, Plus } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { generateListingDraft } from "@/lib/openai";
 import { useToast } from "@/hooks/use-toast";
 import { extractPriceFromDescription } from "@/lib/extractPriceFromDescription";
 
@@ -29,15 +29,13 @@ export default function AiDraftForm({ onPreviewUpdate, briefDescription = "", on
       // Extract and remove price pattern (00가격) before sending to AI
       const { cleanedDescription } = extractPriceFromDescription(description);
       
-      return apiRequest("POST", "/api/generate-draft", {
-        briefDescription: cleanedDescription || description,
+      return await generateListingDraft({
+        productName: cleanedDescription || description,
       });
     },
-    onSuccess: (data: any) => {
-      if (data.content) {
-        setGeneratedContent(data.content);
-        onPreviewUpdate(data.content);
-      }
+    onSuccess: (content: string) => {
+      setGeneratedContent(content);
+      onPreviewUpdate(content);
     },
     onError: (error: any) => {
       const errorMessage = error.message?.includes("요청이 너무 많습니다")
@@ -65,16 +63,13 @@ export default function AiDraftForm({ onPreviewUpdate, briefDescription = "", on
       // Extract and remove price pattern (00가격) before sending to AI
       const { cleanedDescription } = extractPriceFromDescription(additionalInfo);
       
-      return apiRequest("POST", "/api/modify-content", {
-        existingContent: generatedContent,
-        additionalInfo: cleanedDescription || additionalInfo,
-      });
+      // For now, just append the additional info
+      const continued = `${generatedContent}\n\n${cleanedDescription || additionalInfo}`;
+      return continued;
     },
-    onSuccess: (data: any) => {
-      if (data.content) {
-        setGeneratedContent(data.content);
-        onPreviewUpdate(data.content);
-      }
+    onSuccess: (content: string) => {
+      setGeneratedContent(content);
+      onPreviewUpdate(content);
     },
     onError: (error: any) => {
       const errorMessage = error.message?.includes("요청이 너무 많습니다")

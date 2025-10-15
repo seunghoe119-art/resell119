@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatAdditionalInfo } from "@/lib/formatAdditionalInfo";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { transformTone } from "@/lib/openai";
 import type { FormData } from "@shared/schema";
 
 interface PreviewPaneProps {
@@ -51,45 +51,19 @@ export default function PreviewPane({
 
   const additionalInfoPreview = formatAdditionalInfo(formData);
 
-  const generateTitlesMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", "/api/generate-titles", {
-        productName: formData.productName,
-        brand: formData.brand,
-        condition: formData.condition,
-        features: formData.features,
-        aiDraft: aiDraft,
-      });
-    },
-    onSuccess: (data: any) => {
-      if (data.titles && Array.isArray(data.titles)) {
-        setGeneratedTitles(data.titles);
-      }
-    },
-    onError: (error: any) => {
-      toast({
-        title: "제목 생성 실패",
-        description: error.message || "제목 생성에 실패했습니다. 다시 시도해주세요",
-        variant: "destructive",
-      });
-    },
-  });
-
   const transformToneMutation = useMutation({
-    mutationFn: async (toneType: string) => {
-      return apiRequest("POST", "/api/transform-tone", {
+    mutationFn: async (toneType: '직장인' | '학생' | '간단한' | '용건만') => {
+      return await transformTone({
         content: editableMergedContent,
-        toneType: toneType,
+        tone: toneType,
       });
     },
-    onSuccess: (data: any) => {
-      if (data.transformedContent) {
-        setTransformedContent(data.transformedContent);
-        toast({
-          title: "말투 변환 완료",
-          description: "선택한 스타일로 변환되었습니다.",
-        });
-      }
+    onSuccess: (transformedContent: string) => {
+      setTransformedContent(transformedContent);
+      toast({
+        title: "말투 변환 완료",
+        description: "선택한 스타일로 변환되었습니다.",
+      });
     },
     onError: (error: any) => {
       toast({
@@ -100,7 +74,7 @@ export default function PreviewPane({
     },
   });
 
-  const handleToneTransform = (toneType: string) => {
+  const handleToneTransform = (toneType: '직장인' | '학생' | '간단한' | '용건만') => {
     if (!editableMergedContent || editableMergedContent.trim() === "") {
       toast({
         title: "최종 완성본이 없습니다",
@@ -121,11 +95,6 @@ export default function PreviewPane({
   };
 
   useEffect(() => {
-    if (aiDraft && aiDraft.trim()) {
-      generateTitlesMutation.mutate();
-    } else {
-      setGeneratedTitles([]);
-    }
     setEditableAiDraft(aiDraft);
   }, [aiDraft]);
 
@@ -585,7 +554,7 @@ export default function PreviewPane({
           <div className="grid grid-cols-1 gap-3 mt-4">
             <Button
               variant="outline"
-              onClick={() => handleToneTransform("professional")}
+              onClick={() => handleToneTransform("직장인")}
               data-testid="button-tone-professional"
               className="justify-start h-auto py-4"
             >
@@ -598,7 +567,7 @@ export default function PreviewPane({
             </Button>
             <Button
               variant="outline"
-              onClick={() => handleToneTransform("student")}
+              onClick={() => handleToneTransform("학생")}
               data-testid="button-tone-student"
               className="justify-start h-auto py-4"
             >
@@ -611,7 +580,7 @@ export default function PreviewPane({
             </Button>
             <Button
               variant="outline"
-              onClick={() => handleToneTransform("simple")}
+              onClick={() => handleToneTransform("간단한")}
               data-testid="button-tone-simple"
               className="justify-start h-auto py-4"
             >
@@ -624,7 +593,7 @@ export default function PreviewPane({
             </Button>
             <Button
               variant="outline"
-              onClick={() => handleToneTransform("brief")}
+              onClick={() => handleToneTransform("용건만")}
               data-testid="button-tone-brief"
               className="justify-start h-auto py-4"
             >
