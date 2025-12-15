@@ -1,0 +1,47 @@
+20:40:36.615 Running build in Washington, D.C., USA (East) – iad1
+20:40:36.616 Build machine configuration: 2 cores, 8 GB
+20:40:36.783 Cloning github.com/seunghoe119-art/resell119 (Branch: main, Commit: 2f96dbc)
+20:40:36.784 Previous build caches not available.
+20:40:38.153 Cloning completed: 1.370s
+20:40:38.626 Running "vercel build"
+20:40:39.217 Vercel CLI 50.0.1
+20:40:39.773 > Installing Builder: @vercel/node@3.0.0
+20:40:48.849 Running "install" command: `npm install`...
+20:40:53.232 npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+20:40:53.234 npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+20:41:00.275 
+20:41:00.277 added 597 packages, and audited 598 packages in 11s
+20:41:00.277 
+20:41:00.278 73 packages are looking for funding
+20:41:00.278   run `npm fund` for details
+20:41:00.303 
+20:41:00.306 12 vulnerabilities (3 low, 6 moderate, 3 high)
+20:41:00.306 
+20:41:00.307 To address issues that do not require attention, run:
+20:41:00.307   npm audit fix
+20:41:00.307 
+20:41:00.307 To address all issues (including breaking changes), run:
+20:41:00.308   npm audit fix --force
+20:41:00.308 
+20:41:00.308 Run `npm audit` for details.
+20:41:02.902 [36mvite v5.4.20 [32mbuilding for production...[36m[39m
+20:41:03.045 transforming...
+20:41:03.558 Browserslist: browsers data (caniuse-lite) is 14 months old. Please run:
+20:41:03.559   npx update-browserslist-db@latest
+20:41:03.559   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+20:41:04.462 
+20:41:04.463 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+20:41:07.629 [32m✓[39m 2624 modules transformed.
+20:41:07.958 rendering chunks...
+20:41:07.981 computing gzip size...
+20:41:08.001 [2m../dist/public/[22m[32mindex.html                 [39m[1m[2m  0.86 kB[22m[1m[22m[2m │ gzip:   0.61 kB[22m
+20:41:08.002 [2m../dist/public/[22m[2massets/[22m[35mindex-AsTYxbWp.css  [39m[1m[2m 70.75 kB[22m[1m[22m[2m │ gzip:  11.61 kB[22m
+20:41:08.005 [2m../dist/public/[22m[2massets/[22m[36mindex-CeaPkxw0.js   [39m[1m[33m509.91 kB[39m[22m[2m │ gzip: 154.84 kB[22m
+20:41:08.006 [32m✓ built in 5.07s[39m
+20:41:08.006 [33m
+20:41:08.006 (!) Some chunks are larger than 500 kB after minification. Consider:
+20:41:08.006 - Using dynamic import() to code-split the application
+20:41:08.007 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+20:41:08.007 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+20:41:08.082 Error: Found invalid Node.js Version: "24.x". Please set Node.js Version to 18.x in your Project Settings to use Node.js 18.
+20:41:08.082 Learn More: http://vercel.link/node-version
