@@ -478,7 +478,7 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
         <div className="space-y-3">
           <Label>직거래 가능지역</Label>
           <div className="grid grid-cols-2 gap-3">
-            {["인천 서구", "계양", "부천", "강서", "목동", "홍대입구역", "강남역인근", "인천1호선라인", "고양 * 일산"].map((area) => (
+            {["인천 서구", "계양", "부천", "강서", "목동", "홍대입구역", "강남역인근", "인천1호선라인", "고양 * 일산", "작전 삼성홈타운 아파트", "양천구 남부필타운건물"].map((area) => (
               <div key={area} className="flex items-center gap-2">
                 <Checkbox
                   id={`area-${area}`}
@@ -490,6 +490,16 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                       ? [...currentAreas, area]
                       : currentAreas.filter(a => a !== area);
                     handleChange("tradeArea", updatedAreas.join(", "));
+                    
+                    // Auto-update conditionNote when checking specific areas
+                    if (checked) {
+                      const currentNote = formData.conditionNote || "";
+                      const newText = area;
+                      if (!currentNote.includes(newText)) {
+                        const updatedNote = currentNote ? `${currentNote}\n${newText}` : newText;
+                        handleChange("conditionNote", updatedNote);
+                      }
+                    }
                   }}
                 />
                 <Label htmlFor={`area-${area}`} className="font-normal cursor-pointer">
