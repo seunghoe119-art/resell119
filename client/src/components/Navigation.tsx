@@ -1,7 +1,13 @@
 import { Link, useLocation } from "wouter";
 import { FileEdit, Save, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useState } from "react";
 
 export default function Navigation() {
@@ -19,8 +25,8 @@ export default function Navigation() {
     <nav className="sticky top-0 z-50 border-b bg-background">
       <div className="flex h-16 items-center justify-between px-6">
         <div className="flex items-center gap-8">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={handleTitleClick}
             className="text-xl font-bold p-0 h-auto hover:bg-transparent"
           >
@@ -64,14 +70,12 @@ export default function Navigation() {
       <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
         <DialogContent data-testid="dialog-settings">
           <DialogHeader>
-            <DialogTitle>설정</DialogTitle>
-            <DialogDescription>
-              애플리케이션 설정을 관리합니다.
-            </DialogDescription>
+            <DialogTitle>개발자 페이지</DialogTitle>
+            <DialogDescription>supabase - seunghoe119</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground">
-              설정 옵션이 여기에 표시됩니다.
+              vercel - seunghoe119
             </p>
           </div>
         </DialogContent>
