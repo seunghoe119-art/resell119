@@ -1,9 +1,12 @@
 import { Link, useLocation } from "wouter";
-import { FileEdit, Save } from "lucide-react";
+import { FileEdit, Save, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useState } from "react";
 
 export default function Navigation() {
   const [location] = useLocation();
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
   const handleTitleClick = () => {
     // Clear localStorage to reset form data
@@ -44,9 +47,35 @@ export default function Navigation() {
               <Save className="h-4 w-4" />
               저장된 글
             </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSettingsDialog(true)}
+              className="h-9 w-9"
+              data-testid="button-settings"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
+
+      {/* Settings Dialog */}
+      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+        <DialogContent data-testid="dialog-settings">
+          <DialogHeader>
+            <DialogTitle>설정</DialogTitle>
+            <DialogDescription>
+              애플리케이션 설정을 관리합니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              설정 옵션이 여기에 표시됩니다.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </nav>
   );
 }
