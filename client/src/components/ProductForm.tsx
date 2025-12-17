@@ -490,16 +490,6 @@ export default function ProductForm({ formData, onChange, aiPreview, onPreviewUp
                       ? [...currentAreas, area]
                       : currentAreas.filter(a => a !== area);
                     handleChange("tradeArea", updatedAreas.join(", "));
-                    
-                    // Auto-update conditionNote when checking specific areas
-                    if (checked) {
-                      const currentNote = formData.conditionNote || "";
-                      const newText = area;
-                      if (!currentNote.includes(newText)) {
-                        const updatedNote = currentNote ? `${currentNote}\n${newText}` : newText;
-                        handleChange("conditionNote", updatedNote);
-                      }
-                    }
                   }}
                 />
                 <Label htmlFor={`area-${area}`} className="font-normal cursor-pointer">
