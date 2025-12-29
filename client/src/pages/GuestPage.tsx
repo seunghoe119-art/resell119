@@ -212,14 +212,24 @@ https://open.kakao.com/o/gpnEzTJh
   };
 
   const handlePriceClick = (price: number) => {
+    const formatPrice = (p: number) => {
+      if (p >= 10000) {
+        return `${p / 10000}만원`;
+      }
+      return `${p / 1000}천원`;
+    };
+    
+    const oldPriceText = selectedPrice ? `게스트비 ${formatPrice(selectedPrice)}` : "";
+    const newPriceText = `게스트비 ${formatPrice(price)}`;
+    
     if (selectedPrice === price) {
       setSelectedPrice(null);
-      setContent((prev) => prev.replace(`게스트비 ${price / 1000}천원`, "").trim());
+      setContent((prev) => prev.replace(oldPriceText, "").trim());
     } else {
       if (selectedPrice) {
-        setContent((prev) => prev.replace(`게스트비 ${selectedPrice / 1000}천원`, `게스트비 ${price / 1000}천원`));
+        setContent((prev) => prev.replace(oldPriceText, newPriceText));
       } else {
-        setContent((prev) => (prev ? prev + " " : "") + `게스트비 ${price / 1000}천원`);
+        setContent((prev) => (prev ? prev + " " : "") + newPriceText);
       }
       setSelectedPrice(price);
     }
@@ -410,6 +420,36 @@ https://open.kakao.com/o/gpnEzTJh
                   onClick={() => handlePriceClick(7000)}
                 >
                   <span className="text-xs">7천원</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={selectedPrice === 8000 ? "default" : "ghost"}
+                  size="sm"
+                  data-testid="button-price-8000"
+                  title="게스트비 8천원"
+                  onClick={() => handlePriceClick(8000)}
+                >
+                  <span className="text-xs">8천원</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={selectedPrice === 9000 ? "default" : "ghost"}
+                  size="sm"
+                  data-testid="button-price-9000"
+                  title="게스트비 9천원"
+                  onClick={() => handlePriceClick(9000)}
+                >
+                  <span className="text-xs">9천원</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={selectedPrice === 10000 ? "default" : "ghost"}
+                  size="sm"
+                  data-testid="button-price-10000"
+                  title="게스트비 1만원"
+                  onClick={() => handlePriceClick(10000)}
+                >
+                  <span className="text-xs">1만원</span>
                 </Button>
                 <Button
                   type="button"
