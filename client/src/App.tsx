@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import GeneratorPage from "@/pages/GeneratorPage";
 import SavedPage from "@/pages/SavedPage";
+import GuestPage from "@/pages/GuestPage";
 import { useEffect } from "react";
 
 function Router() {
@@ -12,6 +13,7 @@ function Router() {
     <Switch>
       <Route path="/" component={GeneratorPage} />
       <Route path="/saved" component={SavedPage} />
+      <Route path="/guest" component={GuestPage} />
     </Switch>
   );
 }
