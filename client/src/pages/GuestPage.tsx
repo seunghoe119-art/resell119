@@ -552,6 +552,60 @@ https://www.thedan.pics/about 체육관 안내
                       이미지 복사
                     </Button>
                   </div>
+                  <div className="space-y-2">
+                    <img 
+                      src="/park1.png" 
+                      alt="주차장 이미지" 
+                      className="w-full h-48 object-cover rounded-lg shadow-md"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopyImage("/park1.png", "주차장 이미지")}
+                      className="w-full"
+                      data-testid="button-copy-image-5"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      이미지 복사
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    <img 
+                      src="/shower1.png" 
+                      alt="샤워실 이미지" 
+                      className="w-full h-48 object-cover rounded-lg shadow-md"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopyImage("/shower1.png", "샤워실 이미지")}
+                      className="w-full"
+                      data-testid="button-copy-image-6"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      이미지 복사
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    <img 
+                      src="/ball1.png" 
+                      alt="농구공 이미지" 
+                      className="w-full h-48 object-cover rounded-lg shadow-md"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopyImage("/ball1.png", "농구공 이미지")}
+                      className="w-full"
+                      data-testid="button-copy-image-7"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      이미지 복사
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
