@@ -453,7 +453,7 @@ export default function GuestPage() {
                   </div>
                   <div className="space-y-2">
                     <img 
-                      src="park1.png" 
+                      src="/park1.png" 
                       alt="주차장 이미지" 
                       className="w-full h-48 object-cover rounded-lg shadow-md"
                     />
@@ -461,7 +461,7 @@ export default function GuestPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => handleCopyImage("park1.png", "주차장 이미지")}
+                      onClick={() => handleCopyImage("/park1.png", "주차장 이미지")}
                       className="w-full"
                       data-testid="button-copy-image-5"
                     >
@@ -471,7 +471,7 @@ export default function GuestPage() {
                   </div>
                   <div className="space-y-2">
                     <img 
-                      src="shower1.png" 
+                      src="/shower1.png" 
                       alt="샤워실 이미지" 
                       className="w-full h-48 object-cover rounded-lg shadow-md"
                     />
@@ -479,7 +479,7 @@ export default function GuestPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => handleCopyImage("shower1.png", "샤워실 이미지")}
+                      onClick={() => handleCopyImage("/shower1.png", "샤워실 이미지")}
                       className="w-full"
                       data-testid="button-copy-image-6"
                     >
@@ -489,7 +489,7 @@ export default function GuestPage() {
                   </div>
                   <div className="space-y-2">
                     <img 
-                      src="ball1.png" 
+                      src="/ball1.png" 
                       alt="농구공 이미지" 
                       className="w-full h-48 object-cover rounded-lg shadow-md"
                     />
@@ -497,7 +497,7 @@ export default function GuestPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => handleCopyImage("ball1.png", "농구공 이미지")}
+                      onClick={() => handleCopyImage("/ball1.png", "농구공 이미지")}
                       className="w-full"
                       data-testid="button-copy-image-7"
                     >
