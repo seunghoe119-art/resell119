@@ -4,9 +4,9 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.post("/api/guest/generate", async (req, res) => {
     try {
       const { prompt } = req.body;
-      
+
       const apiKey = process.env.OPENAI_API_KEY;
-      
+
       if (!apiKey) {
         return res.status(500).json({ error: "OpenAI API 키가 설정되지 않았습니다." });
       }
@@ -86,8 +86,7 @@ THE DAN 팀, 정규회원제 모집중
 냉난방기 3대, 큰 대기실
 최상급 코트, 실내시설로 악취 및 모기등 해충 없음.
 
-https://www.thedan.pics/about
-체육관 이미지보기 `;
+https://www.thedan.pics/about`;
 
       const userPrompt = prompt || "다음 주 금요일 저녁 7시 게스트 모집 공지를 작성해주세요.";
 
@@ -134,7 +133,7 @@ https://www.thedan.pics/about
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
-      
+
       return res.json(parsed);
     } catch (error: any) {
       console.error("AI 생성 오류:", error);
