@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { FileEdit, Save, Settings, Users } from "lucide-react";
+import { FileEdit, Save, Settings, Users, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -62,6 +62,16 @@ export default function Navigation() {
             >
               <Users className="h-4 w-4" />
               게스트 모집
+            </Link>
+            <Link
+              href="/worklog"
+              data-testid="link-worklog"
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
+                location === "/worklog" ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              <BookOpen className="h-4 w-4" />
+              업무일지
             </Link>
             <Button
               variant="ghost"

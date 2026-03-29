@@ -143,4 +143,58 @@ https://www.thedan.pics/about`;
       });
     }
   });
+
+  app.post("/api/worklog/refine", async (req, res) => {
+    try {
+      const { content } = req.body;
+      if (!content || !content.trim()) {
+        return res.status(400).json({ error: "내용이 비어있습니다." });
+      }
+
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "OpenAI API 키가 설정되지 않았습니다." });
+      }
+
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: `당신은 업무일지 작성을 도와주는 AI 어시스턴트입니다. 
+사용자가 입력한 업무 내용을 다음 기준으로 다듬어 주세요:
+- 불필요한 말줄임 제거, 문장 완성도 향상
+- 간결하고 명확한 업무 일지 문체로 변환
+- 중요한 정보는 유지, 불필요한 내용은 제거
+- 한국어로 작성
+- 결과는 정리된 텍스트만 반환 (설명 없이)`,
+            },
+            {
+              role: "user",
+              content: `다음 업무 내용을 업무일지 문체로 깔끔하게 정리해줘:\n\n${content}`,
+            },
+          ],
+          max_tokens: 500,
+          temperature: 0.5,
+        }),
+      });
+
+      if (!response.ok) {
+        return res.status(response.status).json({ error: "AI 요청 실패" });
+      }
+
+      const data = await response.json();
+      const refined = data.choices[0]?.message?.content?.trim() ?? "";
+      return res.json({ refined });
+    } catch (error: any) {
+      console.error("업무일지 AI 오류:", error);
+      return res.status(500).json({ error: error.message || "오류가 발생했습니다." });
+    }
+  });
 }
