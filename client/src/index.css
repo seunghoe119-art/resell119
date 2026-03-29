@@ -338,6 +338,23 @@
   text-shadow: none;
   cursor: default !important;
 }
+/* 숨겨진 AI버튼 - hover/focus 시에도 완전히 투명 */
+[data-testid="button-secret-ai"] {
+  background-color: #ffffff !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+[data-testid="button-secret-ai"]:hover,
+[data-testid="button-secret-ai"]:focus,
+[data-testid="button-secret-ai"]:active {
+  background-color: #ffffff !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
 .secret-textarea::selection {
   background-color: #1e3a5f !important;
   color: #ffffff !important;

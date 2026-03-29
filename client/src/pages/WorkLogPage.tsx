@@ -554,13 +554,15 @@ export default function WorkLogPage() {
                     onClick={openSecretAi}
                     data-testid="button-secret-ai"
                     style={{
-                      backgroundColor: "#f8fafc",
-                      color: "#f8fafc",
+                      backgroundColor: "#ffffff",
+                      color: "#ffffff",
                       fontSize: 13,
                       borderRadius: 8,
                       padding: "0 20px",
                       height: 36,
-                      border: "1px solid #f0f2f5",
+                      border: "1px solid #ffffff",
+                      boxShadow: "none",
+                      outline: "none",
                       display: "flex",
                       alignItems: "center",
                       gap: 6,
