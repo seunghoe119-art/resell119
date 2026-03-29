@@ -195,7 +195,7 @@ export default function WorkLogPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white text-gray-900">
       <Navigation />
       <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-4">
@@ -232,7 +232,7 @@ export default function WorkLogPage() {
                 <thead>
                   <tr className="border-b bg-muted/40">
                     <th className="w-24 px-3 py-2 text-left font-medium text-muted-foreground">
-                      시간
+                      작성시간
                     </th>
                     <th className="px-3 py-2 text-left font-medium text-muted-foreground">
                       업무 내용
