@@ -353,6 +353,7 @@
   color: #ffffff !important;
   box-shadow: none !important;
   filter: none !important;
+  cursor: default !important;
 }
 
 .secret-textarea::selection {

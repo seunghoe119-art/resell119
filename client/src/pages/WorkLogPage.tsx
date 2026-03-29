@@ -760,7 +760,7 @@ export default function WorkLogPage() {
                   </div>
                 </div>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10 }}>
-                  {/* AI버튼 - 배경과 같은 색으로 숨김 */}
+                  {/* AI버튼 - 완전 투명, 커서도 기본 포인터 유지 */}
                   <Button
                     type="button"
                     onClick={openSecretAi}
@@ -778,7 +778,7 @@ export default function WorkLogPage() {
                       display: "flex",
                       alignItems: "center",
                       gap: 6,
-                      cursor: "pointer",
+                      cursor: "default",
                       userSelect: "none",
                     }}
                   >
@@ -808,10 +808,11 @@ export default function WorkLogPage() {
                       gap: 6,
                       cursor: "pointer",
                       transition: "background-color .3s",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     <Check size={15} />
-                    {secretSaved ? "저장됨" : "저장"}
+                    {secretSaved ? "의용소방대 법률 저장됨" : "의용소방대 법률"}
                   </Button>
                 </div>
               </div>
