@@ -613,6 +613,17 @@ async function loadFromSupabase(dateKey: string): Promise<DayData> {
   };
 }
 
+async function loadRecentDates(): Promise<string[]> {
+  const { data } = await supabase
+    .from("work_logs")
+    .select("log_date")
+    .eq("author", AUTHOR)
+    .order("log_date", { ascending: false })
+    .limit(7);
+  if (!data) return [];
+  return data.map((r: { log_date: string }) => r.log_date);
+}
+
 async function saveToSupabase(dateKey: string, d: DayData) {
   await supabase.from("work_logs").upsert(
     {
@@ -636,6 +647,7 @@ export default function WorkLogPage() {
   const [dayData, setDayData] = useState<DayData>(emptyDayData(AUTHOR, DEPARTMENT));
   const [loading, setLoading] = useState(false);
   const [yesterdayPlan, setYesterdayPlan] = useState("");
+  const [recentDates, setRecentDates] = useState<string[]>([]);
   const [aiModal, setAiModal] = useState<AiModalState>({
     open: false, entryId: "", original: "", suggestion: "", loading: false,
   });
@@ -649,6 +661,10 @@ export default function WorkLogPage() {
 
   const { toast } = useToast();
   const saveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    loadRecentDates().then(setRecentDates);
+  }, []);
 
   const key = dateToKey(currentDate);
 
@@ -671,7 +687,9 @@ export default function WorkLogPage() {
     setDayData((prev) => {
       const next = updater(prev);
       if (saveRef.current) clearTimeout(saveRef.current);
-      saveRef.current = setTimeout(() => saveToSupabase(key, next), 500);
+      saveRef.current = setTimeout(() => {
+        saveToSupabase(key, next).then(() => loadRecentDates().then(setRecentDates));
+      }, 500);
       return next;
     });
   }, [key]);
@@ -1012,20 +1030,43 @@ export default function WorkLogPage() {
               </div>
             </div>
 
-            {/* 날짜 이동 */}
-            <div style={{ ...S.card, ...S.cardPad, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-              <Input
-                type="date"
-                data-testid="input-date-search"
-                value={key}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    const [y, m, d] = e.target.value.split("-").map(Number);
-                    setCurrentDate(new Date(y, m - 1, d));
-                  }
-                }}
-                style={{ fontSize: 13, height: 34, width: 160, borderColor: "#e0e0e0" }}
-              />
+            {/* 페이지 번호 + 날짜 검색 */}
+            <div style={{ ...S.card, ...S.cardPad, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {recentDates.length === 0 && (
+                  <span style={{ fontSize: 12, color: "#aaa" }}>저장된 날짜 없음</span>
+                )}
+                {recentDates.map((k, i) => (
+                  <button
+                    key={k}
+                    onClick={() => { const [y, m, d] = k.split("-").map(Number); setCurrentDate(new Date(y, m - 1, d)); }}
+                    data-testid={`button-page-${i + 1}`}
+                    title={k}
+                    style={{
+                      width: 36, height: 36, borderRadius: 8, fontSize: 13, fontWeight: 500,
+                      backgroundColor: k === key ? "#1e3a5f" : "#f4f6f9",
+                      color: k === key ? "#fff" : "#555",
+                      border: "none", cursor: "pointer",
+                    }}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Input
+                  type="date"
+                  data-testid="input-date-search"
+                  value={key}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      const [y, m, d] = e.target.value.split("-").map(Number);
+                      setCurrentDate(new Date(y, m - 1, d));
+                    }
+                  }}
+                  style={{ fontSize: 13, height: 34, width: 160, borderColor: "#e0e0e0" }}
+                />
+              </div>
             </div>
           </>
         )}
