@@ -77,7 +77,6 @@ function emptyDayData(author = "", department = ""): DayData {
 }
 
 const STORE = "worklog_v2";
-const PROFILE_KEY = "worklog_profile";
 
 function loadAll(): Record<string, DayData> {
   try { return JSON.parse(localStorage.getItem(STORE) ?? "{}"); } catch { return {}; }
@@ -92,9 +91,7 @@ export default function WorkLogPage() {
   const [tab, setTab] = useState<"log" | "ref">("log");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [allData, setAllData] = useState<Record<string, DayData>>(loadAll);
-  const [profile, setProfile] = useState<{ author: string; department: string }>(() => {
-    try { return JSON.parse(localStorage.getItem(PROFILE_KEY) ?? "{}"); } catch { return { author: "", department: "" }; }
-  });
+  const profile = { author: "소방교 김승회", department: "119재난대응과" };
   const [aiModal, setAiModal] = useState<AiModalState>({
     open: false, entryId: "", original: "", suggestion: "", loading: false,
   });
@@ -115,10 +112,6 @@ export default function WorkLogPage() {
       return next;
     });
   }, [key, profile]);
-
-  useEffect(() => {
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-  }, [profile]);
 
   useEffect(() => {
     localStorage.setItem("worklog_secret", secretText);
@@ -221,10 +214,9 @@ export default function WorkLogPage() {
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "12px 20px", fontSize: 14, fontWeight: tab === t ? 600 : 400,
                 color: tab === t ? "#2563eb" : "#666",
-                borderBottom: tab === t ? "2px solid #2563eb" : "2px solid transparent",
-                marginBottom: -2, background: "none", border: "none",
-                borderBottomStyle: "solid", borderBottomWidth: 2,
-                borderBottomColor: tab === t ? "#2563eb" : "transparent",
+                marginBottom: -2, background: "none",
+                border: "none",
+                borderBottom: `2px solid ${tab === t ? "#2563eb" : "transparent"}`,
                 cursor: "pointer", transition: "color .15s",
               }}
             >
@@ -258,33 +250,16 @@ export default function WorkLogPage() {
                   오늘
                 </Button>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 13, color: "#888" }}>작성자:</span>
-                  <Input
-                    value={dayData.author || profile.author}
-                    onChange={(e) => {
-                      setProfile((p) => ({ ...p, author: e.target.value }));
-                      updateDay((d) => ({ ...d, author: e.target.value }));
-                    }}
-                    placeholder="이름"
-                    data-testid="input-author"
-                    style={{ width: 80, fontSize: 13, border: "none", borderBottom: "1px solid #ddd", borderRadius: 0, padding: "2px 4px", height: 28, backgroundColor: "transparent" }}
-                  />
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 13, color: "#888" }}>소속:</span>
-                  <Input
-                    value={dayData.department || profile.department}
-                    onChange={(e) => {
-                      setProfile((p) => ({ ...p, department: e.target.value }));
-                      updateDay((d) => ({ ...d, department: e.target.value }));
-                    }}
-                    placeholder="팀/부서"
-                    data-testid="input-department"
-                    style={{ width: 100, fontSize: 13, border: "none", borderBottom: "1px solid #ddd", borderRadius: 0, padding: "2px 4px", height: 28, backgroundColor: "transparent" }}
-                  />
-                </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 13, color: "#555" }}>
+                  <span style={{ color: "#888", marginRight: 4 }}>작성자:</span>
+                  <strong>{profile.author}</strong>
+                </span>
+                <span style={{ color: "#ddd" }}>|</span>
+                <span style={{ fontSize: 13, color: "#555" }}>
+                  <span style={{ color: "#888", marginRight: 4 }}>소속:</span>
+                  <strong>{profile.department}</strong>
+                </span>
               </div>
             </div>
 
