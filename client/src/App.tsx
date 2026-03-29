@@ -7,7 +7,6 @@ import GeneratorPage from "@/pages/GeneratorPage";
 import SavedPage from "@/pages/SavedPage";
 import GuestPage from "@/pages/GuestPage";
 import WorkLogPage from "@/pages/WorkLogPage";
-import { useEffect } from "react";
 
 function Router() {
   return (
@@ -21,10 +20,6 @@ function Router() {
 }
 
 function App() {
-  useEffect(() => {
-    document.documentElement.classList.add("dark");
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

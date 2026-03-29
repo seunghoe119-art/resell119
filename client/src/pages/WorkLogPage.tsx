@@ -85,17 +85,9 @@ export default function WorkLogPage() {
     }, 300);
   }, []);
 
-  useEffect(() => {
-    persist(entries);
-  }, [entries, persist]);
-
-  useEffect(() => {
-    localStorage.setItem(MEMO_KEY, memo);
-  }, [memo]);
-
-  useEffect(() => {
-    localStorage.setItem(SECRET_KEY, secret);
-  }, [secret]);
+  useEffect(() => { persist(entries); }, [entries, persist]);
+  useEffect(() => { localStorage.setItem(MEMO_KEY, memo); }, [memo]);
+  useEffect(() => { localStorage.setItem(SECRET_KEY, secret); }, [secret]);
 
   const handleContentChange = (id: string, value: string) => {
     setEntries((prev) =>
@@ -121,9 +113,7 @@ export default function WorkLogPage() {
     );
   };
 
-  const addEntry = () => {
-    setEntries((prev) => [...prev, emptyEntry()]);
-  };
+  const addEntry = () => setEntries((prev) => [...prev, emptyEntry()]);
 
   const removeEntry = (id: string) => {
     setEntries((prev) => {
@@ -143,13 +133,7 @@ export default function WorkLogPage() {
       toast({ title: "내용을 먼저 입력해주세요.", variant: "destructive" });
       return;
     }
-    setAiModal({
-      open: true,
-      entryId: entry.id,
-      original: entry.content,
-      suggestion: "",
-      loading: true,
-    });
+    setAiModal({ open: true, entryId: entry.id, original: entry.content, suggestion: "", loading: true });
     await fetchSuggestion(entry.id, entry.content);
   };
 
@@ -161,25 +145,15 @@ export default function WorkLogPage() {
         body: JSON.stringify({ content: original }),
       });
       const data = await res.json();
-      setAiModal((prev) => ({
-        ...prev,
-        suggestion: data.refined ?? "정리에 실패했습니다.",
-        loading: false,
-      }));
+      setAiModal((prev) => ({ ...prev, suggestion: data.refined ?? "정리에 실패했습니다.", loading: false }));
     } catch {
-      setAiModal((prev) => ({
-        ...prev,
-        suggestion: "서버 오류가 발생했습니다.",
-        loading: false,
-      }));
+      setAiModal((prev) => ({ ...prev, suggestion: "서버 오류가 발생했습니다.", loading: false }));
     }
   };
 
   const handleApprove = () => {
     setEntries((prev) =>
-      prev.map((e) =>
-        e.id === aiModal.entryId ? { ...e, content: aiModal.suggestion } : e
-      )
+      prev.map((e) => (e.id === aiModal.entryId ? { ...e, content: aiModal.suggestion } : e))
     );
     setAiModal((prev) => ({ ...prev, open: false }));
     toast({ title: "AI 추천 문구가 적용되었습니다." });
@@ -190,20 +164,20 @@ export default function WorkLogPage() {
     await fetchSuggestion(aiModal.entryId, aiModal.original);
   };
 
-  const handleCancel = () => {
-    setAiModal((prev) => ({ ...prev, open: false }));
-  };
+  const handleCancel = () => setAiModal((prev) => ({ ...prev, open: false }));
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
+    <div style={{ minHeight: "100vh", backgroundColor: "#f8f7f4", color: "#1a1a1a" }}>
       <Navigation />
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-4">
+
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 20px" }}>
+        {/* 헤더 */}
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 24 }}>
           <div>
-            <h1 className="text-xl font-bold" data-testid="text-worklog-title">
+            <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: "-0.3px" }} data-testid="text-worklog-title">
               업무일지
             </h1>
-            <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-worklog-date">
+            <p style={{ fontSize: 13, color: "#888", marginTop: 4 }} data-testid="text-worklog-date">
               {getTodayLabel()}
             </p>
           </div>
@@ -212,83 +186,109 @@ export default function WorkLogPage() {
             size="sm"
             onClick={clearAll}
             data-testid="button-clear-all"
+            style={{ fontSize: 13, color: "#888", borderColor: "#ddd", backgroundColor: "#fff" }}
           >
-            <Trash2 className="h-4 w-4 mr-1" />
+            <Trash2 className="h-3.5 w-3.5 mr-1" />
             전체 초기화
           </Button>
         </div>
 
         <Tabs defaultValue="log">
-          <TabsList className="mb-4">
-            <TabsTrigger value="log" data-testid="tab-log">업무 기록</TabsTrigger>
-            <TabsTrigger value="memo" data-testid="tab-memo">메모</TabsTrigger>
-            <TabsTrigger value="secret" data-testid="tab-secret">참고 자료</TabsTrigger>
+          <TabsList style={{ backgroundColor: "#ede9e3", borderRadius: 8, padding: "3px 4px", marginBottom: 20 }}>
+            <TabsTrigger value="log" data-testid="tab-log" style={{ fontSize: 13 }}>업무 기록</TabsTrigger>
+            <TabsTrigger value="memo" data-testid="tab-memo" style={{ fontSize: 13 }}>메모</TabsTrigger>
+            <TabsTrigger value="secret" data-testid="tab-secret" style={{ fontSize: 13 }}>참고 자료</TabsTrigger>
           </TabsList>
 
           {/* 업무 기록 탭 */}
           <TabsContent value="log">
-            <div className="rounded-md border overflow-hidden">
-              <table className="w-full text-sm">
+            <div style={{ backgroundColor: "#fff", borderRadius: 10, border: "1px solid #e5e2dc", overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
-                  <tr className="border-b bg-muted/40">
-                    <th className="w-24 px-3 py-2 text-left font-medium text-muted-foreground">
+                  <tr style={{ backgroundColor: "#f0ede8", borderBottom: "1px solid #e5e2dc" }}>
+                    <th style={{ width: 90, padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#666", fontSize: 12 }}>
                       작성시간
                     </th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                    <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#666", fontSize: 12 }}>
                       업무 내용
                     </th>
-                    <th className="w-28 px-3 py-2 text-center font-medium text-muted-foreground">
+                    <th style={{ width: 90, padding: "10px 12px", textAlign: "center", fontWeight: 600, color: "#666", fontSize: 12 }}>
                       AI 정리
                     </th>
-                    <th className="w-10 px-3 py-2" />
+                    <th style={{ width: 40, padding: "10px 8px" }} />
                   </tr>
                 </thead>
                 <tbody>
                   {entries.map((entry, idx) => (
                     <tr
                       key={entry.id}
-                      className="border-b last:border-0 hover-elevate"
+                      style={{ borderBottom: "1px solid #f0ede8" }}
                       data-testid={`row-entry-${entry.id}`}
                     >
-                      <td className="px-2 py-1.5 align-top">
+                      <td style={{ padding: "8px 10px", verticalAlign: "top" }}>
                         <Input
                           data-testid={`input-time-${entry.id}`}
                           value={entry.time}
                           onChange={(e) => handleTimeChange(entry.id, e.target.value)}
                           placeholder="00:00"
-                          className="w-20 text-center text-sm font-mono"
+                          style={{
+                            width: 72,
+                            textAlign: "center",
+                            fontSize: 13,
+                            fontFamily: "monospace",
+                            backgroundColor: "#f5f3ef",
+                            border: "1px solid #e0ddd8",
+                            borderRadius: 6,
+                            color: "#333",
+                          }}
                         />
                       </td>
-                      <td className="px-2 py-1.5 align-top">
+                      <td style={{ padding: "8px 10px", verticalAlign: "top" }}>
                         <Textarea
                           data-testid={`textarea-content-${entry.id}`}
                           value={entry.content}
                           onChange={(e) => handleContentChange(entry.id, e.target.value)}
                           placeholder={`${idx + 1}번 업무 내용을 입력하세요`}
-                          className="min-h-[64px] resize-none text-sm"
+                          style={{
+                            minHeight: 64,
+                            resize: "none",
+                            fontSize: 13,
+                            backgroundColor: "#f5f3ef",
+                            border: "1px solid #e0ddd8",
+                            borderRadius: 6,
+                            color: "#1a1a1a",
+                            lineHeight: 1.6,
+                          }}
+                          className="focus-visible:ring-1"
                         />
                       </td>
-                      <td className="px-2 py-1.5 align-top text-center">
+                      <td style={{ padding: "8px 10px", verticalAlign: "top", textAlign: "center" }}>
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           onClick={() => openAiModal(entry)}
                           data-testid={`button-ai-refine-${entry.id}`}
-                          className="w-full"
+                          style={{
+                            width: "100%",
+                            fontSize: 12,
+                            backgroundColor: "#fff",
+                            borderColor: "#d4d0ca",
+                            color: "#555",
+                          }}
                         >
-                          <Sparkles className="h-3.5 w-3.5 mr-1" />
+                          <Sparkles className="h-3 w-3 mr-1" />
                           AI 정리
                         </Button>
                       </td>
-                      <td className="px-1 py-1.5 align-top text-center">
+                      <td style={{ padding: "8px 6px", verticalAlign: "top", textAlign: "center" }}>
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
                           onClick={() => removeEntry(entry.id)}
                           data-testid={`button-remove-${entry.id}`}
-                          className="text-muted-foreground"
+                          style={{ color: "#bbb" }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -302,9 +302,17 @@ export default function WorkLogPage() {
             <Button
               type="button"
               variant="outline"
-              className="mt-3 w-full"
               onClick={addEntry}
               data-testid="button-add-entry"
+              style={{
+                marginTop: 12,
+                width: "100%",
+                fontSize: 13,
+                backgroundColor: "#fff",
+                borderColor: "#ddd",
+                color: "#666",
+                borderStyle: "dashed",
+              }}
             >
               <Plus className="h-4 w-4 mr-1" />
               항목 추가
@@ -313,31 +321,58 @@ export default function WorkLogPage() {
 
           {/* 메모 탭 */}
           <TabsContent value="memo">
-            <div className="rounded-md border">
+            <div style={{ backgroundColor: "#fff", borderRadius: 10, border: "1px solid #e5e2dc", overflow: "hidden" }}>
               <Textarea
                 data-testid="textarea-memo"
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
                 placeholder="자유롭게 메모를 입력하세요. 새로고침해도 유지됩니다."
-                className="min-h-[320px] border-0 rounded-md resize-none focus-visible:ring-0 text-sm"
+                style={{
+                  minHeight: 340,
+                  resize: "none",
+                  fontSize: 13,
+                  border: "none",
+                  borderRadius: 10,
+                  backgroundColor: "#fff",
+                  color: "#1a1a1a",
+                  lineHeight: 1.7,
+                  padding: "16px",
+                }}
+                className="focus-visible:ring-0"
               />
             </div>
           </TabsContent>
 
           {/* 참고 자료 탭 (비밀 탭) */}
           <TabsContent value="secret">
-            <div className="rounded-md border p-3 mb-3 bg-muted/30">
-              <p className="text-xs text-muted-foreground">
-                아래 내용은 기본적으로 숨겨져 있습니다. 마우스로 드래그하면 내용이 보입니다.
-              </p>
+            <div style={{
+              backgroundColor: "#fef9f0",
+              border: "1px solid #e8e0d0",
+              borderRadius: 8,
+              padding: "10px 14px",
+              marginBottom: 12,
+              fontSize: 12,
+              color: "#999",
+            }}>
+              아래 내용은 기본적으로 숨겨져 있습니다. 마우스로 드래그하면 내용이 보입니다.
             </div>
-            <div className="rounded-md border">
+            <div style={{ backgroundColor: "#fff", borderRadius: 10, border: "1px solid #e5e2dc", overflow: "hidden" }}>
               <Textarea
                 data-testid="textarea-secret"
                 value={secret}
                 onChange={(e) => setSecret(e.target.value)}
                 placeholder="비밀 참고 자료를 입력하세요 (드래그해야 보임)"
-                className="min-h-[320px] border-0 rounded-md resize-none focus-visible:ring-0 text-sm secret-textarea"
+                style={{
+                  minHeight: 340,
+                  resize: "none",
+                  fontSize: 13,
+                  border: "none",
+                  borderRadius: 10,
+                  backgroundColor: "#fff",
+                  lineHeight: 1.7,
+                  padding: "16px",
+                }}
+                className="focus-visible:ring-0 secret-textarea"
               />
             </div>
           </TabsContent>
@@ -348,31 +383,50 @@ export default function WorkLogPage() {
       <Dialog open={aiModal.open} onOpenChange={(v) => !v && handleCancel()}>
         <DialogContent className="max-w-lg" data-testid="dialog-ai-modal">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
+            <DialogTitle style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15 }}>
+              <Sparkles className="h-4 w-4" style={{ color: "#e67e22" }} />
               AI 업무 내용 정리
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">원문</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, paddingTop: 8 }}>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "#999", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>원문</p>
               <div
-                className="rounded-md bg-muted/50 px-3 py-2.5 text-sm text-foreground whitespace-pre-wrap border"
+                style={{
+                  backgroundColor: "#f5f3ef",
+                  border: "1px solid #e5e2dc",
+                  borderRadius: 8,
+                  padding: "10px 14px",
+                  fontSize: 13,
+                  color: "#333",
+                  whiteSpace: "pre-wrap",
+                  lineHeight: 1.6,
+                }}
                 data-testid="text-ai-original"
               >
                 {aiModal.original}
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">AI 추천 문구</p>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "#999", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>AI 추천 문구</p>
               <div
-                className="rounded-md bg-primary/5 border border-primary/20 px-3 py-2.5 text-sm min-h-[72px] whitespace-pre-wrap"
+                style={{
+                  backgroundColor: "#fef9f0",
+                  border: "1px solid #e8d8b8",
+                  borderRadius: 8,
+                  padding: "10px 14px",
+                  fontSize: 13,
+                  minHeight: 72,
+                  whiteSpace: "pre-wrap",
+                  lineHeight: 1.6,
+                  color: "#333",
+                }}
                 data-testid="text-ai-suggestion"
               >
                 {aiModal.loading ? (
-                  <span className="text-muted-foreground animate-pulse">AI가 정리 중입니다...</span>
+                  <span style={{ color: "#bbb" }}>AI가 정리 중입니다...</span>
                 ) : (
                   aiModal.suggestion
                 )}
@@ -380,11 +434,11 @@ export default function WorkLogPage() {
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2">
+          <div style={{ display: "flex", gap: 8, paddingTop: 8 }}>
             <Button
               onClick={handleApprove}
               disabled={aiModal.loading || !aiModal.suggestion}
-              className="flex-1"
+              style={{ flex: 1 }}
               data-testid="button-ai-approve"
             >
               승인 (적용)
@@ -402,6 +456,7 @@ export default function WorkLogPage() {
               variant="ghost"
               onClick={handleCancel}
               data-testid="button-ai-cancel"
+              style={{ color: "#888" }}
             >
               취소
             </Button>
