@@ -760,8 +760,8 @@ export default function WorkLogPage() {
                   </div>
                 </div>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10 }}>
-                  {/* AI버튼 - 완전 투명, 커서도 기본 포인터 유지 */}
-                  <Button
+                  {/* AI버튼 - 완전 투명, 어떤 상태에서도 색 변화 없음 */}
+                  <button
                     type="button"
                     onClick={openSecretAi}
                     data-testid="button-secret-ai"
@@ -772,7 +772,7 @@ export default function WorkLogPage() {
                       borderRadius: 8,
                       padding: "0 20px",
                       height: 36,
-                      border: "1px solid #ffffff",
+                      border: "none",
                       boxShadow: "none",
                       outline: "none",
                       display: "flex",
@@ -780,11 +780,17 @@ export default function WorkLogPage() {
                       gap: 6,
                       cursor: "default",
                       userSelect: "none",
+                      transition: "none",
+                      WebkitAppearance: "none",
                     }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
+                    onMouseDown={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
+                    onMouseUp={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
+                    onFocus={(e) => { e.currentTarget.style.outline = "none"; e.currentTarget.style.boxShadow = "none"; }}
                   >
-                    <Sparkles size={15} />
                     AI버튼
-                  </Button>
+                  </button>
                   <Button
                     type="button"
                     onClick={() => {
