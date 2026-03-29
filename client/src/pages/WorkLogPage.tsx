@@ -505,18 +505,11 @@ export default function WorkLogPage() {
             {/* 참고 문헌 내용 */}
             <div style={S.card}>
               <div style={{ ...S.cardPad }}>
-                <div style={{
-                  backgroundColor: "#fef9f0", border: "1px solid #e8e0d0",
-                  borderRadius: 8, padding: "10px 14px", marginBottom: 12,
-                  fontSize: 12, color: "#999",
-                }}>
-                  아래 내용은 기본적으로 숨겨져 있습니다. 마우스로 드래그하면 내용이 보입니다.
-                </div>
                 <Textarea
                   data-testid="textarea-secret"
                   value={dayData.secret}
                   onChange={(e) => updateDay((d) => ({ ...d, secret: e.target.value }))}
-                  placeholder="비밀 참고 자료를 입력하세요 (드래그해야 보임)"
+                  placeholder=""
                   style={{
                     minHeight: 400, resize: "none", fontSize: 13,
                     border: "1px solid #f0f2f5", borderRadius: 8,
