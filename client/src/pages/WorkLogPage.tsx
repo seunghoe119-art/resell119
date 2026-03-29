@@ -263,6 +263,32 @@ export default function WorkLogPage() {
               </div>
             </div>
 
+            {/* 오늘 업무 계획 (전날의 내일 업무 계획) */}
+            {(() => {
+              const yesterday = addDays(currentDate, -1);
+              const yKey = dateToKey(yesterday);
+              const plan = allData[yKey]?.tomorrowPlan ?? "";
+              return (
+                <div style={{ ...S.card, ...S.cardPad, backgroundColor: "#f0f4ff", border: "1px solid #d4e0ff" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: plan ? 10 : 0 }}>
+                    <h2 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: "#2563eb" }}>오늘 업무 계획</h2>
+                    <span style={{ fontSize: 11, color: "#93aee8", backgroundColor: "#dde8ff", borderRadius: 4, padding: "2px 7px" }}>
+                      전날 등록
+                    </span>
+                  </div>
+                  {plan ? (
+                    <p style={{ fontSize: 13, color: "#334a80", lineHeight: 1.8, margin: 0, whiteSpace: "pre-wrap" }}>
+                      {plan}
+                    </p>
+                  ) : (
+                    <p style={{ fontSize: 13, color: "#aabde8", margin: 0, fontStyle: "italic" }}>
+                      전날 등록된 업무 계획이 없습니다.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Work Entries Card */}
             <div style={S.card}>
               <div style={{ padding: "16px 24px 0" }}>
