@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Plus, Trash2, Sparkles, RefreshCw, ChevronLeft, ChevronRight, Calendar, FileText, BookOpen
+  Plus, Trash2, Sparkles, RefreshCw, ChevronLeft, ChevronRight, Calendar, FileText, BookOpen, Check
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -96,12 +96,19 @@ export default function WorkLogPage() {
   const [aiModal, setAiModal] = useState<AiModalState>({
     open: false, entryId: "", original: "", suggestion: "", loading: false,
   });
+  const [secretDraft, setSecretDraft] = useState<string | null>(null);
+  const [secretSaved, setSecretSaved] = useState(false);
 
   const { toast } = useToast();
   const saveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const key = dateToKey(currentDate);
   const dayData: DayData = allData[key] ?? emptyDayData(profile.author, profile.department);
+
+  useEffect(() => {
+    setSecretDraft(null);
+    setSecretSaved(false);
+  }, [key]);
 
   const updateDay = useCallback((updater: (prev: DayData) => DayData) => {
     setAllData((prev) => {
@@ -507,8 +514,8 @@ export default function WorkLogPage() {
               <div style={{ ...S.cardPad }}>
                 <Textarea
                   data-testid="textarea-secret"
-                  value={dayData.secret}
-                  onChange={(e) => updateDay((d) => ({ ...d, secret: e.target.value }))}
+                  value={secretDraft !== null ? secretDraft : dayData.secret}
+                  onChange={(e) => { setSecretDraft(e.target.value); setSecretSaved(false); }}
                   placeholder=""
                   style={{
                     minHeight: 400, resize: "none", fontSize: 13,
@@ -517,6 +524,36 @@ export default function WorkLogPage() {
                   }}
                   className="focus-visible:ring-0 secret-textarea"
                 />
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const toSave = secretDraft !== null ? secretDraft : dayData.secret;
+                      updateDay((d) => ({ ...d, secret: toSave }));
+                      setSecretDraft(null);
+                      setSecretSaved(true);
+                      setTimeout(() => setSecretSaved(false), 2000);
+                    }}
+                    data-testid="button-save-secret"
+                    style={{
+                      backgroundColor: secretSaved ? "#16a34a" : "#1e3a5f",
+                      color: "#fff",
+                      fontSize: 13,
+                      borderRadius: 8,
+                      padding: "0 20px",
+                      height: 36,
+                      border: "none",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      cursor: "pointer",
+                      transition: "background-color .3s",
+                    }}
+                  >
+                    <Check size={15} />
+                    {secretSaved ? "저장됨" : "저장"}
+                  </Button>
+                </div>
               </div>
             </div>
           </>
