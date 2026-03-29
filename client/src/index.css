@@ -334,8 +334,9 @@
 /* 비밀 탭 - 참고 자료: 흰색 글씨로 숨기고 드래그 시에만 보임 */
 .secret-textarea {
   color: transparent !important;
-  caret-color: hsl(var(--foreground));
+  caret-color: transparent;
   text-shadow: none;
+  cursor: default !important;
 }
 .secret-textarea::selection {
   background-color: #1e3a5f !important;

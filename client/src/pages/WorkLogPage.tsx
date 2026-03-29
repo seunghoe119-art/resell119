@@ -538,12 +538,14 @@ export default function WorkLogPage() {
                   value={secretDraft !== null ? secretDraft : dayData.secret}
                   onChange={(e) => { setSecretDraft(e.target.value); setSecretSaved(false); }}
                   placeholder=""
+                  className="focus-visible:ring-0 secret-textarea"
+                  spellCheck={false}
                   style={{
                     minHeight: 400, resize: "none", fontSize: 13,
                     border: "1px solid #f0f2f5", borderRadius: 8,
                     backgroundColor: "#f8fafc", lineHeight: 1.7,
+                    cursor: "default",
                   }}
-                  className="focus-visible:ring-0 secret-textarea"
                 />
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10 }}>
                   {/* AI버튼 - 배경과 같은 색으로 숨김 */}
