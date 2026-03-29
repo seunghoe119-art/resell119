@@ -343,11 +343,6 @@ export default function WorkLogPage() {
                           />
                         </td>
                         <td style={{ padding: "12px", verticalAlign: "middle" }}>
-                          <span style={{ fontSize: 12, color: entry.aiResult ? "#1a1a1a" : "#bbb", fontStyle: entry.aiResult ? "normal" : "italic" }}>
-                            {entry.aiResult || "AI 정리 대기 중..."}
-                          </span>
-                        </td>
-                        <td style={{ padding: "12px", verticalAlign: "middle" }}>
                           <Input
                             data-testid={`input-note-${entry.id}`}
                             value={entry.note}
