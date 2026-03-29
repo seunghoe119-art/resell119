@@ -98,6 +98,9 @@ export default function WorkLogPage() {
   });
   const [secretDraft, setSecretDraft] = useState<string | null>(null);
   const [secretSaved, setSecretSaved] = useState(false);
+  const [secretAiModal, setSecretAiModal] = useState<{ open: boolean; original: string; suggestion: string; loading: boolean }>({
+    open: false, original: "", suggestion: "", loading: false,
+  });
 
   const { toast } = useToast();
   const saveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -187,6 +190,30 @@ export default function WorkLogPage() {
   };
 
   const handleCancel = () => setAiModal((prev) => ({ ...prev, open: false }));
+
+  /* Secret AI */
+  const openSecretAi = async () => {
+    const text = secretDraft !== null ? secretDraft : dayData.secret;
+    if (!text.trim()) { toast({ title: "내용을 먼저 입력해주세요.", variant: "destructive" }); return; }
+    setSecretAiModal({ open: true, original: text, suggestion: "", loading: true });
+    try {
+      const res = await fetch("/api/worklog/refine", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: text }),
+      });
+      const data = await res.json();
+      setSecretAiModal((prev) => ({ ...prev, suggestion: data.refined ?? "정리에 실패했습니다.", loading: false }));
+    } catch {
+      setSecretAiModal((prev) => ({ ...prev, suggestion: "서버 오류가 발생했습니다.", loading: false }));
+    }
+  };
+
+  const handleSecretAiApprove = () => {
+    setSecretDraft(secretAiModal.suggestion);
+    setSecretSaved(false);
+    setSecretAiModal((prev) => ({ ...prev, open: false }));
+    toast({ title: "AI 정리 내용이 적용되었습니다." });
+  };
 
   /* Date pages for pagination */
   const allKeys = Object.keys(allData).sort().reverse();
@@ -518,7 +545,30 @@ export default function WorkLogPage() {
                   }}
                   className="focus-visible:ring-0 secret-textarea"
                 />
-                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10 }}>
+                  {/* AI버튼 - 배경과 같은 색으로 숨김 */}
+                  <Button
+                    type="button"
+                    onClick={openSecretAi}
+                    data-testid="button-secret-ai"
+                    style={{
+                      backgroundColor: "#f8fafc",
+                      color: "#f8fafc",
+                      fontSize: 13,
+                      borderRadius: 8,
+                      padding: "0 20px",
+                      height: 36,
+                      border: "1px solid #f0f2f5",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      cursor: "pointer",
+                      userSelect: "none",
+                    }}
+                  >
+                    <Sparkles size={15} />
+                    AI버튼
+                  </Button>
                   <Button
                     type="button"
                     onClick={() => {
@@ -585,6 +635,89 @@ export default function WorkLogPage() {
               <RefreshCw className="h-4 w-4 mr-1" />다시 생성
             </Button>
             <Button variant="ghost" onClick={handleCancel} style={{ color: "#888" }} data-testid="button-ai-cancel">취소</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Secret AI Modal */}
+      <Dialog open={secretAiModal.open} onOpenChange={(v) => !v && setSecretAiModal((p) => ({ ...p, open: false }))}>
+        <DialogContent className="max-w-2xl" data-testid="dialog-secret-ai-modal">
+          <DialogHeader>
+            <DialogTitle style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15 }}>
+              <Sparkles className="h-4 w-4" style={{ color: "#e67e22" }} />
+              AI 내용 정리
+            </DialogTitle>
+          </DialogHeader>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, paddingTop: 8 }}>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "#999", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>원문</p>
+              <div style={{
+                backgroundColor: "#f5f3ef", border: "1px solid #e5e2dc", borderRadius: 8,
+                padding: "10px 14px", fontSize: 13, color: "#333", whiteSpace: "pre-wrap",
+                lineHeight: 1.6, maxHeight: 200, overflowY: "auto",
+              }}>
+                {secretAiModal.original}
+              </div>
+            </div>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "#999", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>AI 정리 문구</p>
+              <div style={{
+                backgroundColor: "#fef9f0", border: "1px solid #e8d8b8", borderRadius: 8,
+                padding: "10px 14px", fontSize: 13, minHeight: 100, whiteSpace: "pre-wrap",
+                lineHeight: 1.6, color: "#333", maxHeight: 200, overflowY: "auto",
+              }}>
+                {secretAiModal.loading
+                  ? <span style={{ color: "#bbb" }}>AI가 정리 중입니다...</span>
+                  : secretAiModal.suggestion}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, paddingTop: 8 }}>
+            <button
+              onClick={handleSecretAiApprove}
+              disabled={secretAiModal.loading || !secretAiModal.suggestion}
+              style={{
+                flex: 1, height: 36, borderRadius: 8, border: "none", cursor: "pointer",
+                backgroundColor: "#1e3a5f", color: "#fff", fontSize: 13, fontWeight: 600,
+                opacity: (secretAiModal.loading || !secretAiModal.suggestion) ? 0.5 : 1,
+              }}
+            >
+              적용
+            </button>
+            <button
+              onClick={async () => {
+                const text = secretAiModal.original;
+                setSecretAiModal((p) => ({ ...p, loading: true, suggestion: "" }));
+                try {
+                  const res = await fetch("/api/worklog/refine", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ content: text }),
+                  });
+                  const data = await res.json();
+                  setSecretAiModal((p) => ({ ...p, suggestion: data.refined ?? "정리에 실패했습니다.", loading: false }));
+                } catch {
+                  setSecretAiModal((p) => ({ ...p, suggestion: "서버 오류가 발생했습니다.", loading: false }));
+                }
+              }}
+              disabled={secretAiModal.loading}
+              style={{
+                height: 36, borderRadius: 8, border: "1px solid #e0e0e0", cursor: "pointer",
+                backgroundColor: "#fff", color: "#555", fontSize: 13, padding: "0 16px",
+                display: "flex", alignItems: "center", gap: 6,
+                opacity: secretAiModal.loading ? 0.5 : 1,
+              }}
+            >
+              <RefreshCw size={13} />
+              다시 생성
+            </button>
+            <button
+              onClick={() => setSecretAiModal((p) => ({ ...p, open: false }))}
+              style={{
+                height: 36, borderRadius: 8, border: "none", cursor: "pointer",
+                backgroundColor: "transparent", color: "#888", fontSize: 13, padding: "0 16px",
+              }}
+            >
+              취소
+            </button>
           </div>
         </DialogContent>
       </Dialog>
