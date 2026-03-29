@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
 import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -591,22 +592,50 @@ function emptyDayData(author = "", department = ""): DayData {
   return { entries: [emptyEntry()], tomorrowPlan: "", freeMemo: "", author, department, secret: "" };
 }
 
-const STORE = "worklog_v2";
+const AUTHOR = "소방교 김승회";
+const DEPARTMENT = "119재난대응과";
 
-function loadAll(): Record<string, DayData> {
-  try { return JSON.parse(localStorage.getItem(STORE) ?? "{}"); } catch { return {}; }
+async function loadFromSupabase(dateKey: string): Promise<DayData> {
+  const { data } = await supabase
+    .from("work_logs")
+    .select("*")
+    .eq("log_date", dateKey)
+    .eq("author", AUTHOR)
+    .single();
+  if (!data) return emptyDayData(AUTHOR, DEPARTMENT);
+  return {
+    entries: data.entries ?? [emptyEntry()],
+    tomorrowPlan: data.tomorrow_plan ?? "",
+    freeMemo: data.free_memo ?? "",
+    secret: data.secret ?? "",
+    author: data.author ?? AUTHOR,
+    department: data.department ?? DEPARTMENT,
+  };
 }
 
-function saveAll(data: Record<string, DayData>) {
-  localStorage.setItem(STORE, JSON.stringify(data));
+async function saveToSupabase(dateKey: string, d: DayData) {
+  await supabase.from("work_logs").upsert(
+    {
+      log_date: dateKey,
+      author: d.author,
+      department: d.department,
+      entries: d.entries,
+      tomorrow_plan: d.tomorrowPlan,
+      free_memo: d.freeMemo,
+      secret: d.secret,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "log_date,author" }
+  );
 }
 
 /* ─── Component ─── */
 export default function WorkLogPage() {
   const [tab, setTab] = useState<"log" | "ref">("log");
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [allData, setAllData] = useState<Record<string, DayData>>(loadAll);
-  const profile = { author: "소방교 김승회", department: "119재난대응과" };
+  const [dayData, setDayData] = useState<DayData>(emptyDayData(AUTHOR, DEPARTMENT));
+  const [loading, setLoading] = useState(false);
+  const [yesterdayPlan, setYesterdayPlan] = useState("");
   const [aiModal, setAiModal] = useState<AiModalState>({
     open: false, entryId: "", original: "", suggestion: "", loading: false,
   });
@@ -622,22 +651,30 @@ export default function WorkLogPage() {
   const saveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const key = dateToKey(currentDate);
-  const dayData: DayData = allData[key] ?? emptyDayData(profile.author, profile.department);
 
   useEffect(() => {
     setSecretDraft(null);
     setSecretSaved(false);
+    setLoading(true);
+    const yKey = dateToKey(addDays(currentDate, -1));
+    Promise.all([
+      loadFromSupabase(key),
+      loadFromSupabase(yKey),
+    ]).then(([todayData, ydayData]) => {
+      setDayData(todayData);
+      setYesterdayPlan(ydayData.tomorrowPlan);
+      setLoading(false);
+    });
   }, [key]);
 
   const updateDay = useCallback((updater: (prev: DayData) => DayData) => {
-    setAllData((prev) => {
-      const existing = prev[key] ?? emptyDayData(profile.author, profile.department);
-      const next = { ...prev, [key]: updater(existing) };
+    setDayData((prev) => {
+      const next = updater(prev);
       if (saveRef.current) clearTimeout(saveRef.current);
-      saveRef.current = setTimeout(() => saveAll(next), 300);
+      saveRef.current = setTimeout(() => saveToSupabase(key, next), 500);
       return next;
     });
-  }, [key, profile]);
+  }, [key]);
 
 
   /* Entry handlers */
@@ -731,10 +768,7 @@ export default function WorkLogPage() {
     toast({ title: "AI 정리 내용이 적용되었습니다." });
   };
 
-  /* Date pages for pagination */
-  const allKeys = Object.keys(allData).sort().reverse();
-  const pageKeys = allKeys.length > 0 ? allKeys : [key];
-  const currentPageIdx = pageKeys.indexOf(key);
+  
 
   const { dateStr, dayStr } = formatDateLabel(currentDate);
 
@@ -800,21 +834,19 @@ export default function WorkLogPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 13, color: "#555" }}>
                   <span style={{ color: "#888", marginRight: 4 }}>작성자:</span>
-                  <strong>{profile.author}</strong>
+                  <strong>{AUTHOR}</strong>
                 </span>
                 <span style={{ color: "#ddd" }}>|</span>
                 <span style={{ fontSize: 13, color: "#555" }}>
                   <span style={{ color: "#888", marginRight: 4 }}>소속:</span>
-                  <strong>{profile.department}</strong>
+                  <strong>{DEPARTMENT}</strong>
                 </span>
               </div>
             </div>
 
             {/* 오늘 업무 계획 (전날의 내일 업무 계획) */}
             {(() => {
-              const yesterday = addDays(currentDate, -1);
-              const yKey = dateToKey(yesterday);
-              const plan = allData[yKey]?.tomorrowPlan ?? "";
+              const plan = yesterdayPlan;
               return (
                 <div style={{ ...S.card, ...S.cardPad, backgroundColor: "#f0f4ff", border: "1px solid #d4e0ff" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: plan ? 10 : 0 }}>
@@ -980,44 +1012,20 @@ export default function WorkLogPage() {
               </div>
             </div>
 
-            {/* Pagination */}
-            <div style={{ ...S.card, ...S.cardPad, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                {pageKeys.slice(0, 5).map((k, i) => (
-                  <button
-                    key={k}
-                    onClick={() => { const [y, m, d] = k.split("-").map(Number); setCurrentDate(new Date(y, m - 1, d)); }}
-                    data-testid={`button-page-${i + 1}`}
-                    style={{
-                      width: 36, height: 36, borderRadius: 8, fontSize: 13, fontWeight: 500,
-                      backgroundColor: k === key ? "#1e3a5f" : "#f4f6f9",
-                      color: k === key ? "#fff" : "#555",
-                      border: "none", cursor: "pointer",
-                    }}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-                {pageKeys.length > 5 && (
-                  <span style={{ color: "#888", fontSize: 14 }}>...</span>
-                )}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Input
-                  type="date"
-                  data-testid="input-date-search"
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      const [y, m, d] = e.target.value.split("-").map(Number);
-                      setCurrentDate(new Date(y, m - 1, d));
-                    }
-                  }}
-                  style={{ fontSize: 13, height: 34, width: 150, borderColor: "#e0e0e0" }}
-                />
-                <Button variant="outline" size="sm" style={{ fontSize: 13, height: 34 }} data-testid="button-date-search">
-                  날짜로 검색
-                </Button>
-              </div>
+            {/* 날짜 이동 */}
+            <div style={{ ...S.card, ...S.cardPad, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+              <Input
+                type="date"
+                data-testid="input-date-search"
+                value={key}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const [y, m, d] = e.target.value.split("-").map(Number);
+                    setCurrentDate(new Date(y, m - 1, d));
+                  }
+                }}
+                style={{ fontSize: 13, height: 34, width: 160, borderColor: "#e0e0e0" }}
+              />
             </div>
           </>
         )}
