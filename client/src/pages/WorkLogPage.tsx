@@ -30,6 +30,7 @@ interface DayData {
   freeMemo: string;
   author: string;
   department: string;
+  secret: string;
 }
 
 interface AiModalState {
@@ -73,7 +74,7 @@ function emptyEntry(): WorkEntry {
 }
 
 function emptyDayData(author = "", department = ""): DayData {
-  return { entries: [emptyEntry()], tomorrowPlan: "", freeMemo: "", author, department };
+  return { entries: [emptyEntry()], tomorrowPlan: "", freeMemo: "", author, department, secret: "" };
 }
 
 const STORE = "worklog_v2";
@@ -95,7 +96,6 @@ export default function WorkLogPage() {
   const [aiModal, setAiModal] = useState<AiModalState>({
     open: false, entryId: "", original: "", suggestion: "", loading: false,
   });
-  const [secretText, setSecretText] = useState(() => localStorage.getItem("worklog_secret") ?? "");
 
   const { toast } = useToast();
   const saveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -113,9 +113,6 @@ export default function WorkLogPage() {
     });
   }, [key, profile]);
 
-  useEffect(() => {
-    localStorage.setItem("worklog_secret", secretText);
-  }, [secretText]);
 
   /* Entry handlers */
   const handleContentChange = (id: string, value: string) => {
@@ -482,29 +479,54 @@ export default function WorkLogPage() {
         )}
 
         {tab === "ref" && (
-          <div style={S.card}>
-            <div style={{ ...S.cardPad }}>
-              <div style={{
-                backgroundColor: "#fef9f0", border: "1px solid #e8e0d0",
-                borderRadius: 8, padding: "10px 14px", marginBottom: 12,
-                fontSize: 12, color: "#999",
-              }}>
-                아래 내용은 기본적으로 숨겨져 있습니다. 마우스로 드래그하면 내용이 보입니다.
-              </div>
-              <Textarea
-                data-testid="textarea-secret"
-                value={secretText}
-                onChange={(e) => setSecretText(e.target.value)}
-                placeholder="비밀 참고 자료를 입력하세요 (드래그해야 보임)"
-                style={{
-                  minHeight: 400, resize: "none", fontSize: 13,
-                  border: "1px solid #f0f2f5", borderRadius: 8,
-                  backgroundColor: "#f8fafc", lineHeight: 1.7,
-                }}
-                className="focus-visible:ring-0 secret-textarea"
-              />
+          <>
+            {/* 날짜 이동 */}
+            <div style={{ ...S.card, ...S.cardPad, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <Button variant="ghost" size="icon" onClick={() => setCurrentDate(addDays(currentDate, -1))} data-testid="button-ref-prev-day">
+                <ChevronLeft size={16} />
+              </Button>
+              <Calendar size={16} style={{ color: "#2563eb" }} />
+              <span style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a" }}>{dateStr}</span>
+              <span style={{ fontSize: 13, color: "#888" }}>({dayStr})</span>
+              <Button variant="ghost" size="icon" onClick={() => setCurrentDate(addDays(currentDate, 1))} data-testid="button-ref-next-day">
+                <ChevronRight size={16} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentDate(new Date())}
+                style={{ fontSize: 12, color: "#888" }}
+                data-testid="button-ref-today"
+              >
+                오늘
+              </Button>
             </div>
-          </div>
+
+            {/* 참고 문헌 내용 */}
+            <div style={S.card}>
+              <div style={{ ...S.cardPad }}>
+                <div style={{
+                  backgroundColor: "#fef9f0", border: "1px solid #e8e0d0",
+                  borderRadius: 8, padding: "10px 14px", marginBottom: 12,
+                  fontSize: 12, color: "#999",
+                }}>
+                  아래 내용은 기본적으로 숨겨져 있습니다. 마우스로 드래그하면 내용이 보입니다.
+                </div>
+                <Textarea
+                  data-testid="textarea-secret"
+                  value={dayData.secret}
+                  onChange={(e) => updateDay((d) => ({ ...d, secret: e.target.value }))}
+                  placeholder="비밀 참고 자료를 입력하세요 (드래그해야 보임)"
+                  style={{
+                    minHeight: 400, resize: "none", fontSize: 13,
+                    border: "1px solid #f0f2f5", borderRadius: 8,
+                    backgroundColor: "#f8fafc", lineHeight: 1.7,
+                  }}
+                  className="focus-visible:ring-0 secret-textarea"
+                />
+              </div>
+            </div>
+          </>
         )}
       </div>
 
