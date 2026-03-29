@@ -304,9 +304,8 @@ export default function WorkLogPage() {
                     <tr style={{ borderTop: "1px solid #f0f2f5", borderBottom: "1px solid #f0f2f5", backgroundColor: "#fafafa" }}>
                       <th style={{ width: 80, padding: "10px 20px", textAlign: "left", fontWeight: 500, color: "#888", fontSize: 12 }}>기록 시각</th>
                       <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 500, color: "#888", fontSize: 12 }}>업무 상세 내용</th>
-                      <th style={{ width: 160, padding: "10px 12px", textAlign: "left", fontWeight: 500, color: "#888", fontSize: 12 }}>AI 최적화</th>
                       <th style={{ width: 120, padding: "10px 12px", textAlign: "left", fontWeight: 500, color: "#888", fontSize: 12 }}>비고</th>
-                      <th style={{ width: 90, padding: "10px 20px 10px 12px", textAlign: "center", fontWeight: 500, color: "#888", fontSize: 12 }}>액션</th>
+                      <th style={{ width: 60, padding: "10px 20px 10px 12px", textAlign: "center", fontWeight: 500, color: "#888", fontSize: 12 }}></th>
                     </tr>
                   </thead>
                   <tbody>
