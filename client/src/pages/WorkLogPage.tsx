@@ -614,6 +614,39 @@ async function loadFromSupabase(dateKey: string): Promise<DayData> {
 }
 
 const GLOBAL_MEMO_DATE = "global";
+const DUMMY_NOTE_DATE = "dummy";
+
+type DummyNote = {
+  id: string;
+  content: string;
+  timestamp: string;
+};
+
+async function loadDummyNotes(): Promise<DummyNote[]> {
+  const { data } = await supabase
+    .from("work_logs")
+    .select("entries")
+    .eq("log_date", DUMMY_NOTE_DATE)
+    .eq("author", AUTHOR)
+    .single();
+  return (data?.entries as DummyNote[]) ?? [];
+}
+
+async function saveDummyNotes(notes: DummyNote[]) {
+  await supabase.from("work_logs").upsert(
+    {
+      log_date: DUMMY_NOTE_DATE,
+      author: AUTHOR,
+      department: DEPARTMENT,
+      entries: notes,
+      tomorrow_plan: "",
+      free_memo: "",
+      secret: "",
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "log_date,author" }
+  );
+}
 
 async function loadGlobalMemo(): Promise<string> {
   const { data } = await supabase
@@ -678,6 +711,9 @@ export default function WorkLogPage() {
   const [recentDates, setRecentDates] = useState<string[]>([]);
   const [globalMemo, setGlobalMemo] = useState("");
   const globalMemoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [dummyOpen, setDummyOpen] = useState(false);
+  const [dummyNotes, setDummyNotes] = useState<DummyNote[]>([]);
+  const [dummyDraft, setDummyDraft] = useState("");
   const [aiModal, setAiModal] = useState<AiModalState>({
     open: false, entryId: "", original: "", suggestion: "", loading: false,
   });
@@ -695,6 +731,7 @@ export default function WorkLogPage() {
   useEffect(() => {
     loadRecentDates().then(setRecentDates);
     loadGlobalMemo().then(setGlobalMemo);
+    loadDummyNotes().then(setDummyNotes);
   }, []);
 
   const key = dateToKey(currentDate);
@@ -1044,7 +1081,21 @@ export default function WorkLogPage() {
               </div>
               <div style={S.card}>
                 <div style={{ ...S.cardPad, paddingBottom: 12 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px" }}>자유 메모</h3>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>자유 메모</h3>
+                    <button
+                      data-testid="button-dummy-open"
+                      onClick={() => setDummyOpen(true)}
+                      style={{
+                        fontSize: 12, fontWeight: 600, color: "#555",
+                        backgroundColor: "#f0f2f5", border: "1px solid #dde1e7",
+                        borderRadius: 7, padding: "4px 14px", cursor: "pointer",
+                        letterSpacing: "0.04em",
+                      }}
+                    >
+                      더미
+                    </button>
+                  </div>
                   <Textarea
                     data-testid="textarea-memo"
                     value={globalMemo}
@@ -1241,6 +1292,106 @@ export default function WorkLogPage() {
           </>
         )}
       </div>
+
+      {/* 더미 메모 Modal */}
+      <Dialog open={dummyOpen} onOpenChange={setDummyOpen}>
+        <DialogContent
+          style={{ maxWidth: "80vw", width: "80vw", padding: 0, overflow: "hidden" }}
+          data-testid="dialog-dummy"
+        >
+          <DialogHeader style={{ padding: "20px 24px 0" }}>
+            <DialogTitle style={{ fontSize: 15, fontWeight: 700 }}>더미 메모</DialogTitle>
+          </DialogHeader>
+          <div style={{ display: "flex", gap: 0, height: "70vh" }}>
+            {/* 왼쪽: 입력 영역 (72%) */}
+            <div style={{ flex: "0 0 72%", display: "flex", flexDirection: "column", padding: "16px 20px 20px", borderRight: "1px solid #eee" }}>
+              <textarea
+                data-testid="textarea-dummy-draft"
+                value={dummyDraft}
+                onChange={(e) => setDummyDraft(e.target.value)}
+                placeholder="여기에 메모를 작성하세요..."
+                style={{
+                  flex: 1, width: "100%", boxSizing: "border-box",
+                  fontSize: 14, lineHeight: 1.8, color: "#1a1a1a",
+                  border: "1px solid #e5e7eb", borderRadius: 8,
+                  padding: "14px 16px", resize: "none",
+                  backgroundColor: "#fafafa", fontFamily: "inherit", outline: "none",
+                }}
+              />
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+                <button
+                  data-testid="button-dummy-save"
+                  disabled={!dummyDraft.trim()}
+                  onClick={() => {
+                    if (!dummyDraft.trim()) return;
+                    const newNote: DummyNote = {
+                      id: Date.now().toString(),
+                      content: dummyDraft.trim(),
+                      timestamp: new Date().toISOString(),
+                    };
+                    const updated = [newNote, ...dummyNotes];
+                    setDummyNotes(updated);
+                    saveDummyNotes(updated);
+                    setDummyDraft("");
+                  }}
+                  style={{
+                    backgroundColor: "#1e3a5f", color: "#fff",
+                    fontSize: 13, fontWeight: 600,
+                    border: "none", borderRadius: 8,
+                    padding: "0 24px", height: 36, cursor: "pointer",
+                    opacity: dummyDraft.trim() ? 1 : 0.4,
+                  }}
+                >
+                  저장
+                </button>
+              </div>
+            </div>
+
+            {/* 오른쪽: 노트 목록 (28%) */}
+            <div style={{ flex: "0 0 28%", overflowY: "auto", padding: "16px 16px 20px" }}>
+              {dummyNotes.length === 0 ? (
+                <div style={{ color: "#bbb", fontSize: 13, textAlign: "center", marginTop: 40 }}>저장된 메모가 없습니다</div>
+              ) : (
+                dummyNotes.map((note) => {
+                  const d = new Date(note.timestamp);
+                  const dateLabel = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+                  const timeLabel = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+                  return (
+                    <div
+                      key={note.id}
+                      data-testid={`dummy-note-${note.id}`}
+                      style={{
+                        borderBottom: "1px solid #f0f2f5", paddingBottom: 12, marginBottom: 12,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span style={{ fontSize: 11, color: "#2563eb", fontWeight: 600 }}>{dateLabel}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 11, color: "#888" }}>{timeLabel}</span>
+                          <button
+                            onClick={() => {
+                              const updated = dummyNotes.filter((n) => n.id !== note.id);
+                              setDummyNotes(updated);
+                              saveDummyNotes(updated);
+                            }}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc", fontSize: 14, padding: "0 2px", lineHeight: 1 }}
+                            title="삭제"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: 13, color: "#333", lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                        {note.content}
+                      </p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* AI Modal */}
       <Dialog open={aiModal.open} onOpenChange={(v) => !v && handleCancel()}>
