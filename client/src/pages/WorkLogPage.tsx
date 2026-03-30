@@ -1381,9 +1381,24 @@ export default function WorkLogPage() {
                           </button>
                         </div>
                       </div>
-                      <p style={{ fontSize: 13, color: "#333", lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                      <p style={{
+                        fontSize: 13, color: "#333", lineHeight: 1.6, margin: 0,
+                        whiteSpace: "pre-wrap", wordBreak: "break-word",
+                        display: "-webkit-box", WebkitLineClamp: 4,
+                        WebkitBoxOrient: "vertical", overflow: "hidden",
+                      }}>
                         {note.content}
                       </p>
+                      <button
+                        onClick={() => setDummyDraft(note.content)}
+                        style={{
+                          marginTop: 6, fontSize: 11, color: "#2563eb",
+                          background: "none", border: "none", cursor: "pointer",
+                          padding: 0, textDecoration: "underline",
+                        }}
+                      >
+                        불러오기
+                      </button>
                     </div>
                   );
                 })
