@@ -613,6 +613,34 @@ async function loadFromSupabase(dateKey: string): Promise<DayData> {
   };
 }
 
+const GLOBAL_MEMO_DATE = "global";
+
+async function loadGlobalMemo(): Promise<string> {
+  const { data } = await supabase
+    .from("work_logs")
+    .select("free_memo")
+    .eq("log_date", GLOBAL_MEMO_DATE)
+    .eq("author", AUTHOR)
+    .single();
+  return data?.free_memo ?? "";
+}
+
+async function saveGlobalMemo(memo: string) {
+  await supabase.from("work_logs").upsert(
+    {
+      log_date: GLOBAL_MEMO_DATE,
+      author: AUTHOR,
+      department: DEPARTMENT,
+      entries: [],
+      tomorrow_plan: "",
+      free_memo: memo,
+      secret: "",
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "log_date,author" }
+  );
+}
+
 async function loadRecentDates(): Promise<string[]> {
   const { data } = await supabase
     .from("work_logs")
@@ -648,6 +676,8 @@ export default function WorkLogPage() {
   const [loading, setLoading] = useState(false);
   const [yesterdayPlan, setYesterdayPlan] = useState("");
   const [recentDates, setRecentDates] = useState<string[]>([]);
+  const [globalMemo, setGlobalMemo] = useState("");
+  const globalMemoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [aiModal, setAiModal] = useState<AiModalState>({
     open: false, entryId: "", original: "", suggestion: "", loading: false,
   });
@@ -664,6 +694,7 @@ export default function WorkLogPage() {
 
   useEffect(() => {
     loadRecentDates().then(setRecentDates);
+    loadGlobalMemo().then(setGlobalMemo);
   }, []);
 
   const key = dateToKey(currentDate);
@@ -1016,9 +1047,14 @@ export default function WorkLogPage() {
                   <h3 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 12px" }}>자유 메모</h3>
                   <Textarea
                     data-testid="textarea-memo"
-                    value={dayData.freeMemo}
-                    onChange={(e) => updateDay((d) => ({ ...d, freeMemo: e.target.value }))}
-                    placeholder="기타 메모 사항을 작성하세요..."
+                    value={globalMemo}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setGlobalMemo(val);
+                      if (globalMemoSaveRef.current) clearTimeout(globalMemoSaveRef.current);
+                      globalMemoSaveRef.current = setTimeout(() => saveGlobalMemo(val), 500);
+                    }}
+                    placeholder="기타 메모 사항을 작성하세요... (모든 날짜에서 공통으로 표시됩니다)"
                     style={{
                       minHeight: 140, resize: "none", fontSize: 13,
                       border: "1px solid #f0f2f5", borderRadius: 8,
