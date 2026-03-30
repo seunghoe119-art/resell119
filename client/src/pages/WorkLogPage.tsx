@@ -1224,9 +1224,23 @@ export default function WorkLogPage() {
             </div>
             <div>
               <p style={{ fontSize: 11, fontWeight: 600, color: "#999", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>AI 추천 문구</p>
-              <div style={{ backgroundColor: "#fef9f0", border: "1px solid #e8d8b8", borderRadius: 8, padding: "10px 14px", fontSize: 13, minHeight: 72, whiteSpace: "pre-wrap", lineHeight: 1.6, color: "#333" }} data-testid="text-ai-suggestion">
-                {aiModal.loading ? <span style={{ color: "#bbb" }}>AI가 정리 중입니다...</span> : aiModal.suggestion}
-              </div>
+              {aiModal.loading
+                ? <div style={{ backgroundColor: "#fef9f0", border: "1px solid #e8d8b8", borderRadius: 8, padding: "10px 14px", fontSize: 13, minHeight: 72, lineHeight: 1.6, color: "#bbb" }} data-testid="text-ai-suggestion">
+                    AI가 정리 중입니다...
+                  </div>
+                : <textarea
+                    data-testid="text-ai-suggestion"
+                    value={aiModal.suggestion}
+                    onChange={(e) => setAiModal((p) => ({ ...p, suggestion: e.target.value }))}
+                    style={{
+                      width: "100%", boxSizing: "border-box",
+                      backgroundColor: "#fef9f0", border: "1px solid #e8d8b8", borderRadius: 8,
+                      padding: "10px 14px", fontSize: 13, minHeight: 72, maxHeight: 200,
+                      lineHeight: 1.6, color: "#333", resize: "vertical",
+                      fontFamily: "inherit", outline: "none",
+                    }}
+                  />
+              }
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, paddingTop: 8 }}>
@@ -1262,15 +1276,23 @@ export default function WorkLogPage() {
             </div>
             <div>
               <p style={{ fontSize: 11, fontWeight: 600, color: "#999", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>AI 정리 문구</p>
-              <div style={{
-                backgroundColor: "#fef9f0", border: "1px solid #e8d8b8", borderRadius: 8,
-                padding: "10px 14px", fontSize: 13, minHeight: 100, whiteSpace: "pre-wrap",
-                lineHeight: 1.6, color: "#333", maxHeight: 200, overflowY: "auto",
-              }}>
-                {secretAiModal.loading
-                  ? <span style={{ color: "#bbb" }}>AI가 정리 중입니다...</span>
-                  : secretAiModal.suggestion}
-              </div>
+              {secretAiModal.loading
+                ? <div style={{
+                    backgroundColor: "#fef9f0", border: "1px solid #e8d8b8", borderRadius: 8,
+                    padding: "10px 14px", fontSize: 13, minHeight: 100, lineHeight: 1.6, color: "#bbb",
+                  }}>AI가 정리 중입니다...</div>
+                : <textarea
+                    value={secretAiModal.suggestion}
+                    onChange={(e) => setSecretAiModal((p) => ({ ...p, suggestion: e.target.value }))}
+                    style={{
+                      width: "100%", boxSizing: "border-box",
+                      backgroundColor: "#fef9f0", border: "1px solid #e8d8b8", borderRadius: 8,
+                      padding: "10px 14px", fontSize: 13, minHeight: 100, maxHeight: 200,
+                      lineHeight: 1.6, color: "#333", resize: "vertical",
+                      fontFamily: "inherit", outline: "none",
+                    }}
+                  />
+              }
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, paddingTop: 8 }}>
