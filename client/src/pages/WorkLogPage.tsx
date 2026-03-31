@@ -615,6 +615,7 @@ async function loadFromSupabase(dateKey: string): Promise<DayData> {
 
 const GLOBAL_MEMO_DATE = "global";
 const DUMMY_NOTE_DATE = "dummy";
+const DUMMY_DRAFT_DATE = "dummy-draft";
 
 type DummyNote = {
   id: string;
@@ -640,7 +641,32 @@ async function saveDummyNotes(notes: DummyNote[]) {
       department: DEPARTMENT,
       entries: notes,
       tomorrow_plan: "",
-      free_memo: "",
+      secret: "",
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "log_date,author" }
+  );
+}
+
+async function loadDummyDraft(): Promise<string> {
+  const { data } = await supabase
+    .from("work_logs")
+    .select("free_memo")
+    .eq("log_date", DUMMY_DRAFT_DATE)
+    .eq("author", AUTHOR)
+    .single();
+  return data?.free_memo ?? "";
+}
+
+async function saveDummyDraft(draft: string) {
+  await supabase.from("work_logs").upsert(
+    {
+      log_date: DUMMY_DRAFT_DATE,
+      author: AUTHOR,
+      department: DEPARTMENT,
+      entries: [],
+      tomorrow_plan: "",
+      free_memo: draft,
       secret: "",
       updated_at: new Date().toISOString(),
     },
@@ -714,6 +740,8 @@ export default function WorkLogPage() {
   const [dummyOpen, setDummyOpen] = useState(false);
   const [dummyNotes, setDummyNotes] = useState<DummyNote[]>([]);
   const [dummyDraft, setDummyDraft] = useState("");
+  const [dummyAutoSaved, setDummyAutoSaved] = useState(false);
+  const dummyDraftSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [aiModal, setAiModal] = useState<AiModalState>({
     open: false, entryId: "", original: "", suggestion: "", loading: false,
   });
@@ -732,7 +760,21 @@ export default function WorkLogPage() {
     loadRecentDates().then(setRecentDates);
     loadGlobalMemo().then(setGlobalMemo);
     loadDummyNotes().then(setDummyNotes);
+    loadDummyDraft().then(setDummyDraft);
   }, []);
+
+  useEffect(() => {
+    if (dummyDraftSaveRef.current) clearTimeout(dummyDraftSaveRef.current);
+    dummyDraftSaveRef.current = setTimeout(() => {
+      saveDummyDraft(dummyDraft).then(() => {
+        setDummyAutoSaved(true);
+        setTimeout(() => setDummyAutoSaved(false), 1500);
+      });
+    }, 800);
+    return () => {
+      if (dummyDraftSaveRef.current) clearTimeout(dummyDraftSaveRef.current);
+    };
+  }, [dummyDraft]);
 
   const key = dateToKey(currentDate);
 
@@ -1318,7 +1360,13 @@ export default function WorkLogPage() {
                   backgroundColor: "#fafafa", fontFamily: "inherit", outline: "none",
                 }}
               />
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
+                <span style={{
+                  fontSize: 11, color: dummyAutoSaved ? "#16a34a" : "transparent",
+                  transition: "color 0.3s", fontWeight: 500,
+                }}>
+                  자동 저장됨
+                </span>
                 <button
                   data-testid="button-dummy-save"
                   disabled={!dummyDraft.trim()}
@@ -1342,7 +1390,7 @@ export default function WorkLogPage() {
                     opacity: dummyDraft.trim() ? 1 : 0.4,
                   }}
                 >
-                  저장
+                  백업 저장
                 </button>
               </div>
             </div>
