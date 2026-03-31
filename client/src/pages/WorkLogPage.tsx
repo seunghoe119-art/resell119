@@ -614,7 +614,6 @@ async function loadFromSupabase(dateKey: string): Promise<DayData> {
 }
 
 const GLOBAL_MEMO_DATE = "global";
-const DUMMY_NOTE_DATE = "dummy";
 const DUMMY_DRAFT_DATE = "dummy-draft";
 
 type DummyNote = {
@@ -625,27 +624,26 @@ type DummyNote = {
 
 async function loadDummyNotes(): Promise<DummyNote[]> {
   const { data } = await supabase
-    .from("work_logs")
-    .select("entries")
-    .eq("log_date", DUMMY_NOTE_DATE)
+    .from("dummy_backups")
+    .select("id, content, created_at")
     .eq("author", AUTHOR)
-    .single();
-  return (data?.entries as DummyNote[]) ?? [];
+    .order("created_at", { ascending: false });
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    content: row.content,
+    timestamp: row.created_at,
+  }));
 }
 
-async function saveDummyNotes(notes: DummyNote[]) {
-  await supabase.from("work_logs").upsert(
-    {
-      log_date: DUMMY_NOTE_DATE,
-      author: AUTHOR,
-      department: DEPARTMENT,
-      entries: notes,
-      tomorrow_plan: "",
-      secret: "",
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "log_date,author" }
-  );
+async function addDummyBackup(content: string): Promise<void> {
+  await supabase.from("dummy_backups").insert({
+    author: AUTHOR,
+    content,
+  });
+}
+
+async function deleteDummyBackup(id: string): Promise<void> {
+  await supabase.from("dummy_backups").delete().eq("id", id).eq("author", AUTHOR);
 }
 
 async function loadDummyDraft(): Promise<string> {
@@ -1370,16 +1368,11 @@ export default function WorkLogPage() {
                 <button
                   data-testid="button-dummy-save"
                   disabled={!dummyDraft.trim()}
-                  onClick={() => {
+                  onClick={async () => {
                     if (!dummyDraft.trim()) return;
-                    const newNote: DummyNote = {
-                      id: Date.now().toString(),
-                      content: dummyDraft.trim(),
-                      timestamp: new Date().toISOString(),
-                    };
-                    const updated = [newNote, ...dummyNotes];
-                    setDummyNotes(updated);
-                    saveDummyNotes(updated);
+                    await addDummyBackup(dummyDraft.trim());
+                    const refreshed = await loadDummyNotes();
+                    setDummyNotes(refreshed);
                     setDummyDraft("");
                   }}
                   style={{
@@ -1417,10 +1410,9 @@ export default function WorkLogPage() {
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <span style={{ fontSize: 11, color: "#888" }}>{timeLabel}</span>
                           <button
-                            onClick={() => {
-                              const updated = dummyNotes.filter((n) => n.id !== note.id);
-                              setDummyNotes(updated);
-                              saveDummyNotes(updated);
+                            onClick={async () => {
+                              await deleteDummyBackup(note.id);
+                              setDummyNotes((prev) => prev.filter((n) => n.id !== note.id));
                             }}
                             style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc", fontSize: 14, padding: "0 2px", lineHeight: 1 }}
                             title="삭제"
