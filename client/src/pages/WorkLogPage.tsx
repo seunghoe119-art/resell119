@@ -646,6 +646,14 @@ async function deleteDummyBackup(id: string): Promise<void> {
   await supabase.from("dummy_backups").delete().eq("id", id).eq("author", AUTHOR);
 }
 
+async function addSecretBackup(content: string, logDate: string): Promise<void> {
+  await supabase.from("secret_backups").insert({
+    author: AUTHOR,
+    log_date: logDate,
+    content,
+  });
+}
+
 async function loadDummyDraft(): Promise<string> {
   const { data } = await supabase
     .from("work_logs")
@@ -745,6 +753,8 @@ export default function WorkLogPage() {
   });
   const [secretDraft, setSecretDraft] = useState<string | null>(null);
   const [secretSaved, setSecretSaved] = useState(false);
+  const [secretAutoSaved, setSecretAutoSaved] = useState(false);
+  const secretAutoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [secretAiModal, setSecretAiModal] = useState<{ open: boolean; original: string; suggestion: string; loading: boolean }>({
     open: false, original: "", suggestion: "", loading: false,
   });
@@ -802,6 +812,18 @@ export default function WorkLogPage() {
     });
   }, [key]);
 
+  useEffect(() => {
+    if (secretDraft === null) return;
+    if (secretAutoSaveRef.current) clearTimeout(secretAutoSaveRef.current);
+    secretAutoSaveRef.current = setTimeout(() => {
+      updateDay((d) => ({ ...d, secret: secretDraft }));
+      setSecretAutoSaved(true);
+      setTimeout(() => setSecretAutoSaved(false), 1500);
+    }, 800);
+    return () => {
+      if (secretAutoSaveRef.current) clearTimeout(secretAutoSaveRef.current);
+    };
+  }, [secretDraft, updateDay]);
 
   /* Entry handlers */
   const handleContentChange = (id: string, value: string) => {
@@ -1265,67 +1287,57 @@ export default function WorkLogPage() {
                     {DECOY_TEXT}
                   </div>
                 </div>
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10 }}>
-                  {/* AI버튼 - 완전 투명, 어떤 상태에서도 색 변화 없음 */}
-                  <button
-                    type="button"
-                    onClick={openSecretAi}
-                    data-testid="button-secret-ai"
-                    style={{
-                      backgroundColor: "#ffffff",
-                      color: "#ffffff",
-                      fontSize: 13,
-                      borderRadius: 8,
-                      padding: "0 20px",
-                      height: 36,
-                      border: "none",
-                      boxShadow: "none",
-                      outline: "none",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      cursor: "default",
-                      userSelect: "none",
-                      transition: "none",
-                      WebkitAppearance: "none",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
-                    onMouseDown={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
-                    onMouseUp={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
-                    onFocus={(e) => { e.currentTarget.style.outline = "none"; e.currentTarget.style.boxShadow = "none"; }}
-                  >
-                    AI버튼
-                  </button>
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      const toSave = secretDraft !== null ? secretDraft : dayData.secret;
-                      updateDay((d) => ({ ...d, secret: toSave }));
-                      setSecretDraft(null);
-                      setSecretSaved(true);
-                      setTimeout(() => setSecretSaved(false), 2000);
-                    }}
-                    data-testid="button-save-secret"
-                    style={{
-                      backgroundColor: secretSaved ? "#16a34a" : "#1e3a5f",
-                      color: "#fff",
-                      fontSize: 13,
-                      borderRadius: 8,
-                      padding: "0 20px",
-                      height: 36,
-                      border: "none",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      cursor: "pointer",
-                      transition: "background-color .3s",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    <Check size={15} />
-                    {secretSaved ? "의용소방대 법률 저장됨" : "의용소방대 법률"}
-                  </Button>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
+                  <span style={{
+                    fontSize: 11, color: secretAutoSaved ? "#16a34a" : "transparent",
+                    transition: "color 0.3s", fontWeight: 500, paddingLeft: 2,
+                  }}>
+                    자동 저장됨
+                  </span>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {/* AI버튼 - 완전 투명, 어떤 상태에서도 색 변화 없음 */}
+                    <button
+                      type="button"
+                      onClick={openSecretAi}
+                      data-testid="button-secret-ai"
+                      style={{
+                        backgroundColor: "#ffffff", color: "#ffffff", fontSize: 13,
+                        borderRadius: 8, padding: "0 20px", height: 36, border: "none",
+                        boxShadow: "none", outline: "none", display: "flex", alignItems: "center",
+                        gap: 6, cursor: "default", userSelect: "none", transition: "none",
+                        WebkitAppearance: "none",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
+                      onMouseDown={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
+                      onMouseUp={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
+                      onFocus={(e) => { e.currentTarget.style.outline = "none"; e.currentTarget.style.boxShadow = "none"; }}
+                    >
+                      AI버튼
+                    </button>
+                    <Button
+                      type="button"
+                      onClick={async () => {
+                        const toSave = secretDraft !== null ? secretDraft : dayData.secret;
+                        updateDay((d) => ({ ...d, secret: toSave }));
+                        await addSecretBackup(toSave, key);
+                        setSecretDraft(null);
+                        setSecretSaved(true);
+                        setTimeout(() => setSecretSaved(false), 2000);
+                      }}
+                      data-testid="button-save-secret"
+                      style={{
+                        backgroundColor: secretSaved ? "#16a34a" : "#1e3a5f",
+                        color: "#fff", fontSize: 13, borderRadius: 8,
+                        padding: "0 20px", height: 36, border: "none",
+                        display: "flex", alignItems: "center", gap: 6,
+                        cursor: "pointer", transition: "background-color .3s", whiteSpace: "nowrap",
+                      }}
+                    >
+                      <Check size={15} />
+                      {secretSaved ? "의용소방대 법률 저장됨" : "의용소방대 법률"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
