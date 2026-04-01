@@ -1120,43 +1120,43 @@ export default function WorkLogPage() {
       <div style={S.container}>
 
         {/* Top Tabs */}
-        <div style={{ display: "flex", gap: 0, borderBottom: "2px solid #e8eaed", marginBottom: 0 }}>
+        <div style={{ display: "flex", gap: 0, borderBottom: "2px solid #e8eaed", marginBottom: 24 }}>
           {(["log", "ref"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              data-testid={`tab-${t}`}
-              style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "12px 20px", fontSize: 14, fontWeight: tab === t ? 600 : 400,
-                color: tab === t ? "#2563eb" : "#666",
-                marginBottom: -2, background: "none",
-                border: "none",
-                borderBottom: `2px solid ${tab === t ? "#2563eb" : "transparent"}`,
-                cursor: "pointer", transition: "color .15s",
-              }}
-            >
-              {t === "log" ? <FileText size={15} /> : <BookOpen size={15} />}
-              {t === "log" ? "업무 일지" : "참고 문헌"}
-            </button>
+            <div key={t} style={{ display: "flex", flexDirection: "column" }}>
+              <button
+                onClick={() => setTab(t)}
+                data-testid={`tab-${t}`}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "12px 20px", fontSize: 14, fontWeight: tab === t ? 600 : 400,
+                  color: tab === t ? "#2563eb" : "#666",
+                  marginBottom: -2, background: "none",
+                  border: "none",
+                  borderBottom: `2px solid ${tab === t ? "#2563eb" : "transparent"}`,
+                  cursor: "pointer", transition: "color .15s",
+                }}
+              >
+                {t === "log" ? <FileText size={15} /> : <BookOpen size={15} />}
+                {t === "log" ? "업무 일지" : "참고 문헌"}
+              </button>
+              {t === "ref" && (
+                <button
+                  data-testid="button-goto-ref"
+                  onClick={() => setTab("ref")}
+                  style={{
+                    backgroundColor: "transparent", color: "transparent",
+                    border: "none", outline: "none", boxShadow: "none",
+                    fontSize: 12, padding: "3px 20px", cursor: "default",
+                    userSelect: "none", transition: "none",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                >
+                  참고 문헌
+                </button>
+              )}
+            </div>
           ))}
-        </div>
-
-        {/* 참고 문헌 바로가기 버튼 */}
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24, marginTop: 8 }}>
-          <button
-            data-testid="button-goto-ref"
-            onClick={() => setTab("ref")}
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              fontSize: 12, color: "#6b7280",
-              backgroundColor: "#f4f6f9", border: "1px solid #e5e7eb",
-              borderRadius: 7, padding: "5px 14px", cursor: "pointer",
-            }}
-          >
-            <BookOpen size={13} />
-            참고 문헌
-          </button>
         </div>
 
         {tab === "log" && (
