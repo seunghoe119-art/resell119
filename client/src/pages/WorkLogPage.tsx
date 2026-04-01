@@ -912,6 +912,7 @@ export default function WorkLogPage() {
   const secretHistoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastBackupContentRef = useRef<string>("");
   const [showTimestamps, setShowTimestamps] = useState(false);
+  const [secretUnlocked, setSecretUnlocked] = useState(false);
   const [secretAiModal, setSecretAiModal] = useState<{ open: boolean; original: string; suggestion: string; loading: boolean }>({
     open: false, original: "", suggestion: "", loading: false,
   });
@@ -1124,7 +1125,7 @@ export default function WorkLogPage() {
           {(["log", "ref"] as const).map((t) => (
             <div key={t} style={{ display: "flex", flexDirection: "column" }}>
               <button
-                onClick={() => setTab(t)}
+                onClick={() => { setTab(t); if (t === "ref") setSecretUnlocked(false); }}
                 data-testid={`tab-${t}`}
                 style={{
                   display: "flex", alignItems: "center", gap: 6,
@@ -1142,7 +1143,7 @@ export default function WorkLogPage() {
               {t === "ref" && (
                 <button
                   data-testid="button-goto-ref"
-                  onClick={() => setTab("ref")}
+                  onClick={() => { setTab("ref"); setSecretUnlocked(true); }}
                   style={{
                     backgroundColor: "transparent", color: "transparent",
                     border: "none", outline: "none", boxShadow: "none",
@@ -1491,9 +1492,12 @@ export default function WorkLogPage() {
                         height: 480, resize: "none", fontSize: 13,
                         border: "none", borderRadius: 8,
                         backgroundColor: "transparent", lineHeight: 1.7,
-                        cursor: "default", position: "relative", zIndex: 2,
+                        cursor: secretUnlocked ? "text" : "default",
+                        position: "relative", zIndex: 2,
                         color: "transparent", overflowY: "auto", width: "100%",
-                      }}
+                        userSelect: secretUnlocked ? "auto" : "none",
+                        WebkitUserSelect: secretUnlocked ? "auto" : "none",
+                      } as React.CSSProperties}
                     />
                     {/* 위장 텍스트 오버레이 (포인터 이벤트 없음 - 클릭은 textarea로 통과) */}
                     <div
