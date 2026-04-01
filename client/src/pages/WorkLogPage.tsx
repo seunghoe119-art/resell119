@@ -738,31 +738,47 @@ const SECRET_BUCKET = "secret-files";
 const SECRET_FILE_PREFIX = "kimseunghoe";
 
 interface SecretFile {
+  id: string;
   displayName: string;
   path: string;
   created_at: string;
   size: number;
 }
 
-async function listSecretFiles(): Promise<SecretFile[]> {
-  const { data } = await supabase.storage
-    .from(SECRET_BUCKET)
-    .list(SECRET_FILE_PREFIX, { sortBy: { column: "created_at", order: "desc" } });
-  if (!data) return [];
-  return data
-    .filter((f) => f.name !== ".emptyFolderPlaceholder")
-    .map((f) => ({
-      displayName: f.name.replace(/^\d+_/, ""),
-      path: `${SECRET_FILE_PREFIX}/${f.name}`,
-      created_at: f.created_at ?? "",
-      size: (f.metadata as { size?: number } | null)?.size ?? 0,
-    }));
+async function listSecretFiles(logDate: string): Promise<SecretFile[]> {
+  const { data, error } = await supabase
+    .from("secret_files")
+    .select("*")
+    .eq("author", AUTHOR)
+    .eq("log_date", logDate)
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return data.map((f: { id: string; file_name: string; file_path: string; created_at: string; file_size: number }) => ({
+    id: f.id,
+    displayName: f.file_name,
+    path: f.file_path,
+    created_at: f.created_at,
+    size: f.file_size,
+  }));
 }
 
-async function uploadSecretFile(file: File): Promise<void> {
-  const path = `${SECRET_FILE_PREFIX}/${Date.now()}_${file.name}`;
-  const { error } = await supabase.storage.from(SECRET_BUCKET).upload(path, file);
-  if (error) throw error;
+async function uploadSecretFile(file: File, logDate: string): Promise<void> {
+  const safeName = file.name
+    .replace(/\s+/g, "_")
+    .replace(/[^a-zA-Z0-9._\-가-힣]/g, "_");
+  const storagePath = `${SECRET_FILE_PREFIX}/${logDate}/${Date.now()}_${safeName}`;
+  const { error: uploadErr } = await supabase.storage
+    .from(SECRET_BUCKET)
+    .upload(storagePath, file, { upsert: false, cacheControl: "3600" });
+  if (uploadErr) throw new Error(uploadErr.message);
+  const { error: dbErr } = await supabase.from("secret_files").insert({
+    author: AUTHOR,
+    log_date: logDate,
+    file_name: file.name,
+    file_path: storagePath,
+    file_size: file.size,
+  });
+  if (dbErr) throw new Error(dbErr.message);
 }
 
 async function downloadSecretFile(path: string, displayName: string): Promise<void> {
@@ -778,8 +794,9 @@ async function downloadSecretFile(path: string, displayName: string): Promise<vo
   URL.revokeObjectURL(url);
 }
 
-async function deleteSecretFile(path: string): Promise<void> {
+async function deleteSecretFile(path: string, id: string): Promise<void> {
   await supabase.storage.from(SECRET_BUCKET).remove([path]);
+  await supabase.from("secret_files").delete().eq("id", id);
 }
 
 function formatFileSize(bytes: number): string {
@@ -819,6 +836,7 @@ export default function WorkLogPage() {
   const decoyOverlayRef = useRef<HTMLDivElement>(null);
   const [secretFileOpen, setSecretFileOpen] = useState(false);
   const [secretFiles, setSecretFiles] = useState<SecretFile[]>([]);
+  const [secretFileDateKey, setSecretFileDateKey] = useState("");
   const [secretFileUploading, setSecretFileUploading] = useState(false);
   const secretFileInputRef = useRef<HTMLInputElement>(null);
   const secretFileClickCountRef = useRef(0);
@@ -1367,7 +1385,8 @@ export default function WorkLogPage() {
                       }, 2000);
                       if (autoSavedClickCountRef.current >= 3) {
                         autoSavedClickCountRef.current = 0;
-                        listSecretFiles().then(setSecretFiles);
+                        setSecretFileDateKey(key);
+                        listSecretFiles(key).then(setSecretFiles);
                         setSecretFileOpen(true);
                       }
                     }}
@@ -1407,7 +1426,8 @@ export default function WorkLogPage() {
                         }, 3000);
                         if (secretFileClickCountRef.current >= 5) {
                           secretFileClickCountRef.current = 0;
-                          listSecretFiles().then(setSecretFiles);
+                          setSecretFileDateKey(key);
+                          listSecretFiles(key).then(setSecretFiles);
                           setSecretFileOpen(true);
                         }
                       }}
@@ -1740,6 +1760,11 @@ export default function WorkLogPage() {
           <DialogHeader style={{ padding: "20px 24px 0" }}>
             <DialogTitle style={{ fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
               첨부파일 관리
+              {secretFileDateKey && (
+                <span style={{ fontSize: 12, color: "#2563eb", fontWeight: 400 }}>
+                  — {secretFileDateKey}
+                </span>
+              )}
             </DialogTitle>
           </DialogHeader>
           <div style={{ padding: "16px 24px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1769,12 +1794,14 @@ export default function WorkLogPage() {
                 if (files.length === 0) return;
                 setSecretFileUploading(true);
                 try {
-                  await Promise.all(files.map(uploadSecretFile));
-                  const updated = await listSecretFiles();
+                  await Promise.all(files.map((f) => uploadSecretFile(f, secretFileDateKey)));
+                  const updated = await listSecretFiles(secretFileDateKey);
                   setSecretFiles(updated);
                   toast({ description: `${files.length}개 파일이 업로드됐습니다.` });
-                } catch {
-                  toast({ description: "업로드 중 오류가 발생했습니다.", variant: "destructive" });
+                } catch (err: unknown) {
+                  const msg = err instanceof Error ? err.message : String(err);
+                  console.error("[파일 업로드 오류]", err);
+                  toast({ description: `업로드 오류: ${msg}`, variant: "destructive" });
                 } finally {
                   setSecretFileUploading(false);
                   e.target.value = "";
@@ -1841,7 +1868,7 @@ export default function WorkLogPage() {
                         data-testid={`button-delete-file-${idx}`}
                         onClick={async () => {
                           try {
-                            await deleteSecretFile(file.path);
+                            await deleteSecretFile(file.path, file.id);
                             setSecretFiles((prev) => prev.filter((_, i) => i !== idx));
                             toast({ description: "파일이 삭제됐습니다." });
                           } catch {
