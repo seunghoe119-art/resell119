@@ -911,6 +911,7 @@ export default function WorkLogPage() {
   const [secretHistory, setSecretHistory] = useState<SecretHistoryEntry[]>([]);
   const secretHistoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastBackupContentRef = useRef<string>("");
+  const [showTimestamps, setShowTimestamps] = useState(false);
   const [secretAiModal, setSecretAiModal] = useState<{ open: boolean; original: string; suggestion: string; loading: boolean }>({
     open: false, original: "", suggestion: "", loading: false,
   });
@@ -1494,26 +1495,43 @@ export default function WorkLogPage() {
                     </div>
                   </div>
 
-                  {/* 오른쪽: 저장 타임스탬프 패널 */}
+                  {/* 오른쪽: 저장 타임스탬프 패널 — 마우스 누르는 동안만 표시 */}
                   <div
                     data-testid="panel-secret-timestamps"
+                    onMouseDown={() => setShowTimestamps(true)}
+                    onMouseUp={() => setShowTimestamps(false)}
+                    onMouseLeave={() => setShowTimestamps(false)}
                     style={{
                       width: 72, flexShrink: 0,
                       height: 480, overflowY: "auto", overflowX: "hidden",
                       display: "flex", flexDirection: "column", gap: 0,
                       backgroundColor: "#f8fafc", borderRadius: 8,
                       padding: "6px 0",
+                      cursor: "default", userSelect: "none",
                     }}
                   >
-                    {secretHistory.length === 0 ? (
-                      <div style={{
-                        fontSize: 10, color: "#ccc", textAlign: "center",
-                        marginTop: 12, lineHeight: 1.4, padding: "0 4px",
-                      }}>
-                        저장<br />기록<br />없음
-                      </div>
-                    ) : (
-                      secretHistory.map((h) => {
+                    {(() => {
+                      const seen = new Set<number>();
+                      const deduped = secretHistory.filter((h) => {
+                        const bucket = Math.floor(new Date(h.created_at).getTime() / (2 * 60 * 1000));
+                        if (seen.has(bucket)) return false;
+                        seen.add(bucket);
+                        return true;
+                      });
+                      if (deduped.length === 0) {
+                        return (
+                          <div style={{
+                            fontSize: 10,
+                            color: showTimestamps ? "#ccc" : "transparent",
+                            textAlign: "center",
+                            marginTop: 12, lineHeight: 1.4, padding: "0 4px",
+                            transition: "color 0.15s",
+                          }}>
+                            저장<br />기록<br />없음
+                          </div>
+                        );
+                      }
+                      return deduped.map((h) => {
                         const d = new Date(h.created_at);
                         const hh = String(d.getHours()).padStart(2, "0");
                         const mm = String(d.getMinutes()).padStart(2, "0");
@@ -1522,19 +1540,21 @@ export default function WorkLogPage() {
                           <div
                             key={h.id}
                             style={{
-                              fontSize: 10, color: "#6b7280",
+                              fontSize: 10,
+                              color: showTimestamps ? "#6b7280" : "transparent",
                               padding: "3px 6px",
                               whiteSpace: "nowrap", overflow: "hidden",
                               textOverflow: "clip",
                               lineHeight: 1.6,
                               borderBottom: "1px solid #f0f2f5",
+                              transition: "color 0.15s",
                             }}
                           >
                             {hh}:{mm}:{ss}
                           </div>
                         );
-                      })
-                    )}
+                      });
+                    })()}
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
