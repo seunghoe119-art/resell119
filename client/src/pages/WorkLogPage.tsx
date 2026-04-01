@@ -763,10 +763,8 @@ async function listSecretFiles(logDate: string): Promise<SecretFile[]> {
 }
 
 async function uploadSecretFile(file: File, logDate: string): Promise<void> {
-  const safeName = file.name
-    .replace(/\s+/g, "_")
-    .replace(/[^a-zA-Z0-9._\-가-힣]/g, "_");
-  const storagePath = `${SECRET_FILE_PREFIX}/${logDate}/${Date.now()}_${safeName}`;
+  const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")).replace(/[^a-zA-Z0-9.]/g, "") : "";
+  const storagePath = `${SECRET_FILE_PREFIX}/${logDate}/${Date.now()}${ext}`;
   const { error: uploadErr } = await supabase.storage
     .from(SECRET_BUCKET)
     .upload(storagePath, file, { upsert: false, cacheControl: "3600" });
