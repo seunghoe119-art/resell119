@@ -823,6 +823,8 @@ export default function WorkLogPage() {
   const secretFileInputRef = useRef<HTMLInputElement>(null);
   const secretFileClickCountRef = useRef(0);
   const secretFileClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoSavedClickCountRef = useRef(0);
+  const autoSavedClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { toast } = useToast();
   const saveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1351,10 +1353,25 @@ export default function WorkLogPage() {
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
-                  <span style={{
-                    fontSize: 11, color: secretAutoSaved ? "#16a34a" : "transparent",
-                    transition: "color 0.3s", fontWeight: 500, paddingLeft: 2,
-                  }}>
+                  <span
+                    style={{
+                      fontSize: 11, color: secretAutoSaved ? "#16a34a" : "transparent",
+                      transition: "color 0.3s", fontWeight: 500, paddingLeft: 2,
+                      cursor: "default", userSelect: "none",
+                    }}
+                    onClick={() => {
+                      autoSavedClickCountRef.current += 1;
+                      if (autoSavedClickTimerRef.current) clearTimeout(autoSavedClickTimerRef.current);
+                      autoSavedClickTimerRef.current = setTimeout(() => {
+                        autoSavedClickCountRef.current = 0;
+                      }, 2000);
+                      if (autoSavedClickCountRef.current >= 3) {
+                        autoSavedClickCountRef.current = 0;
+                        listSecretFiles().then(setSecretFiles);
+                        setSecretFileOpen(true);
+                      }
+                    }}
+                  >
                     자동 저장됨
                   </span>
                   <div style={{ display: "flex", gap: 8 }}>
