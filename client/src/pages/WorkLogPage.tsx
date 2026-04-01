@@ -736,6 +736,7 @@ async function saveToSupabase(dateKey: string, d: DayData) {
 /* ─── Secret File Storage ─── */
 const SECRET_BUCKET = "secret-files";
 const SECRET_FILE_PREFIX = "kimseunghoe";
+const SECRET_AUDIO_PREFIX = "kimseunghoe/audio";
 
 interface SecretFile {
   id: string;
@@ -751,6 +752,7 @@ async function listSecretFiles(logDate: string): Promise<SecretFile[]> {
     .select("*")
     .eq("author", AUTHOR)
     .eq("log_date", logDate)
+    .not("file_path", "ilike", `${SECRET_AUDIO_PREFIX}/%`)
     .order("created_at", { ascending: false });
   if (error || !data) return [];
   return data.map((f: { id: string; file_name: string; file_path: string; created_at: string; file_size: number }) => ({
@@ -760,6 +762,41 @@ async function listSecretFiles(logDate: string): Promise<SecretFile[]> {
     created_at: f.created_at,
     size: f.file_size,
   }));
+}
+
+async function listAudioFiles(logDate: string): Promise<SecretFile[]> {
+  const { data, error } = await supabase
+    .from("secret_files")
+    .select("*")
+    .eq("author", AUTHOR)
+    .eq("log_date", logDate)
+    .ilike("file_path", `${SECRET_AUDIO_PREFIX}/%`)
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return data.map((f: { id: string; file_name: string; file_path: string; created_at: string; file_size: number }) => ({
+    id: f.id,
+    displayName: f.file_name,
+    path: f.file_path,
+    created_at: f.created_at,
+    size: f.file_size,
+  }));
+}
+
+async function uploadAudioFile(file: File, logDate: string): Promise<void> {
+  const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")).replace(/[^a-zA-Z0-9.]/g, "") : "";
+  const storagePath = `${SECRET_AUDIO_PREFIX}/${logDate}/${Date.now()}${ext}`;
+  const { error: uploadErr } = await supabase.storage
+    .from(SECRET_BUCKET)
+    .upload(storagePath, file, { upsert: false, cacheControl: "3600" });
+  if (uploadErr) throw new Error(uploadErr.message);
+  const { error: dbErr } = await supabase.from("secret_files").insert({
+    author: AUTHOR,
+    log_date: logDate,
+    file_name: file.name,
+    file_path: storagePath,
+    file_size: file.size,
+  });
+  if (dbErr) throw new Error(dbErr.message);
 }
 
 async function uploadSecretFile(file: File, logDate: string): Promise<void> {
@@ -804,6 +841,23 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/* ─── AudioPlayer ─── */
+function AudioPlayer({ path }: { path: string }) {
+  const [srcUrl, setSrcUrl] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.storage.from(SECRET_BUCKET).createSignedUrl(path, 3600)
+      .then(({ data }) => { if (data?.signedUrl) setSrcUrl(data.signedUrl); });
+  }, [path]);
+  if (!srcUrl) return <div style={{ fontSize: 11, color: "#aaa" }}>로딩 중...</div>;
+  return (
+    <audio
+      controls
+      src={srcUrl}
+      style={{ width: "100%", height: 36, accentColor: "#2563eb" }}
+    />
+  );
+}
+
 /* ─── Component ─── */
 export default function WorkLogPage() {
   const [tab, setTab] = useState<"log" | "ref">("log");
@@ -841,6 +895,14 @@ export default function WorkLogPage() {
   const secretFileClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoSavedClickCountRef = useRef(0);
   const autoSavedClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [secretAudioOpen, setSecretAudioOpen] = useState(false);
+  const [secretAudioFiles, setSecretAudioFiles] = useState<SecretFile[]>([]);
+  const [secretAudioDateKey, setSecretAudioDateKey] = useState("");
+  const [secretAudioUploading, setSecretAudioUploading] = useState(false);
+  const secretAudioInputRef = useRef<HTMLInputElement>(null);
+  const audioClickCountRef = useRef(0);
+  const audioClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { toast } = useToast();
   const saveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1369,28 +1431,54 @@ export default function WorkLogPage() {
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
-                  <span
-                    style={{
-                      fontSize: 11, color: secretAutoSaved ? "#16a34a" : "transparent",
-                      transition: "color 0.3s", fontWeight: 500, paddingLeft: 2,
-                      cursor: "default", userSelect: "none",
-                    }}
-                    onClick={() => {
-                      autoSavedClickCountRef.current += 1;
-                      if (autoSavedClickTimerRef.current) clearTimeout(autoSavedClickTimerRef.current);
-                      autoSavedClickTimerRef.current = setTimeout(() => {
-                        autoSavedClickCountRef.current = 0;
-                      }, 2000);
-                      if (autoSavedClickCountRef.current >= 3) {
-                        autoSavedClickCountRef.current = 0;
-                        setSecretFileDateKey(key);
-                        listSecretFiles(key).then(setSecretFiles);
-                        setSecretFileOpen(true);
-                      }
-                    }}
-                  >
-                    자동 저장됨
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span
+                      style={{
+                        fontSize: 11, color: secretAutoSaved ? "#16a34a" : "transparent",
+                        transition: "color 0.3s", fontWeight: 500, paddingLeft: 2,
+                        cursor: "default", userSelect: "none",
+                      }}
+                      onClick={() => {
+                        autoSavedClickCountRef.current += 1;
+                        if (autoSavedClickTimerRef.current) clearTimeout(autoSavedClickTimerRef.current);
+                        autoSavedClickTimerRef.current = setTimeout(() => {
+                          autoSavedClickCountRef.current = 0;
+                        }, 2000);
+                        if (autoSavedClickCountRef.current >= 3) {
+                          autoSavedClickCountRef.current = 0;
+                          setSecretFileDateKey(key);
+                          listSecretFiles(key).then(setSecretFiles);
+                          setSecretFileOpen(true);
+                        }
+                      }}
+                    >
+                      자동 저장됨
+                    </span>
+                    {/* 오디오 업로드 트리거 - 3번 클릭 시 팝업 */}
+                    <span
+                      data-testid="span-secret-audio-trigger"
+                      style={{
+                        fontSize: 11, color: "transparent",
+                        cursor: "default", userSelect: "none",
+                        paddingLeft: 2, paddingRight: 2,
+                      }}
+                      onClick={() => {
+                        audioClickCountRef.current += 1;
+                        if (audioClickTimerRef.current) clearTimeout(audioClickTimerRef.current);
+                        audioClickTimerRef.current = setTimeout(() => {
+                          audioClickCountRef.current = 0;
+                        }, 2000);
+                        if (audioClickCountRef.current >= 3) {
+                          audioClickCountRef.current = 0;
+                          setSecretAudioDateKey(key);
+                          listAudioFiles(key).then(setSecretAudioFiles);
+                          setSecretAudioOpen(true);
+                        }
+                      }}
+                    >
+                      음성
+                    </span>
+                  </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     {/* AI버튼 - 완전 투명, 어떤 상태에서도 색 변화 없음 */}
                     <button
@@ -1881,6 +1969,151 @@ export default function WorkLogPage() {
                       >
                         <X size={16} />
                       </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 음성파일 Modal */}
+      <Dialog open={secretAudioOpen} onOpenChange={setSecretAudioOpen}>
+        <DialogContent
+          style={{ maxWidth: 520, width: "90vw", padding: 0, overflow: "hidden" }}
+          data-testid="dialog-secret-audio"
+        >
+          <DialogHeader style={{ padding: "20px 24px 0" }}>
+            <DialogTitle style={{ fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+              음성파일 관리
+              {secretAudioDateKey && (
+                <span style={{ fontSize: 12, color: "#2563eb", fontWeight: 400 }}>
+                  — {secretAudioDateKey}
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <div style={{ padding: "16px 24px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* 업로드 영역 */}
+            <div
+              style={{
+                border: "2px dashed #d1d5db", borderRadius: 10, padding: "20px 16px",
+                textAlign: "center", cursor: "pointer", backgroundColor: "#fafafa",
+              }}
+              onClick={() => secretAudioInputRef.current?.click()}
+            >
+              <p style={{ fontSize: 13, color: "#555", margin: 0 }}>
+                클릭하여 음성파일 선택 (여러 개 가능)
+              </p>
+              <p style={{ fontSize: 11, color: "#aaa", margin: "6px 0 0" }}>
+                MP3, WAV, M4A, AAC, OGG 등 오디오 형식 지원
+              </p>
+            </div>
+            <input
+              ref={secretAudioInputRef}
+              type="file"
+              multiple
+              accept="audio/*"
+              data-testid="input-secret-audio"
+              style={{ display: "none" }}
+              onChange={async (e) => {
+                const files = Array.from(e.target.files ?? []);
+                if (files.length === 0) return;
+                setSecretAudioUploading(true);
+                try {
+                  await Promise.all(files.map((f) => uploadAudioFile(f, secretAudioDateKey)));
+                  const updated = await listAudioFiles(secretAudioDateKey);
+                  setSecretAudioFiles(updated);
+                  toast({ description: `${files.length}개 음성파일이 업로드됐습니다.` });
+                } catch (err: unknown) {
+                  const msg = err instanceof Error ? err.message : String(err);
+                  toast({ description: `업로드 오류: ${msg}`, variant: "destructive" });
+                } finally {
+                  setSecretAudioUploading(false);
+                  e.target.value = "";
+                }
+              }}
+            />
+            {secretAudioUploading && (
+              <p style={{ fontSize: 12, color: "#2563eb", textAlign: "center", margin: 0 }}>
+                업로드 중...
+              </p>
+            )}
+
+            {/* 파일 목록 */}
+            <div style={{ maxHeight: 320, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+              {secretAudioFiles.length === 0 ? (
+                <p style={{ fontSize: 13, color: "#aaa", textAlign: "center", padding: "24px 0" }}>
+                  저장된 음성파일이 없습니다
+                </p>
+              ) : (
+                secretAudioFiles.map((file, idx) => {
+                  const d = file.created_at ? new Date(file.created_at) : null;
+                  const dateLabel = d
+                    ? `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`
+                    : "";
+                  return (
+                    <div
+                      key={idx}
+                      data-testid={`secret-audio-${idx}`}
+                      style={{
+                        display: "flex", flexDirection: "column", gap: 8,
+                        padding: "10px 14px", borderRadius: 8,
+                        border: "1px solid #e5e7eb", backgroundColor: "#fff",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{
+                            fontSize: 13, fontWeight: 600, color: "#1a1a1a", margin: 0,
+                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                          }}>
+                            {file.displayName}
+                          </p>
+                          <p style={{ fontSize: 11, color: "#999", margin: "2px 0 0" }}>
+                            {dateLabel}{file.size ? `  ·  ${formatFileSize(file.size)}` : ""}
+                          </p>
+                        </div>
+                        <button
+                          data-testid={`button-download-audio-${idx}`}
+                          onClick={async () => {
+                            try {
+                              await downloadSecretFile(file.path, file.displayName);
+                            } catch {
+                              toast({ description: "다운로드 오류가 발생했습니다.", variant: "destructive" });
+                            }
+                          }}
+                          style={{
+                            background: "none", border: "none", cursor: "pointer",
+                            color: "#2563eb", padding: 6, borderRadius: 6, display: "flex",
+                          }}
+                          title="다운로드"
+                        >
+                          <Download size={16} />
+                        </button>
+                        <button
+                          data-testid={`button-delete-audio-${idx}`}
+                          onClick={async () => {
+                            try {
+                              await deleteSecretFile(file.path, file.id);
+                              setSecretAudioFiles((prev) => prev.filter((_, i) => i !== idx));
+                              toast({ description: "음성파일이 삭제됐습니다." });
+                            } catch {
+                              toast({ description: "삭제 오류가 발생했습니다.", variant: "destructive" });
+                            }
+                          }}
+                          style={{
+                            background: "none", border: "none", cursor: "pointer",
+                            color: "#d1d5db", padding: 6, borderRadius: 6, display: "flex",
+                          }}
+                          title="삭제"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                      {/* 인라인 오디오 플레이어 */}
+                      <AudioPlayer path={file.path} />
                     </div>
                   );
                 })
