@@ -654,6 +654,19 @@ async function addSecretBackup(content: string, logDate: string): Promise<void> 
   });
 }
 
+interface SecretHistoryEntry { id: string; created_at: string; }
+
+async function loadSecretHistory(logDate: string): Promise<SecretHistoryEntry[]> {
+  const { data } = await supabase
+    .from("secret_backups")
+    .select("id, created_at")
+    .eq("author", AUTHOR)
+    .eq("log_date", logDate)
+    .order("created_at", { ascending: true });
+  if (!data) return [];
+  return data as SecretHistoryEntry[];
+}
+
 async function loadDummyDraft(): Promise<string> {
   const { data } = await supabase
     .from("work_logs")
@@ -895,6 +908,9 @@ export default function WorkLogPage() {
   const [secretSaved, setSecretSaved] = useState(false);
   const [secretAutoSaved, setSecretAutoSaved] = useState(false);
   const secretAutoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [secretHistory, setSecretHistory] = useState<SecretHistoryEntry[]>([]);
+  const secretHistoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastBackupContentRef = useRef<string>("");
   const [secretAiModal, setSecretAiModal] = useState<{ open: boolean; original: string; suggestion: string; loading: boolean }>({
     open: false, original: "", suggestion: "", loading: false,
   });
@@ -946,14 +962,19 @@ export default function WorkLogPage() {
   useEffect(() => {
     setSecretDraft(null);
     setSecretSaved(false);
+    setSecretHistory([]);
+    lastBackupContentRef.current = "";
     setLoading(true);
     const yKey = dateToKey(addDays(currentDate, -1));
     Promise.all([
       loadFromSupabase(key),
       loadFromSupabase(yKey),
-    ]).then(([todayData, ydayData]) => {
+      loadSecretHistory(key),
+    ]).then(([todayData, ydayData, hist]) => {
       setDayData(todayData);
       setYesterdayPlan(ydayData.tomorrowPlan);
+      setSecretHistory(hist);
+      lastBackupContentRef.current = todayData.secret ?? "";
       setLoading(false);
     });
   }, [key]);
@@ -972,10 +993,18 @@ export default function WorkLogPage() {
   useEffect(() => {
     if (secretDraft === null) return;
     if (secretAutoSaveRef.current) clearTimeout(secretAutoSaveRef.current);
-    secretAutoSaveRef.current = setTimeout(() => {
+    secretAutoSaveRef.current = setTimeout(async () => {
       updateDay((d) => ({ ...d, secret: secretDraft }));
       setSecretAutoSaved(true);
       setTimeout(() => setSecretAutoSaved(false), 1500);
+      if (secretDraft.trim() !== lastBackupContentRef.current.trim()) {
+        lastBackupContentRef.current = secretDraft;
+        if (secretHistoryTimerRef.current) clearTimeout(secretHistoryTimerRef.current);
+        secretHistoryTimerRef.current = setTimeout(async () => {
+          await addSecretBackup(secretDraft, key);
+          loadSecretHistory(key).then(setSecretHistory);
+        }, 2000);
+      }
     }, 800);
     return () => {
       if (secretAutoSaveRef.current) clearTimeout(secretAutoSaveRef.current);
@@ -1422,44 +1451,90 @@ export default function WorkLogPage() {
             {/* 참고 문헌 내용 */}
             <div style={S.card}>
               <div style={{ ...S.cardPad }}>
-                {/* 위장 텍스트 오버레이 래퍼 */}
-                <div style={{ position: "relative", borderRadius: 8 }}>
-                  {/* 실제 숨겨진 textarea */}
-                  <Textarea
-                    ref={secretTextareaRef}
-                    data-testid="textarea-secret"
-                    value={secretDraft !== null ? secretDraft : dayData.secret}
-                    onChange={(e) => { setSecretDraft(e.target.value); setSecretSaved(false); }}
-                    onScroll={() => {
-                      if (secretTextareaRef.current && decoyOverlayRef.current) {
-                        decoyOverlayRef.current.scrollTop = secretTextareaRef.current.scrollTop;
-                      }
-                    }}
-                    placeholder=""
-                    className="focus-visible:ring-0 secret-textarea"
-                    spellCheck={false}
-                    style={{
-                      height: 480, resize: "none", fontSize: 13,
-                      border: "none", borderRadius: 8,
-                      backgroundColor: "transparent", lineHeight: 1.7,
-                      cursor: "default", position: "relative", zIndex: 2,
-                      color: "transparent", overflowY: "auto",
-                    }}
-                  />
-                  {/* 위장 텍스트 오버레이 (포인터 이벤트 없음 - 클릭은 textarea로 통과) */}
+                {/* 텍스트 영역 + 타임스탬프 패널 */}
+                <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
+                  {/* 왼쪽: 위장 텍스트 오버레이 래퍼 */}
+                  <div style={{ flex: 1, position: "relative", borderRadius: 8 }}>
+                    {/* 실제 숨겨진 textarea */}
+                    <Textarea
+                      ref={secretTextareaRef}
+                      data-testid="textarea-secret"
+                      value={secretDraft !== null ? secretDraft : dayData.secret}
+                      onChange={(e) => { setSecretDraft(e.target.value); setSecretSaved(false); }}
+                      onScroll={() => {
+                        if (secretTextareaRef.current && decoyOverlayRef.current) {
+                          decoyOverlayRef.current.scrollTop = secretTextareaRef.current.scrollTop;
+                        }
+                      }}
+                      placeholder=""
+                      className="focus-visible:ring-0 secret-textarea"
+                      spellCheck={false}
+                      style={{
+                        height: 480, resize: "none", fontSize: 13,
+                        border: "none", borderRadius: 8,
+                        backgroundColor: "transparent", lineHeight: 1.7,
+                        cursor: "default", position: "relative", zIndex: 2,
+                        color: "transparent", overflowY: "auto", width: "100%",
+                      }}
+                    />
+                    {/* 위장 텍스트 오버레이 (포인터 이벤트 없음 - 클릭은 textarea로 통과) */}
+                    <div
+                      ref={decoyOverlayRef}
+                      style={{
+                        position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+                        padding: "8px 12px",
+                        fontSize: 13, lineHeight: 1.7, color: "#374151",
+                        backgroundColor: "#f8fafc", borderRadius: 8,
+                        whiteSpace: "pre-wrap", wordBreak: "break-word",
+                        overflowY: "hidden", pointerEvents: "none",
+                        zIndex: 1, userSelect: "none",
+                      }}
+                    >
+                      {DECOY_TEXT}
+                    </div>
+                  </div>
+
+                  {/* 오른쪽: 저장 타임스탬프 패널 */}
                   <div
-                    ref={decoyOverlayRef}
+                    data-testid="panel-secret-timestamps"
                     style={{
-                      position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-                      padding: "8px 12px",
-                      fontSize: 13, lineHeight: 1.7, color: "#374151",
+                      width: 72, flexShrink: 0,
+                      height: 480, overflowY: "auto", overflowX: "hidden",
+                      display: "flex", flexDirection: "column", gap: 0,
                       backgroundColor: "#f8fafc", borderRadius: 8,
-                      whiteSpace: "pre-wrap", wordBreak: "break-word",
-                      overflowY: "hidden", pointerEvents: "none",
-                      zIndex: 1, userSelect: "none",
+                      padding: "6px 0",
                     }}
                   >
-                    {DECOY_TEXT}
+                    {secretHistory.length === 0 ? (
+                      <div style={{
+                        fontSize: 10, color: "#ccc", textAlign: "center",
+                        marginTop: 12, lineHeight: 1.4, padding: "0 4px",
+                      }}>
+                        저장<br />기록<br />없음
+                      </div>
+                    ) : (
+                      secretHistory.map((h) => {
+                        const d = new Date(h.created_at);
+                        const hh = String(d.getHours()).padStart(2, "0");
+                        const mm = String(d.getMinutes()).padStart(2, "0");
+                        const ss = String(d.getSeconds()).padStart(2, "0");
+                        return (
+                          <div
+                            key={h.id}
+                            style={{
+                              fontSize: 10, color: "#6b7280",
+                              padding: "3px 6px",
+                              whiteSpace: "nowrap", overflow: "hidden",
+                              textOverflow: "clip",
+                              lineHeight: 1.6,
+                              borderBottom: "1px solid #f0f2f5",
+                            }}
+                          >
+                            {hh}:{mm}:{ss}
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
@@ -1570,6 +1645,8 @@ export default function WorkLogPage() {
                         const toSave = secretDraft !== null ? secretDraft : dayData.secret;
                         updateDay((d) => ({ ...d, secret: toSave }));
                         await addSecretBackup(toSave, key);
+                        lastBackupContentRef.current = toSave;
+                        loadSecretHistory(key).then(setSecretHistory);
                         setSecretDraft(null);
                         setSecretSaved(true);
                         setTimeout(() => setSecretSaved(false), 2000);
