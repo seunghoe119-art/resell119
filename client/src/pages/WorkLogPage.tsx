@@ -1329,7 +1329,7 @@ export default function WorkLogPage() {
             <div style={S.card}>
               <div style={{ ...S.cardPad }}>
                 {/* 위장 텍스트 오버레이 래퍼 */}
-                <div style={{ position: "relative", borderRadius: 8, border: "1px solid #f0f2f5" }}>
+                <div style={{ position: "relative", borderRadius: 8 }}>
                   {/* 실제 숨겨진 textarea */}
                   <Textarea
                     ref={secretTextareaRef}
