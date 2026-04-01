@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Plus, Trash2, Sparkles, RefreshCw, ChevronLeft, ChevronRight, Calendar, FileText, BookOpen, Check
+  Plus, Trash2, Sparkles, RefreshCw, ChevronLeft, ChevronRight, Calendar, FileText, BookOpen, Check, Download, X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -733,6 +733,62 @@ async function saveToSupabase(dateKey: string, d: DayData) {
   );
 }
 
+/* ─── Secret File Storage ─── */
+const SECRET_BUCKET = "secret-files";
+const SECRET_FILE_PREFIX = "kimseunghoe";
+
+interface SecretFile {
+  displayName: string;
+  path: string;
+  created_at: string;
+  size: number;
+}
+
+async function listSecretFiles(): Promise<SecretFile[]> {
+  const { data } = await supabase.storage
+    .from(SECRET_BUCKET)
+    .list(SECRET_FILE_PREFIX, { sortBy: { column: "created_at", order: "desc" } });
+  if (!data) return [];
+  return data
+    .filter((f) => f.name !== ".emptyFolderPlaceholder")
+    .map((f) => ({
+      displayName: f.name.replace(/^\d+_/, ""),
+      path: `${SECRET_FILE_PREFIX}/${f.name}`,
+      created_at: f.created_at ?? "",
+      size: (f.metadata as { size?: number } | null)?.size ?? 0,
+    }));
+}
+
+async function uploadSecretFile(file: File): Promise<void> {
+  const path = `${SECRET_FILE_PREFIX}/${Date.now()}_${file.name}`;
+  const { error } = await supabase.storage.from(SECRET_BUCKET).upload(path, file);
+  if (error) throw error;
+}
+
+async function downloadSecretFile(path: string, displayName: string): Promise<void> {
+  const { data, error } = await supabase.storage.from(SECRET_BUCKET).download(path);
+  if (error || !data) throw error ?? new Error("다운로드 실패");
+  const url = URL.createObjectURL(data);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = displayName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function deleteSecretFile(path: string): Promise<void> {
+  await supabase.storage.from(SECRET_BUCKET).remove([path]);
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 /* ─── Component ─── */
 export default function WorkLogPage() {
   const [tab, setTab] = useState<"log" | "ref">("log");
@@ -761,6 +817,12 @@ export default function WorkLogPage() {
   });
   const secretTextareaRef = useRef<HTMLTextAreaElement>(null);
   const decoyOverlayRef = useRef<HTMLDivElement>(null);
+  const [secretFileOpen, setSecretFileOpen] = useState(false);
+  const [secretFiles, setSecretFiles] = useState<SecretFile[]>([]);
+  const [secretFileUploading, setSecretFileUploading] = useState(false);
+  const secretFileInputRef = useRef<HTMLInputElement>(null);
+  const secretFileClickCountRef = useRef(0);
+  const secretFileClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { toast } = useToast();
   const saveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1316,6 +1378,37 @@ export default function WorkLogPage() {
                     >
                       AI버튼
                     </button>
+                    {/* 파일첨부 버튼 - 완전 투명, 5번 클릭시 팝업 */}
+                    <button
+                      type="button"
+                      data-testid="button-secret-file"
+                      onClick={() => {
+                        secretFileClickCountRef.current += 1;
+                        if (secretFileClickTimerRef.current) clearTimeout(secretFileClickTimerRef.current);
+                        secretFileClickTimerRef.current = setTimeout(() => {
+                          secretFileClickCountRef.current = 0;
+                        }, 3000);
+                        if (secretFileClickCountRef.current >= 5) {
+                          secretFileClickCountRef.current = 0;
+                          listSecretFiles().then(setSecretFiles);
+                          setSecretFileOpen(true);
+                        }
+                      }}
+                      style={{
+                        backgroundColor: "#ffffff", color: "#ffffff", fontSize: 13,
+                        borderRadius: 8, padding: "0 20px", height: 36, border: "none",
+                        boxShadow: "none", outline: "none", display: "flex", alignItems: "center",
+                        gap: 6, cursor: "default", userSelect: "none", transition: "none",
+                        WebkitAppearance: "none",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
+                      onMouseDown={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
+                      onMouseUp={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
+                      onFocus={(e) => { e.currentTarget.style.outline = "none"; e.currentTarget.style.boxShadow = "none"; }}
+                    >
+                      파일
+                    </button>
                     <Button
                       type="button"
                       onClick={async () => {
@@ -1617,6 +1710,140 @@ export default function WorkLogPage() {
             >
               취소
             </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 파일 첨부 Modal */}
+      <Dialog open={secretFileOpen} onOpenChange={setSecretFileOpen}>
+        <DialogContent
+          style={{ maxWidth: 520, width: "90vw", padding: 0, overflow: "hidden" }}
+          data-testid="dialog-secret-file"
+        >
+          <DialogHeader style={{ padding: "20px 24px 0" }}>
+            <DialogTitle style={{ fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+              첨부파일 관리
+            </DialogTitle>
+          </DialogHeader>
+          <div style={{ padding: "16px 24px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* 업로드 영역 */}
+            <div
+              style={{
+                border: "2px dashed #d1d5db", borderRadius: 10, padding: "20px 16px",
+                textAlign: "center", cursor: "pointer", backgroundColor: "#fafafa",
+              }}
+              onClick={() => secretFileInputRef.current?.click()}
+            >
+              <p style={{ fontSize: 13, color: "#555", margin: 0 }}>
+                클릭하여 파일 선택 (여러 개 가능)
+              </p>
+              <p style={{ fontSize: 11, color: "#aaa", margin: "6px 0 0" }}>
+                이미지, PDF, 문서 등 모든 파일 형식 지원
+              </p>
+            </div>
+            <input
+              ref={secretFileInputRef}
+              type="file"
+              multiple
+              data-testid="input-secret-file"
+              style={{ display: "none" }}
+              onChange={async (e) => {
+                const files = Array.from(e.target.files ?? []);
+                if (files.length === 0) return;
+                setSecretFileUploading(true);
+                try {
+                  await Promise.all(files.map(uploadSecretFile));
+                  const updated = await listSecretFiles();
+                  setSecretFiles(updated);
+                  toast({ description: `${files.length}개 파일이 업로드됐습니다.` });
+                } catch {
+                  toast({ description: "업로드 중 오류가 발생했습니다.", variant: "destructive" });
+                } finally {
+                  setSecretFileUploading(false);
+                  e.target.value = "";
+                }
+              }}
+            />
+            {secretFileUploading && (
+              <p style={{ fontSize: 12, color: "#2563eb", textAlign: "center", margin: 0 }}>
+                업로드 중...
+              </p>
+            )}
+
+            {/* 파일 목록 */}
+            <div style={{ maxHeight: 320, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+              {secretFiles.length === 0 ? (
+                <p style={{ fontSize: 13, color: "#aaa", textAlign: "center", padding: "24px 0" }}>
+                  저장된 파일이 없습니다
+                </p>
+              ) : (
+                secretFiles.map((file, idx) => {
+                  const d = file.created_at ? new Date(file.created_at) : null;
+                  const dateLabel = d
+                    ? `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`
+                    : "";
+                  return (
+                    <div
+                      key={idx}
+                      data-testid={`secret-file-${idx}`}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10,
+                        padding: "10px 14px", borderRadius: 8,
+                        border: "1px solid #e5e7eb", backgroundColor: "#fff",
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{
+                          fontSize: 13, fontWeight: 600, color: "#1a1a1a", margin: 0,
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
+                          {file.displayName}
+                        </p>
+                        <p style={{ fontSize: 11, color: "#999", margin: "2px 0 0" }}>
+                          {dateLabel}{file.size ? `  ·  ${formatFileSize(file.size)}` : ""}
+                        </p>
+                      </div>
+                      <button
+                        data-testid={`button-download-file-${idx}`}
+                        onClick={async () => {
+                          try {
+                            await downloadSecretFile(file.path, file.displayName);
+                          } catch {
+                            toast({ description: "다운로드 오류가 발생했습니다.", variant: "destructive" });
+                          }
+                        }}
+                        style={{
+                          background: "none", border: "none", cursor: "pointer",
+                          color: "#2563eb", padding: 6, borderRadius: 6, display: "flex",
+                        }}
+                        title="다운로드"
+                      >
+                        <Download size={16} />
+                      </button>
+                      <button
+                        data-testid={`button-delete-file-${idx}`}
+                        onClick={async () => {
+                          try {
+                            await deleteSecretFile(file.path);
+                            setSecretFiles((prev) => prev.filter((_, i) => i !== idx));
+                            toast({ description: "파일이 삭제됐습니다." });
+                          } catch {
+                            toast({ description: "삭제 오류가 발생했습니다.", variant: "destructive" });
+                          }
+                        }}
+                        style={{
+                          background: "none", border: "none", cursor: "pointer",
+                          color: "#d1d5db", padding: 6, borderRadius: 6, display: "flex",
+                        }}
+                        title="삭제"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
