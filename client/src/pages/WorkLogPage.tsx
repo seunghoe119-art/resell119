@@ -747,6 +747,7 @@ export default function WorkLogPage() {
   const [dummyNotes, setDummyNotes] = useState<DummyNote[]>([]);
   const [dummyDraft, setDummyDraft] = useState("");
   const [dummyAutoSaved, setDummyAutoSaved] = useState(false);
+  const [dummySearch, setDummySearch] = useState("");
   const dummyDraftSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [aiModal, setAiModal] = useState<AiModalState>({
     open: false, entryId: "", original: "", suggestion: "", loading: false,
@@ -1401,11 +1402,30 @@ export default function WorkLogPage() {
             </div>
 
             {/* 오른쪽: 노트 목록 (28%) */}
-            <div style={{ flex: "0 0 28%", overflowY: "auto", padding: "16px 16px 20px" }}>
-              {dummyNotes.length === 0 ? (
-                <div style={{ color: "#bbb", fontSize: 13, textAlign: "center", marginTop: 40 }}>저장된 메모가 없습니다</div>
+            <div style={{ flex: "0 0 28%", display: "flex", flexDirection: "column", minHeight: 0 }}>
+              <div style={{ padding: "12px 16px 8px", borderBottom: "1px solid #f0f2f5" }}>
+                <input
+                  data-testid="input-dummy-search"
+                  type="text"
+                  value={dummySearch}
+                  onChange={(e) => setDummySearch(e.target.value)}
+                  placeholder="메모 검색..."
+                  style={{
+                    width: "100%", boxSizing: "border-box",
+                    fontSize: 12, padding: "7px 12px",
+                    border: "1px solid #e5e7eb", borderRadius: 7,
+                    outline: "none", backgroundColor: "#fafafa",
+                    fontFamily: "inherit", color: "#333",
+                  }}
+                />
+              </div>
+              <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px 20px" }}>
+              {dummyNotes.filter((n) => dummySearch.trim() === "" || n.content.toLowerCase().includes(dummySearch.toLowerCase())).length === 0 ? (
+                <div style={{ color: "#bbb", fontSize: 13, textAlign: "center", marginTop: 40 }}>
+                  {dummyNotes.length === 0 ? "저장된 메모가 없습니다" : "검색 결과가 없습니다"}
+                </div>
               ) : (
-                dummyNotes.map((note) => {
+                dummyNotes.filter((n) => dummySearch.trim() === "" || n.content.toLowerCase().includes(dummySearch.toLowerCase())).map((note) => {
                   const d = new Date(note.timestamp);
                   const dateLabel = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
                   const timeLabel = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -1455,6 +1475,7 @@ export default function WorkLogPage() {
                   );
                 })
               )}
+              </div>
             </div>
           </div>
         </DialogContent>
