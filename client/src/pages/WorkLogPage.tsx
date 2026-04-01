@@ -1120,7 +1120,7 @@ export default function WorkLogPage() {
       <div style={S.container}>
 
         {/* Top Tabs */}
-        <div style={{ display: "flex", gap: 0, borderBottom: "2px solid #e8eaed", marginBottom: 24 }}>
+        <div style={{ display: "flex", gap: 0, borderBottom: "2px solid #e8eaed", marginBottom: 0 }}>
           {(["log", "ref"] as const).map((t) => (
             <button
               key={t}
@@ -1140,6 +1140,23 @@ export default function WorkLogPage() {
               {t === "log" ? "업무 일지" : "참고 문헌"}
             </button>
           ))}
+        </div>
+
+        {/* 참고 문헌 바로가기 버튼 */}
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24, marginTop: 8 }}>
+          <button
+            data-testid="button-goto-ref"
+            onClick={() => setTab("ref")}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              fontSize: 12, color: "#6b7280",
+              backgroundColor: "#f4f6f9", border: "1px solid #e5e7eb",
+              borderRadius: 7, padding: "5px 14px", cursor: "pointer",
+            }}
+          >
+            <BookOpen size={13} />
+            참고 문헌
+          </button>
         </div>
 
         {tab === "log" && (
