@@ -706,15 +706,28 @@ async function saveGlobalMemo(memo: string) {
   );
 }
 
+const DATE_KEY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
 async function loadRecentDates(): Promise<string[]> {
   const { data } = await supabase
     .from("work_logs")
     .select("log_date")
     .eq("author", AUTHOR)
+    .like("log_date", "____-__-__")
     .order("log_date", { ascending: false })
-    .limit(7);
+    .limit(20);
   if (!data) return [];
-  return data.map((r: { log_date: string }) => r.log_date);
+  return data
+    .map((r: { log_date: string }) => r.log_date)
+    .filter((d: string) => DATE_KEY_REGEX.test(d));
+}
+
+async function deleteWorkLog(dateKey: string): Promise<void> {
+  await supabase
+    .from("work_logs")
+    .delete()
+    .eq("author", AUTHOR)
+    .eq("log_date", dateKey);
 }
 
 async function saveToSupabase(dateKey: string, d: DayData) {
@@ -866,6 +879,7 @@ export default function WorkLogPage() {
   const [loading, setLoading] = useState(false);
   const [yesterdayPlan, setYesterdayPlan] = useState("");
   const [recentDates, setRecentDates] = useState<string[]>([]);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; dateKey: string }>({ open: false, dateKey: "" });
   const [globalMemo, setGlobalMemo] = useState("");
   const globalMemoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dummyOpen, setDummyOpen] = useState(false);
@@ -1324,25 +1338,43 @@ export default function WorkLogPage() {
 
             {/* 페이지 번호 + 날짜 검색 */}
             <div style={{ ...S.card, ...S.cardPad, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 {recentDates.length === 0 && (
                   <span style={{ fontSize: 12, color: "#aaa" }}>저장된 날짜 없음</span>
                 )}
                 {recentDates.map((k, i) => (
-                  <button
-                    key={k}
-                    onClick={() => { const [y, m, d] = k.split("-").map(Number); setCurrentDate(new Date(y, m - 1, d)); }}
-                    data-testid={`button-page-${i + 1}`}
-                    title={k}
-                    style={{
-                      width: 36, height: 36, borderRadius: 8, fontSize: 13, fontWeight: 500,
-                      backgroundColor: k === key ? "#1e3a5f" : "#f4f6f9",
-                      color: k === key ? "#fff" : "#555",
-                      border: "none", cursor: "pointer",
-                    }}
-                  >
-                    {i + 1}
-                  </button>
+                  <div key={k} style={{ position: "relative", display: "inline-flex" }}>
+                    <button
+                      onClick={() => { const [y, m, d] = k.split("-").map(Number); setCurrentDate(new Date(y, m - 1, d)); }}
+                      data-testid={`button-page-${i + 1}`}
+                      title={k}
+                      style={{
+                        width: 36, height: 36, borderRadius: 8, fontSize: 13, fontWeight: 500,
+                        backgroundColor: k === key ? "#1e3a5f" : "#f4f6f9",
+                        color: k === key ? "#fff" : "#555",
+                        border: "none", cursor: "pointer",
+                        paddingRight: 14,
+                      }}
+                    >
+                      {i + 1}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ open: true, dateKey: k }); }}
+                      data-testid={`button-page-delete-${i + 1}`}
+                      title="삭제"
+                      style={{
+                        position: "absolute", top: -5, right: -5,
+                        width: 16, height: 16, borderRadius: "50%",
+                        backgroundColor: "#e5e7eb", color: "#888",
+                        border: "none", cursor: "pointer",
+                        fontSize: 10, lineHeight: "16px", textAlign: "center",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        padding: 0,
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
                 ))}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1561,6 +1593,54 @@ export default function WorkLogPage() {
           </>
         )}
       </div>
+
+      {/* 페이지 삭제 확인 Dialog */}
+      <Dialog open={deleteConfirm.open} onOpenChange={(v) => !v && setDeleteConfirm({ open: false, dateKey: "" })}>
+        <DialogContent style={{ maxWidth: 360, width: "90vw" }} data-testid="dialog-delete-confirm">
+          <DialogHeader>
+            <DialogTitle style={{ fontSize: 15, fontWeight: 700 }}>업무일지 삭제</DialogTitle>
+          </DialogHeader>
+          <div style={{ padding: "8px 0 16px" }}>
+            <p style={{ fontSize: 14, color: "#374151", margin: 0 }}>
+              <strong style={{ color: "#1e3a5f" }}>{deleteConfirm.dateKey}</strong> 날짜의<br />
+              업무일지를 삭제할까요?
+            </p>
+            <p style={{ fontSize: 12, color: "#e53e3e", marginTop: 8, marginBottom: 0 }}>
+              삭제된 데이터는 복구되지 않습니다.
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <Button
+              variant="ghost"
+              onClick={() => setDeleteConfirm({ open: false, dateKey: "" })}
+              data-testid="button-delete-cancel"
+              style={{ color: "#888" }}
+            >
+              아니오
+            </Button>
+            <Button
+              onClick={async () => {
+                const dk = deleteConfirm.dateKey;
+                setDeleteConfirm({ open: false, dateKey: "" });
+                await deleteWorkLog(dk);
+                const updated = await loadRecentDates();
+                setRecentDates(updated);
+                if (key === dk && updated.length > 0) {
+                  const [y, m, d] = updated[0].split("-").map(Number);
+                  setCurrentDate(new Date(y, m - 1, d));
+                } else if (key === dk) {
+                  setCurrentDate(new Date());
+                }
+                toast({ description: `${dk} 업무일지가 삭제됐습니다.` });
+              }}
+              data-testid="button-delete-confirm"
+              style={{ backgroundColor: "#e53e3e", color: "#fff", border: "none" }}
+            >
+              예, 삭제합니다
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* 더미 메모 Modal */}
       <Dialog open={dummyOpen} onOpenChange={setDummyOpen}>
