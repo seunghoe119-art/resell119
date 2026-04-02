@@ -1499,7 +1499,7 @@ export default function WorkLogPage() {
                         WebkitUserSelect: secretUnlocked ? "auto" : "none",
                       } as React.CSSProperties}
                     />
-                    {/* 위장 텍스트 오버레이 (포인터 이벤트 없음 - 클릭은 textarea로 통과) */}
+                    {/* 위장 텍스트 오버레이 — 잠금시 포인터 이벤트 차단, 해제시 통과 */}
                     <div
                       ref={decoyOverlayRef}
                       style={{
@@ -1508,7 +1508,8 @@ export default function WorkLogPage() {
                         fontSize: 13, lineHeight: 1.7, color: "#374151",
                         backgroundColor: "#f8fafc", borderRadius: 8,
                         whiteSpace: "pre-wrap", wordBreak: "break-word",
-                        overflowY: "hidden", pointerEvents: "none",
+                        overflowY: "hidden",
+                        pointerEvents: secretUnlocked ? "none" : "all",
                         zIndex: 1, userSelect: "none",
                       }}
                     >
