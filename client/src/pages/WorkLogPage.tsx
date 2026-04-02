@@ -922,6 +922,7 @@ export default function WorkLogPage() {
   const [secretFiles, setSecretFiles] = useState<SecretFile[]>([]);
   const [secretFileDateKey, setSecretFileDateKey] = useState("");
   const [secretFileUploading, setSecretFileUploading] = useState(false);
+  const [clipboardPending, setClipboardPending] = useState<{ id: string; file: File; name: string; preview: string }[]>([]);
   const secretFileInputRef = useRef<HTMLInputElement>(null);
   const secretFileClickCountRef = useRef(0);
   const secretFileClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -959,36 +960,28 @@ export default function WorkLogPage() {
     };
   }, [dummyDraft]);
 
-  // 클립보드 이미지 붙여넣기 — 파일 팝업이 열려있을 때만 동작
+  // 클립보드 이미지 붙여넣기 — 파일 팝업이 열려있을 때만 동작 (이름 확인 후 업로드)
   useEffect(() => {
     if (!secretFileOpen) return;
-    const handlePaste = async (e: ClipboardEvent) => {
+    const handlePaste = (e: ClipboardEvent) => {
       const items = Array.from(e.clipboardData?.items ?? []);
       const imageItems = items.filter((item) => item.type.startsWith("image/"));
       if (imageItems.length === 0) return;
       e.preventDefault();
-      setSecretFileUploading(true);
-      try {
-        const files = imageItems.map((item) => {
-          const blob = item.getAsFile();
-          if (!blob) return null;
-          const ext = item.type.split("/")[1] || "png";
-          return new File([blob], `clipboard_${Date.now()}.${ext}`, { type: item.type });
-        }).filter(Boolean) as File[];
-        await Promise.all(files.map((f) => uploadSecretFile(f, secretFileDateKey)));
-        const updated = await listSecretFiles(secretFileDateKey);
-        setSecretFiles(updated);
-        toast({ description: `클립보드 이미지 ${files.length}개가 저장됐습니다.` });
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        toast({ description: `붙여넣기 오류: ${msg}`, variant: "destructive" });
-      } finally {
-        setSecretFileUploading(false);
-      }
+      const newPending = imageItems.map((item) => {
+        const blob = item.getAsFile();
+        if (!blob) return null;
+        const ext = item.type.split("/")[1]?.replace("jpeg", "jpg") || "png";
+        const now = new Date();
+        const defaultName = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}_${String(now.getHours()).padStart(2,"0")}${String(now.getMinutes()).padStart(2,"0")}${String(now.getSeconds()).padStart(2,"0")}.${ext}`;
+        const preview = URL.createObjectURL(blob);
+        return { id: `cb_${Date.now()}_${Math.random()}`, file: blob as File, name: defaultName, preview };
+      }).filter(Boolean) as { id: string; file: File; name: string; preview: string }[];
+      setClipboardPending((prev) => [...prev, ...newPending]);
     };
     document.addEventListener("paste", handlePaste);
     return () => document.removeEventListener("paste", handlePaste);
-  }, [secretFileOpen, secretFileDateKey]);
+  }, [secretFileOpen]);
 
   const key = dateToKey(currentDate);
 
@@ -2069,7 +2062,12 @@ export default function WorkLogPage() {
       </Dialog>
 
       {/* 파일 첨부 Modal */}
-      <Dialog open={secretFileOpen} onOpenChange={setSecretFileOpen}>
+      <Dialog open={secretFileOpen} onOpenChange={(open) => {
+        if (!open) {
+          setClipboardPending((prev) => { prev.forEach((p) => URL.revokeObjectURL(p.preview)); return []; });
+        }
+        setSecretFileOpen(open);
+      }}>
         <DialogContent
           style={{ maxWidth: 520, width: "90vw", padding: 0, overflow: "hidden" }}
           data-testid="dialog-secret-file"
@@ -2132,6 +2130,83 @@ export default function WorkLogPage() {
               <p style={{ fontSize: 12, color: "#2563eb", textAlign: "center", margin: 0 }}>
                 업로드 중...
               </p>
+            )}
+
+            {/* 클립보드 붙여넣기 대기 목록 */}
+            {clipboardPending.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: "#2563eb", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  붙여넣기 확인 ({clipboardPending.length}개)
+                </p>
+                {clipboardPending.map((item) => (
+                  <div key={item.id} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "8px 12px", borderRadius: 8,
+                    border: "1px solid #bfdbfe", backgroundColor: "#eff6ff",
+                  }}>
+                    <img
+                      src={item.preview}
+                      alt="preview"
+                      style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 6, flexShrink: 0 }}
+                    />
+                    <input
+                      type="text"
+                      value={item.name}
+                      onChange={(e) => setClipboardPending((prev) =>
+                        prev.map((p) => p.id === item.id ? { ...p, name: e.target.value } : p)
+                      )}
+                      style={{
+                        flex: 1, fontSize: 13, padding: "5px 8px",
+                        border: "1px solid #93c5fd", borderRadius: 6,
+                        outline: "none", fontFamily: "inherit", color: "#1a1a1a",
+                        backgroundColor: "#fff", minWidth: 0,
+                      }}
+                    />
+                    <button
+                      title="저장"
+                      onClick={async () => {
+                        const renamedFile = new File([item.file], item.name.trim() || item.file.name, { type: item.file.type });
+                        setSecretFileUploading(true);
+                        try {
+                          await uploadSecretFile(renamedFile, secretFileDateKey);
+                          const updated = await listSecretFiles(secretFileDateKey);
+                          setSecretFiles(updated);
+                          setClipboardPending((prev) => prev.filter((p) => p.id !== item.id));
+                          URL.revokeObjectURL(item.preview);
+                          toast({ description: "이미지가 저장됐습니다." });
+                        } catch (err: unknown) {
+                          const msg = err instanceof Error ? err.message : String(err);
+                          toast({ description: `저장 오류: ${msg}`, variant: "destructive" });
+                        } finally {
+                          setSecretFileUploading(false);
+                        }
+                      }}
+                      style={{
+                        background: "#2563eb", border: "none", cursor: "pointer",
+                        color: "#fff", padding: "6px 10px", borderRadius: 6,
+                        display: "flex", alignItems: "center", flexShrink: 0,
+                        fontSize: 14, fontWeight: 700,
+                      }}
+                    >
+                      ✓
+                    </button>
+                    <button
+                      title="취소"
+                      onClick={() => {
+                        URL.revokeObjectURL(item.preview);
+                        setClipboardPending((prev) => prev.filter((p) => p.id !== item.id));
+                      }}
+                      style={{
+                        background: "none", border: "none", cursor: "pointer",
+                        color: "#9ca3af", padding: 6, borderRadius: 6, display: "flex",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
 
             {/* 파일 목록 */}
