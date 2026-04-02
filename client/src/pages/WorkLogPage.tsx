@@ -959,6 +959,37 @@ export default function WorkLogPage() {
     };
   }, [dummyDraft]);
 
+  // 클립보드 이미지 붙여넣기 — 파일 팝업이 열려있을 때만 동작
+  useEffect(() => {
+    if (!secretFileOpen) return;
+    const handlePaste = async (e: ClipboardEvent) => {
+      const items = Array.from(e.clipboardData?.items ?? []);
+      const imageItems = items.filter((item) => item.type.startsWith("image/"));
+      if (imageItems.length === 0) return;
+      e.preventDefault();
+      setSecretFileUploading(true);
+      try {
+        const files = imageItems.map((item) => {
+          const blob = item.getAsFile();
+          if (!blob) return null;
+          const ext = item.type.split("/")[1] || "png";
+          return new File([blob], `clipboard_${Date.now()}.${ext}`, { type: item.type });
+        }).filter(Boolean) as File[];
+        await Promise.all(files.map((f) => uploadSecretFile(f, secretFileDateKey)));
+        const updated = await listSecretFiles(secretFileDateKey);
+        setSecretFiles(updated);
+        toast({ description: `클립보드 이미지 ${files.length}개가 저장됐습니다.` });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        toast({ description: `붙여넣기 오류: ${msg}`, variant: "destructive" });
+      } finally {
+        setSecretFileUploading(false);
+      }
+    };
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, [secretFileOpen, secretFileDateKey]);
+
   const key = dateToKey(currentDate);
 
   useEffect(() => {
@@ -2067,6 +2098,9 @@ export default function WorkLogPage() {
               </p>
               <p style={{ fontSize: 11, color: "#aaa", margin: "6px 0 0" }}>
                 이미지, PDF, 문서 등 모든 파일 형식 지원
+              </p>
+              <p style={{ fontSize: 11, color: "#bbb", margin: "4px 0 0" }}>
+                Ctrl+V 로 클립보드 이미지 붙여넣기 가능
               </p>
             </div>
             <input
