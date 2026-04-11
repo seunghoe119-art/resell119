@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import {
-  Plus, Trash2, Sparkles, RefreshCw, ChevronLeft, ChevronRight, Calendar, FileText, BookOpen, Check, Download, X
+  Plus, Trash2, Sparkles, RefreshCw, ChevronLeft, ChevronRight, Calendar, FileText, BookOpen, Check, Download, X, Search
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -741,6 +741,19 @@ async function loadRecentDates(): Promise<string[]> {
     .filter((d: string) => DATE_KEY_REGEX.test(d));
 }
 
+async function loadAllDates(): Promise<string[]> {
+  const { data } = await supabase
+    .from("work_logs")
+    .select("log_date")
+    .eq("author", AUTHOR)
+    .like("log_date", "____-__-__")
+    .order("log_date", { ascending: false });
+  if (!data) return [];
+  return data
+    .map((r: { log_date: string }) => r.log_date)
+    .filter((d: string) => DATE_KEY_REGEX.test(d));
+}
+
 async function deleteWorkLog(dateKey: string): Promise<void> {
   await supabase
     .from("work_logs")
@@ -925,6 +938,10 @@ export default function WorkLogPage() {
   const secretTextareaRef = useRef<HTMLTextAreaElement>(null);
   const decoyOverlayRef = useRef<HTMLDivElement>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [allSavedDates, setAllSavedDates] = useState<string[]>([]);
+  const searchRef = useRef<HTMLDivElement>(null);
   const [secretFileOpen, setSecretFileOpen] = useState(false);
   const [secretFiles, setSecretFiles] = useState<SecretFile[]>([]);
   const [secretFileDateKey, setSecretFileDateKey] = useState("");
@@ -949,6 +966,7 @@ export default function WorkLogPage() {
 
   useEffect(() => {
     loadRecentDates().then(setRecentDates);
+    loadAllDates().then(setAllSavedDates);
     loadGlobalMemo().then(setGlobalMemo);
     loadDummyNotes().then(setDummyNotes);
     loadDummyDraft().then(setDummyDraft);
@@ -1193,6 +1211,136 @@ export default function WorkLogPage() {
 
         {tab === "log" && (
           <>
+            {/* 날짜 검색창 */}
+            {(() => {
+              const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
+              const filtered = searchQuery.trim()
+                ? allSavedDates.filter((d) => d.includes(searchQuery.trim()))
+                : [];
+              const navigateTo = (dateKey: string) => {
+                const [y, m, d] = dateKey.split("-").map(Number);
+                setCurrentDate(new Date(y, m - 1, d));
+                setSearchQuery("");
+                setSearchOpen(false);
+              };
+              return (
+                <div ref={searchRef} style={{ position: "relative", marginBottom: 0 }}>
+                  <div style={{
+                    ...S.card, ...S.cardPad,
+                    display: "flex", alignItems: "center", gap: 10,
+                    paddingTop: 10, paddingBottom: 10,
+                  }}>
+                    <Search size={15} style={{ color: "#9ca3af", flexShrink: 0 }} />
+                    <input
+                      data-testid="input-log-search"
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
+                      onFocus={() => setSearchOpen(true)}
+                      onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && DATE_KEY_REGEX.test(searchQuery.trim())) {
+                          navigateTo(searchQuery.trim());
+                        }
+                        if (e.key === "Escape") { setSearchOpen(false); setSearchQuery(""); }
+                      }}
+                      placeholder="날짜 검색 (예: 2026-04 또는 2026-04-11)"
+                      style={{
+                        flex: 1, border: "none", outline: "none",
+                        fontSize: 13, color: "#1a1a1a", backgroundColor: "transparent",
+                        fontFamily: "inherit",
+                      }}
+                    />
+                    {searchQuery && (
+                      <button
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => { setSearchQuery(""); setSearchOpen(false); }}
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "#ccc", display: "flex" }}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 검색 결과 드롭다운 */}
+                  {searchOpen && filtered.length > 0 && (
+                    <div style={{
+                      position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+                      backgroundColor: "#fff", borderRadius: 10,
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 100,
+                      maxHeight: 280, overflowY: "auto",
+                      border: "1px solid #e5e7eb",
+                    }}>
+                      {filtered.map((dateKey) => {
+                        const [y, m, d] = dateKey.split("-").map(Number);
+                        const dt = new Date(y, m - 1, d);
+                        const dayName = DAY_NAMES[dt.getDay()];
+                        const isToday = dateKey === dateToKey(new Date());
+                        const isCurrent = dateKey === key;
+                        return (
+                          <button
+                            key={dateKey}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => navigateTo(dateKey)}
+                            style={{
+                              width: "100%", textAlign: "left", background: isCurrent ? "#eff6ff" : "none",
+                              border: "none", cursor: "pointer",
+                              padding: "10px 16px", display: "flex", alignItems: "center", gap: 12,
+                              borderBottom: "1px solid #f0f2f5",
+                              transition: "background 0.1s",
+                            }}
+                            onMouseEnter={(e) => { if (!isCurrent) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                            onMouseLeave={(e) => { if (!isCurrent) e.currentTarget.style.backgroundColor = "transparent"; }}
+                          >
+                            <span style={{
+                              fontSize: 13, fontWeight: 700,
+                              color: isCurrent ? "#2563eb" : "#1a1a1a", fontFamily: "monospace",
+                            }}>
+                              {dateKey}
+                            </span>
+                            <span style={{
+                              fontSize: 12, color: dayName === "토" ? "#2563eb" : dayName === "일" ? "#dc2626" : "#888",
+                              fontWeight: 500,
+                            }}>
+                              ({dayName})
+                            </span>
+                            {isToday && (
+                              <span style={{
+                                fontSize: 10, color: "#fff", backgroundColor: "#2563eb",
+                                borderRadius: 4, padding: "1px 6px", fontWeight: 600,
+                              }}>
+                                오늘
+                              </span>
+                            )}
+                            {isCurrent && !isToday && (
+                              <span style={{
+                                fontSize: 10, color: "#2563eb", backgroundColor: "#dbeafe",
+                                borderRadius: 4, padding: "1px 6px", fontWeight: 600,
+                              }}>
+                                현재
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {searchOpen && searchQuery.trim() && filtered.length === 0 && (
+                    <div style={{
+                      position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+                      backgroundColor: "#fff", borderRadius: 10,
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 100,
+                      border: "1px solid #e5e7eb", padding: "16px",
+                      textAlign: "center",
+                    }}>
+                      <p style={{ fontSize: 13, color: "#aaa", margin: 0 }}>검색 결과가 없습니다</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Date + Profile Card */}
             <div style={{ ...S.card, ...S.cardPad, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
