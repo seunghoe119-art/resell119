@@ -11,6 +11,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import {
   Plus, Trash2, Sparkles, RefreshCw, ChevronLeft, ChevronRight, Calendar, FileText, BookOpen, Check, Download, X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -918,6 +924,7 @@ export default function WorkLogPage() {
   });
   const secretTextareaRef = useRef<HTMLTextAreaElement>(null);
   const decoyOverlayRef = useRef<HTMLDivElement>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [secretFileOpen, setSecretFileOpen] = useState(false);
   const [secretFiles, setSecretFiles] = useState<SecretFile[]>([]);
   const [secretFileDateKey, setSecretFileDateKey] = useState("");
@@ -1192,9 +1199,30 @@ export default function WorkLogPage() {
                 <Button variant="ghost" size="icon" onClick={() => setCurrentDate(addDays(currentDate, -1))} data-testid="button-prev-day">
                   <ChevronLeft size={16} />
                 </Button>
-                <Calendar size={16} style={{ color: "#2563eb" }} />
-                <span style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a" }}>{dateStr}</span>
-                <span style={{ fontSize: 13, color: "#888", fontWeight: 400 }}>({dayStr})</span>
+                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      data-testid="button-calendar-picker"
+                      style={{
+                        display: "flex", alignItems: "center", gap: 8, background: "none",
+                        border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 8,
+                      }}
+                    >
+                      <Calendar size={16} style={{ color: "#2563eb" }} />
+                      <span style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a" }}>{dateStr}</span>
+                      <span style={{ fontSize: 13, color: "#888", fontWeight: 400 }}>({dayStr})</span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent style={{ padding: 0, width: "auto" }} align="start">
+                    <CalendarPicker
+                      mode="single"
+                      selected={currentDate}
+                      onSelect={(date) => { if (date) { setCurrentDate(date); setCalendarOpen(false); } }}
+                      defaultMonth={currentDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
                 <Button variant="ghost" size="icon" onClick={() => setCurrentDate(addDays(currentDate, 1))} data-testid="button-next-day">
                   <ChevronRight size={16} />
                 </Button>
@@ -1474,9 +1502,30 @@ export default function WorkLogPage() {
               <Button variant="ghost" size="icon" onClick={() => setCurrentDate(addDays(currentDate, -1))} data-testid="button-ref-prev-day">
                 <ChevronLeft size={16} />
               </Button>
-              <Calendar size={16} style={{ color: "#2563eb" }} />
-              <span style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a" }}>{dateStr}</span>
-              <span style={{ fontSize: 13, color: "#888" }}>({dayStr})</span>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    data-testid="button-ref-calendar-picker"
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8, background: "none",
+                      border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 8,
+                    }}
+                  >
+                    <Calendar size={16} style={{ color: "#2563eb" }} />
+                    <span style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a" }}>{dateStr}</span>
+                    <span style={{ fontSize: 13, color: "#888" }}>({dayStr})</span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent style={{ padding: 0, width: "auto" }} align="start">
+                  <CalendarPicker
+                    mode="single"
+                    selected={currentDate}
+                    onSelect={(date) => { if (date) { setCurrentDate(date); setCalendarOpen(false); } }}
+                    defaultMonth={currentDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
               <Button variant="ghost" size="icon" onClick={() => setCurrentDate(addDays(currentDate, 1))} data-testid="button-ref-next-day">
                 <ChevronRight size={16} />
               </Button>
