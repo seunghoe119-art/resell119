@@ -985,6 +985,9 @@ export default function WorkLogPage() {
   const secretTextareaRef = useRef<HTMLTextAreaElement>(null);
   const decoyOverlayRef = useRef<HTMLDivElement>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [planPickerOpen, setPlanPickerOpen] = useState(false);
+  const [planPickerLoading, setPlanPickerLoading] = useState(false);
+  const [planPickerItems, setPlanPickerItems] = useState<{ dateKey: string; plan: string }[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -1472,11 +1475,41 @@ export default function WorkLogPage() {
               const plan = yesterdayPlan;
               return (
                 <div style={{ ...S.card, ...S.cardPad, backgroundColor: "#f0f4ff", border: "1px solid #d4e0ff" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: plan ? 10 : 0 }}>
-                    <h2 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: "#2563eb" }}>오늘 업무 계획</h2>
-                    <span style={{ fontSize: 11, color: "#93aee8", backgroundColor: "#dde8ff", borderRadius: 4, padding: "2px 7px" }}>
-                      전날 등록
-                    </span>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: plan ? 10 : 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <h2 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: "#2563eb" }}>오늘 업무 계획</h2>
+                      <span style={{ fontSize: 11, color: "#93aee8", backgroundColor: "#dde8ff", borderRadius: 4, padding: "2px 7px" }}>
+                        전날 등록
+                      </span>
+                    </div>
+                    <button
+                      data-testid="button-plan-picker-open"
+                      onClick={async () => {
+                        setPlanPickerOpen(true);
+                        setPlanPickerLoading(true);
+                        const { data } = await supabase
+                          .from("work_logs")
+                          .select("log_date, tomorrow_plan")
+                          .eq("author", AUTHOR)
+                          .like("log_date", "____-__-__")
+                          .not("tomorrow_plan", "is", null)
+                          .neq("tomorrow_plan", "")
+                          .order("log_date", { ascending: false });
+                        const items = (data ?? [])
+                          .filter((r: { tomorrow_plan: string }) => r.tomorrow_plan?.trim())
+                          .map((r: { log_date: string; tomorrow_plan: string }) => ({ dateKey: r.log_date, plan: r.tomorrow_plan }));
+                        setPlanPickerItems(items);
+                        setPlanPickerLoading(false);
+                      }}
+                      style={{
+                        fontSize: 12, fontWeight: 600, color: "#2563eb",
+                        backgroundColor: "#dde8ff", border: "1px solid #b8cfff",
+                        borderRadius: 6, padding: "4px 12px", cursor: "pointer",
+                        letterSpacing: "0.02em", flexShrink: 0,
+                      }}
+                    >
+                      불러오기
+                    </button>
                   </div>
                   {plan ? (
                     <p style={{ fontSize: 13, color: "#334a80", lineHeight: 1.8, margin: 0, whiteSpace: "pre-wrap" }}>
@@ -2695,6 +2728,71 @@ export default function WorkLogPage() {
                 })
               )}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 내일 업무 계획 불러오기 Modal */}
+      <Dialog open={planPickerOpen} onOpenChange={setPlanPickerOpen}>
+        <DialogContent style={{ maxWidth: 560, width: "90vw", padding: 0, overflow: "hidden" }} data-testid="dialog-plan-picker">
+          <DialogHeader style={{ padding: "20px 24px 0" }}>
+            <DialogTitle style={{ fontSize: 15, fontWeight: 700 }}>
+              내일 업무 계획 불러오기
+            </DialogTitle>
+          </DialogHeader>
+          <div style={{ padding: "12px 24px 24px", display: "flex", flexDirection: "column", gap: 8, maxHeight: 480, overflowY: "auto" }}>
+            {planPickerLoading ? (
+              <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center", padding: "24px 0", margin: 0 }}>불러오는 중...</p>
+            ) : planPickerItems.length === 0 ? (
+              <p style={{ fontSize: 13, color: "#aaa", textAlign: "center", padding: "24px 0", margin: 0 }}>저장된 내일 업무 계획이 없습니다</p>
+            ) : (
+              planPickerItems.map((item) => {
+                const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
+                const [y, m, d] = item.dateKey.split("-").map(Number);
+                const dt = new Date(y, m - 1, d);
+                const dayName = DAY_NAMES[dt.getDay()];
+                const dayColor = dayName === "토" ? "#2563eb" : dayName === "일" ? "#dc2626" : "#6b7280";
+                const isCurrent = item.dateKey === key;
+                return (
+                  <button
+                    key={item.dateKey}
+                    data-testid={`button-plan-item-${item.dateKey}`}
+                    onClick={() => {
+                      const [y, m, d] = item.dateKey.split("-").map(Number);
+                      setCurrentDate(new Date(y, m - 1, d));
+                      setPlanPickerOpen(false);
+                    }}
+                    style={{
+                      width: "100%", textAlign: "left", background: isCurrent ? "#eff6ff" : "#f8fafc",
+                      border: `1px solid ${isCurrent ? "#bfdbfe" : "#e5e7eb"}`,
+                      borderRadius: 10, cursor: "pointer", padding: "12px 16px",
+                      display: "flex", alignItems: "flex-start", gap: 16,
+                      transition: "background 0.12s",
+                    }}
+                    onMouseEnter={(e) => { if (!isCurrent) e.currentTarget.style.backgroundColor = "#f0f4ff"; }}
+                    onMouseLeave={(e) => { if (!isCurrent) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                  >
+                    <div style={{ flexShrink: 0, textAlign: "right", minWidth: 72 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "monospace", color: isCurrent ? "#2563eb" : "#1a1a1a" }}>
+                        {item.dateKey.slice(5)}
+                      </div>
+                      <div style={{ fontSize: 11, color: dayColor, fontWeight: 500, marginTop: 2 }}>
+                        ({dayName})
+                      </div>
+                    </div>
+                    <div style={{
+                      flex: 1, fontSize: 13, color: "#374151", lineHeight: 1.6,
+                      whiteSpace: "pre-wrap", wordBreak: "break-word",
+                      maxHeight: 80, overflow: "hidden",
+                      WebkitMaskImage: "linear-gradient(to bottom, black 60%, transparent 100%)",
+                      maskImage: "linear-gradient(to bottom, black 60%, transparent 100%)",
+                    }}>
+                      {item.plan}
+                    </div>
+                  </button>
+                );
+              })
+            )}
           </div>
         </DialogContent>
       </Dialog>
