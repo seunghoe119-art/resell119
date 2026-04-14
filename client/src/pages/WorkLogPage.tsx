@@ -1146,8 +1146,15 @@ export default function WorkLogPage() {
     }));
   };
 
-  const handleTimeChange = (id: string, value: string) =>
-    updateDay((prev) => ({ ...prev, entries: prev.entries.map((e) => e.id === id ? { ...e, time: value } : e) }));
+  const formatTimeInput = (raw: string) => {
+    const digits = raw.replace(/\D/g, "").slice(0, 4);
+    if (digits.length <= 2) return digits;
+    return digits.slice(0, 2) + ":" + digits.slice(2);
+  };
+  const handleTimeChange = (id: string, value: string) => {
+    const formatted = formatTimeInput(value);
+    updateDay((prev) => ({ ...prev, entries: prev.entries.map((e) => e.id === id ? { ...e, time: formatted } : e) }));
+  };
 
   const handleNoteChange = (id: string, value: string) =>
     updateDay((prev) => ({ ...prev, entries: prev.entries.map((e) => e.id === id ? { ...e, note: value } : e) }));
@@ -1552,6 +1559,8 @@ export default function WorkLogPage() {
                             value={entry.time}
                             onChange={(e) => handleTimeChange(entry.id, e.target.value)}
                             placeholder="00:00"
+                            inputMode="numeric"
+                            maxLength={5}
                             style={{
                               width: 60, textAlign: "center", fontSize: 14, fontWeight: 600,
                               fontFamily: "monospace", color: "#2563eb",
