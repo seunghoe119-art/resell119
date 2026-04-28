@@ -2767,8 +2767,7 @@ export default function WorkLogPage() {
                     key={item.dateKey}
                     data-testid={`button-plan-item-${item.dateKey}`}
                     onClick={() => {
-                      const [y, m, d] = item.dateKey.split("-").map(Number);
-                      setCurrentDate(new Date(y, m - 1, d));
+                      updateDay((d) => ({ ...d, tomorrowPlan: item.plan }));
                       setPlanPickerOpen(false);
                     }}
                     style={{
