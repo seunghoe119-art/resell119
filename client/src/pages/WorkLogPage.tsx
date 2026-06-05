@@ -809,20 +809,18 @@ async function deleteWorkLog(dateKey: string): Promise<void> {
     .eq("log_date", dateKey);
 }
 
-async function saveToSupabase(dateKey: string, d: DayData) {
-  await supabase.from("work_logs").upsert(
-    {
-      log_date: dateKey,
-      author: d.author,
-      department: d.department,
-      entries: d.entries,
-      tomorrow_plan: d.tomorrowPlan,
-      free_memo: d.freeMemo,
-      secret: d.secret,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "log_date,author" }
-  );
+async function saveToSupabase(dateKey: string, d: Partial<DayData>) {
+  const payload: Record<string, any> = {
+    log_date: dateKey,
+    author: AUTHOR,
+    department: DEPARTMENT,
+    updated_at: new Date().toISOString(),
+  };
+  if (d.entries !== undefined) payload.entries = d.entries;
+  if (d.tomorrowPlan !== undefined) payload.tomorrow_plan = d.tomorrowPlan;
+  if (d.freeMemo !== undefined) payload.free_memo = d.freeMemo;
+  if (d.secret !== undefined) payload.secret = d.secret;
+  await supabase.from("work_logs").upsert(payload, { onConflict: "log_date,author" });
 }
 
 /* ─── Secret File Storage ─── */
