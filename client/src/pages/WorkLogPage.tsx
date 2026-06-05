@@ -957,6 +957,7 @@ export default function WorkLogPage() {
   const [dayData, setDayData] = useState<DayData>(emptyDayData(AUTHOR, DEPARTMENT));
   const [loading, setLoading] = useState(false);
   const [yesterdayPlan, setYesterdayPlan] = useState("");
+  const yesterdayPlanSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [recentDates, setRecentDates] = useState<string[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; dateKey: string }>({ open: false, dateKey: "" });
   const [globalMemo, setGlobalMemo] = useState("");
@@ -1518,15 +1519,27 @@ export default function WorkLogPage() {
                       불러오기
                     </button>
                   </div>
-                  {plan ? (
-                    <p style={{ fontSize: 13, color: "#334a80", lineHeight: 1.8, margin: 0, whiteSpace: "pre-wrap" }}>
-                      {plan}
-                    </p>
-                  ) : (
-                    <p style={{ fontSize: 13, color: "#aabde8", margin: 0, fontStyle: "italic" }}>
-                      전날 등록된 업무 계획이 없습니다.
-                    </p>
-                  )}
+                  <Textarea
+                    data-testid="textarea-today-plan"
+                    value={plan}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setYesterdayPlan(val);
+                      const yKey = dateToKey(addDays(currentDate, -1));
+                      if (yesterdayPlanSaveRef.current) clearTimeout(yesterdayPlanSaveRef.current);
+                      yesterdayPlanSaveRef.current = setTimeout(() => {
+                        saveToSupabase(yKey, { tomorrowPlan: val });
+                      }, 500);
+                    }}
+                    placeholder="전날 등록된 업무 계획이 없습니다."
+                    style={{
+                      minHeight: 80, resize: "none", fontSize: 13,
+                      border: "1px solid #d4e0ff", borderRadius: 8,
+                      backgroundColor: "#fff", color: "#334a80", lineHeight: 1.7,
+                      padding: 8,
+                    }}
+                    className="focus-visible:ring-1"
+                  />
                 </div>
               );
             })()}
