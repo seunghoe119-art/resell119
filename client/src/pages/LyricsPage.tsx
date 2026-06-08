@@ -1,7 +1,28 @@
 import { useState, useRef } from "react";
-import { Music, Copy, Check, Settings, ChevronDown, ChevronUp } from "lucide-react";
+import { Music, Copy, Check, Settings, ChevronDown, ChevronUp, FileEdit, Save, Users, BookOpen } from "lucide-react";
+import { useLocation } from "wouter";
 
 const LS_API_KEY = "lyrics_openai_api_key";
+
+function NavLink({ href, icon, label, active }: { href: string; icon: React.ReactNode; label: string; active: boolean }) {
+  return (
+    <a
+      href={href}
+      data-testid={`link-nav-${label}`}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 5,
+        padding: "6px 10px", borderRadius: 8, fontSize: 12,
+        fontWeight: 600, textDecoration: "none",
+        color: active ? "#f0f0f0" : "#8888aa",
+        background: active ? "rgba(255,255,255,0.1)" : "transparent",
+        border: "none", cursor: "pointer", whiteSpace: "nowrap" as const,
+      }}
+    >
+      {icon}
+      {label}
+    </a>
+  );
+}
 
 const DEFAULT_STYLE = "Shiny K-pop/R&B crossover for female vocals, clean sidechained synths and soft plucky guitar, midtempo bounce, Verses ride a tight groove with close-mic vocal and subtle vocoder doubles; chorus lifts with wide pads, bright top-line, and stacked hooks, Bridge strips to bass, snaps, and airy reverb before a final high-energy chorus with ad-libs and a tasteful guitar lick outro.";
 const DEFAULT_VOCAL = "여성 보컬";
@@ -113,6 +134,8 @@ export default function LyricsPage() {
     setTimeout(() => setCopiedSuno(false), 1500);
   };
 
+  const [location] = useLocation();
+
   const S = {
     page: {
       minHeight: "100vh",
@@ -174,8 +197,8 @@ export default function LyricsPage() {
 
   return (
     <div style={S.page}>
-      {/* Header */}
-      <div style={S.header}>
+      {/* Header + Nav */}
+      <div style={{ ...S.header, borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "12px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             width: 40, height: 40, borderRadius: 12,
@@ -189,17 +212,25 @@ export default function LyricsPage() {
             <div style={{ fontSize: 11, color: "#8888aa" }}>소방시험 가사 생성기</div>
           </div>
         </div>
-        <button
-          data-testid="button-lyrics-api-setting"
-          onClick={() => { setApiKeyInput(apiKey); setApiDialogOpen(true); }}
-          style={{
-            background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 10, padding: "7px 14px", color: "#ccc", fontSize: 12,
-            cursor: "pointer", fontWeight: 600,
-          }}
-        >
-          API 설정
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <NavLink href="/" icon={<FileEdit size={14} />} label="판매글" active={location === "/"} />
+          <NavLink href="/saved" icon={<Save size={14} />} label="저장" active={location === "/saved"} />
+          <NavLink href="/guest" icon={<Users size={14} />} label="모집" active={location === "/guest"} />
+          <NavLink href="/worklog" icon={<BookOpen size={14} />} label="업무일지" active={location === "/worklog"} />
+          <NavLink href="/lyrics" icon={<Music size={14} />} label="가사생성" active={location === "/lyrics"} />
+          <button
+            data-testid="button-lyrics-api-setting"
+            onClick={() => { setApiKeyInput(apiKey); setApiDialogOpen(true); }}
+            style={{
+              background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: 10, padding: "6px 12px", color: "#ccc", fontSize: 12,
+              cursor: "pointer", fontWeight: 600,
+              marginLeft: 6,
+            }}
+          >
+            API 설정
+          </button>
+        </div>
       </div>
 
       {/* Hero */}
