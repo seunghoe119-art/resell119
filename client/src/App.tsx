@@ -7,6 +7,7 @@ import GeneratorPage from "@/pages/GeneratorPage";
 import SavedPage from "@/pages/SavedPage";
 import GuestPage from "@/pages/GuestPage";
 import WorkLogPage from "@/pages/WorkLogPage";
+import LyricsPage from "@/pages/LyricsPage";
 
 function Router() {
   return (
@@ -15,6 +16,7 @@ function Router() {
       <Route path="/saved" component={SavedPage} />
       <Route path="/guest" component={GuestPage} />
       <Route path="/worklog" component={WorkLogPage} />
+      <Route path="/lyrics" component={LyricsPage} />
     </Switch>
   );
 }

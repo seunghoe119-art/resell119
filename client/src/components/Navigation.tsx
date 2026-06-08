@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { FileEdit, Save, Settings, Users, BookOpen } from "lucide-react";
+import { FileEdit, Save, Settings, Users, BookOpen, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -72,6 +72,16 @@ export default function Navigation() {
             >
               <BookOpen className="h-4 w-4" />
               업무일지
+            </Link>
+            <Link
+              href="/lyrics"
+              data-testid="link-lyrics"
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
+                location === "/lyrics" ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              <Music className="h-4 w-4" />
+              가사생성
             </Link>
             <Button
               variant="ghost"
