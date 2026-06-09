@@ -1152,7 +1152,10 @@ export default function WorkLogPage() {
   };
   const handleTimeChange = (id: string, value: string) => {
     const formatted = formatTimeInput(value);
-    updateDay((prev) => ({ ...prev, entries: prev.entries.map((e) => e.id === id ? { ...e, time: formatted } : e) }));
+    updateDay((prev) => ({
+      ...prev,
+      entries: prev.entries.map((e) => e.id === id ? { ...e, time: formatted, hasTimeSet: formatted.length > 0 } : e),
+    }));
   };
 
   const handleNoteChange = (id: string, value: string) =>
