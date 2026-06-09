@@ -594,6 +594,15 @@ function emptyEntry(): WorkEntry {
   return { id: generateId(), time: "", content: "", aiResult: "", note: "", hasTimeSet: false };
 }
 
+function timeSortKey(t: string): number {
+  const digits = t.replace(/\D/g, "");
+  if (digits.length === 4) return parseInt(digits, 10);
+  if (digits.length === 3) return parseInt(digits, 10);
+  if (digits.length === 2) return parseInt(digits, 10) * 100;
+  if (digits.length === 1) return parseInt(digits, 10) * 1000;
+  return 9999;
+}
+
 function emptyDayData(author = "", department = ""): DayData {
   return { entries: [emptyEntry()], tomorrowPlan: "", freeMemo: "", author, department, secret: "" };
 }
@@ -1561,7 +1570,7 @@ export default function WorkLogPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {dayData.entries.map((entry, idx) => (
+                    {dayData.entries.slice().sort((a, b) => timeSortKey(a.time) - timeSortKey(b.time)).map((entry, idx) => (
                       <tr
                         key={entry.id}
                         style={{ borderBottom: "1px solid #f0f2f5" }}
