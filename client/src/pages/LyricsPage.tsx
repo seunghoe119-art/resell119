@@ -685,12 +685,22 @@ export default function LyricsPage() {
                 지우기
               </button>
             </div>
-            <div style={{ ...S.imageContainer, alignItems: "flex-start", justifyContent: "center", paddingTop: "35.56%" }}>
+            <div style={{ ...S.imageContainer, position: "relative" }}>
               <img
                 data-testid="img-local-converted"
                 src={localImageUrl}
                 alt="변환된 이미지"
-                style={{ ...S.imageInContainer, maxHeight: "80%", maxWidth: "100%" }}
+                style={{
+                  position: "absolute",
+                  top: "20%",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  maxWidth: "100%",
+                  maxHeight: "80%",
+                  width: "auto",
+                  height: "auto",
+                  objectFit: "contain",
+                }}
               />
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 8, flexWrap: "wrap" as const }}>
