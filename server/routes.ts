@@ -199,4 +199,109 @@ https://www.thedan.pics/about`;
       return res.status(500).json({ error: error.message || "오류가 발생했습니다." });
     }
   });
+
+  app.post("/api/lyrics/preprocess", async (req, res) => {
+    try {
+      const { content, mode } = req.body;
+      if (!content || !content.trim()) return res.status(400).json({ error: "내용이 비어있습니다." });
+      const modeMap: Record<string, string> = {
+        "핵심만 추출": "다음 텍스트에서 암기에 꼭 필요한 핵심 정보만 추출해서 간결하게 정리해주세요. 한글로만 출력하세요.",
+        "중복 제거": "다음 텍스트에서 중복되는 내용을 제거하고 간결하게 정리해주세요. 한글로만 출력하세요.",
+        "시험식 표현": "다음 텍스트를 소방시험 답안 형식의 간결하고 명확한 표현으로 바꿔주세요. 한글로만 출력하세요.",
+      };
+      const system = modeMap[mode] ?? modeMap["핵심만 추출"];
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) return res.status(500).json({ error: "OpenAI API 키가 설정되지 않았습니다." });
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [{ role: "system", content: system }, { role: "user", content }],
+          temperature: 0.3,
+          max_tokens: 1000,
+        }),
+      });
+      if (!response.ok) return res.status(response.status).json({ error: "AI 요청 실패" });
+      const data = await response.json();
+      const result = data.choices?.[0]?.message?.content ?? content;
+      return res.json({ result });
+    } catch (error: any) {
+      console.error("가사 전처리 오류:", error);
+      return res.status(500).json({ error: error.message || "오류가 발생했습니다." });
+    }
+  });
+
+  app.post("/api/lyrics/generate", async (req, res) => {
+    try {
+      const { studyContent, baseLyrics, stylePrompt, vocal, tempo } = req.body;
+      if (!studyContent || !studyContent.trim()) {
+        return res.status(400).json({ error: "공부할 내용이 비어있습니다." });
+      }
+      if (!baseLyrics || !baseLyrics.trim()) {
+        return res.status(400).json({ error: "기준 가사가 비어있습니다." });
+      }
+
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "OpenAI API 키가 설정되지 않았습니다." });
+      }
+
+      const systemPrompt = `당신은 작곡 AI인 'Suno AI'를 위한 교육용 가사를 전문적으로 만드는 스타 작사가입니다. 사용자가 제공한 [공부할 내용]과 [리믹스 기준 가사]를 바탕으로, 원곡의 리듬감을 100% 살리면서도 암기가 잘 되는 트렌디한 리믹스 가사를 생성해야 합니다.
+
+반드시 아래의 3가지 절대 규칙을 철저하게 지켜주세요.
+
+### 1. 언어 변환 규칙 (가장 중요)
+Suno AI가 자연스러운 한국어 발음으로 노래해야 하므로, 출력되는 모든 텍스트는 오직 '한글'로만 작성해야 합니다. 영문 표기, 기호, 괄호 병기는 절대 금지합니다.
+- 영어 알파벳 금지: 영어가 나오면 무조건 한국식 독음으로 적으세요. (예: DNA -> 디엔에이 / NFPC -> 엔에프피씨)
+- 숫자 및 기호 변환: 문맥에 맞게 읽는 법으로 풀어 쓰세요. (예: 100m -> 백미터 / + -> 플러스, 더하기 / = -> 는, 이콜)
+
+### 2. 리믹스 매칭 및 가사 구조화 (Suno AI 최적화)
+사용자가 제공한 [리믹스 기준 가사]의 파트 구조, 마디, 행별 글자 수(음절 수)를 그대로 분석하여 동일한 구조로 따라가야 합니다. 기존 가사에 어떤 파트가 몇 개 있든, 어떤 순서로 배치되어 있든, 그대로 매칭하여 개사합니다. 박자가 밀리거나 남아서 발생하는 후반부 무한 반복(뇌절)을 완벽히 차단하는 것이 핵심입니다.
+
+구조 및 분량 제어 규칙:
+- [리믹스 기준 가사]에 나타난 모든 파트 태그(Intro, Verse, Chorus, Pre-Chorus, Bridge, Outro, Hook, Drop, Interlude 등)를 그대로 동일한 순서와 개수로 유지합니다.
+- 기존 가사에 Chorus가 3번 반복되면 새 가사도 Chorus를 3번 사용합니다. Bridge가 없으면 Bridge 없이 진행합니다. Verse가 1개만 있으면 1개만 사용합니다.
+- 각 파트의 행 수와 음절 수를 기존 가사와 1:1로 매칭합니다.
+- 감성적인 미사여구나 정보가 없는 쓸데없는 구절은 일절 배제합니다.
+- 사용자가 준 정보를 마지막 파트까지 밀도 있게 꽉 채워 분배하세요.
+- [Intro]: 아주 짧게 (분위기 잡는 한글 추임새나 핵심 키워드 1개만 배치)
+- [Verse / Chorus / Bridge 등]: 해당 파트의 역할에 맞춰 정보 배치. Chorus는 핵심 암기 내용으로 중독성 있게 구성하되, 노래에서 유일하게 복습/반복이 허용되는 구간입니다.
+- [Outro / Fade Out / End]: 기존 가사에 존재하는 경우에만 사용. 원곡 아웃트로 길이에 맞춰 남은 정보를 끝까지 서술한 뒤, 기존에 [Fade Out]이나 [End] 태그가 있었다면 동일하게 붙여 노래를 강제 종료시킵니다. (이전 가사 반복 절대 금지)
+
+★ 핵심 지시: 기존 가사의 파트 구조를 그대로 따라가되, 코러스를 제외한 모든 파트는 '절대 반복 없음'을 원칙으로 하며, 각 파트에 새로운 정보만 매칭하여 끝까지 밀고 나가야 합니다.
+
+### 3. 스타일 및 톤 (음악 장르 정보)
+- 음악적 분위기: 감성적이면서도 그루브가 살아있는 K-Pop 스타일
+- 장르 태그 키워드 (Suno Style Prompt용): 사용자가 제공한 스타일 프롬프트를 그대로 반영합니다.`;
+
+      const userMsg = `[공부할 내용]\n${studyContent}\n\n[리믹스 기준 가사]\n${baseLyrics}\n\n[스타일 프롬프트]\n${stylePrompt}\n보컬: ${vocal}, 템포: ${tempo}`;
+
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMsg },
+          ],
+          temperature: 0.85,
+          max_tokens: 2000,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        return res.status(response.status).json({ error: err?.error?.message ?? `AI 요청 실패 (HTTP ${response.status})` });
+      }
+
+      const data = await response.json();
+      const lyrics = data.choices?.[0]?.message?.content ?? "";
+      return res.json({ lyrics });
+    } catch (error: any) {
+      console.error("가사 생성 AI 오류:", error);
+      return res.status(500).json({ error: error.message || "오류가 발생했습니다." });
+    }
+  });
 }

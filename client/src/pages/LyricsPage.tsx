@@ -1,8 +1,6 @@
 import { useState, useRef } from "react";
-import { Music, Copy, Check, Settings, ChevronDown, ChevronUp, FileEdit, Save, Users, BookOpen } from "lucide-react";
+import { Music, Copy, Check, ChevronDown, ChevronUp, FileEdit, Save, Users, BookOpen } from "lucide-react";
 import { useLocation } from "wouter";
-
-const LS_API_KEY = "lyrics_openai_api_key";
 
 function NavLink({ href, icon, label, active }: { href: string; icon: React.ReactNode; label: string; active: boolean }) {
   return (
@@ -71,45 +69,32 @@ export default function LyricsPage() {
   const [error, setError] = useState("");
   const [copiedLyrics, setCopiedLyrics] = useState(false);
   const [copiedSuno, setCopiedSuno] = useState(false);
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem(LS_API_KEY) ?? "");
-  const [apiDialogOpen, setApiDialogOpen] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState(() => localStorage.getItem(LS_API_KEY) ?? "");
   const [styleOpen, setStyleOpen] = useState(false);
   const outputRef = useRef<HTMLDivElement>(null);
 
-  const saveApiKey = () => {
-    localStorage.setItem(LS_API_KEY, apiKeyInput);
-    setApiKey(apiKeyInput);
-    setApiDialogOpen(false);
-  };
-
   const generate = async () => {
-    if (!apiKey) { setApiDialogOpen(true); return; }
     if (!studyContent.trim()) { setError("공부할 내용을 입력해주세요."); return; }
     if (!baselyrics.trim()) { setError("기준 가사를 입력해주세요."); return; }
     setError("");
     setLoading(true);
     setGeneratedLyrics("");
     try {
-      const userMsg = `[공부할 내용]\n${studyContent}\n\n[리믹스 기준 가사]\n${baselyrics}\n\n[스타일 프롬프트]\n${stylePrompt}\n보컬: ${vocal}, 템포: ${tempo}`;
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      const res = await fetch("/api/lyrics/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: userMsg },
-          ],
-          temperature: 0.85,
+          studyContent,
+          baseLyrics: baselyrics,
+          stylePrompt,
+          vocal,
+          tempo,
         }),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error?.message ?? `HTTP ${res.status}`);
-      }
       const data = await res.json();
-      const text = data.choices?.[0]?.message?.content ?? "";
+      if (!res.ok) {
+        throw new Error(data.error ?? `서버 오류 (HTTP ${res.status})`);
+      }
+      const text = data.lyrics ?? "";
       setGeneratedLyrics(text);
       setTimeout(() => outputRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     } catch (e: any) {
@@ -217,18 +202,6 @@ export default function LyricsPage() {
           <NavLink href="/guest" icon={<Users size={14} />} label="모집" active={location === "/guest"} />
           <NavLink href="/worklog" icon={<BookOpen size={14} />} label="업무일지" active={location === "/worklog"} />
           <NavLink href="/lyrics" icon={<Music size={14} />} label="가사생성" active={location === "/lyrics"} />
-          <button
-            data-testid="button-lyrics-api-setting"
-            onClick={() => { setApiKeyInput(apiKey); setApiDialogOpen(true); }}
-            style={{
-              background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: 10, padding: "6px 12px", color: "#ccc", fontSize: 12,
-              cursor: "pointer", fontWeight: 600,
-              marginLeft: 6,
-            }}
-          >
-            API 설정
-          </button>
         </div>
       </div>
 
@@ -266,31 +239,22 @@ export default function LyricsPage() {
           {["핵심만 추출", "중복 제거", "시험식 표현"].map((label) => (
             <button key={label} style={S.pill} data-testid={`button-content-${label}`}
               onClick={async () => {
-                if (!apiKey) { setApiDialogOpen(true); return; }
                 if (!studyContent.trim()) return;
                 setLoading(true);
                 try {
-                  const map: Record<string, string> = {
-                    "핵심만 추출": "다음 텍스트에서 암기에 꼭 필요한 핵심 정보만 추출해서 간결하게 정리해주세요. 한글로만 출력하세요.",
-                    "중복 제거": "다음 텍스트에서 중복되는 내용을 제거하고 간결하게 정리해주세요. 한글로만 출력하세요.",
-                    "시험식 표현": "다음 텍스트를 소방시험 답안 형식의 간결하고 명확한 표현으로 바꿔주세요. 한글로만 출력하세요.",
-                  };
-                  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                  const res = await fetch("/api/lyrics/preprocess", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-                    body: JSON.stringify({
-                      model: "gpt-4o",
-                      messages: [
-                        { role: "system", content: map[label] },
-                        { role: "user", content: studyContent },
-                      ],
-                      temperature: 0.3,
-                    }),
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ content: studyContent, mode: label }),
                   });
                   const data = await res.json();
-                  setStudyContent(data.choices?.[0]?.message?.content ?? studyContent);
-                } catch {}
-                setLoading(false);
+                  if (!res.ok) throw new Error(data.error ?? `서버 오류 (HTTP ${res.status})`);
+                  setStudyContent(data.result ?? studyContent);
+                } catch (e: any) {
+                  setError(e.message ?? "전처리 중 오류가 발생했습니다.");
+                } finally {
+                  setLoading(false);
+                }
               }}
             >
               {label}
@@ -423,42 +387,6 @@ export default function LyricsPage() {
         )}
       </div>
 
-      {/* API Dialog */}
-      {apiDialogOpen && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
-          onClick={(e) => { if (e.target === e.currentTarget) setApiDialogOpen(false); }}
-        >
-          <div style={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 16, padding: "24px 20px", width: "100%", maxWidth: 400 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <Settings size={18} color="#a78bfa" />
-              <p style={{ fontSize: 15, fontWeight: 700, color: "#f0f0f0", margin: 0 }}>OpenAI API 키 설정</p>
-            </div>
-            <p style={{ fontSize: 12, color: "#8888aa", marginBottom: 10 }}>
-              API 키는 기기에만 저장되며 서버로 전송되지 않습니다.
-            </p>
-            <input
-              data-testid="input-api-key"
-              type="password"
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") saveApiKey(); }}
-              placeholder="sk-..."
-              style={{ ...S.textarea, resize: "none", height: 42, minHeight: "unset", marginBottom: 12, fontFamily: "monospace" } as React.CSSProperties}
-            />
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => setApiDialogOpen(false)} style={{ ...S.copyBtn, flex: "0 0 auto", padding: "10px 20px" }}>취소</button>
-              <button
-                onClick={saveApiKey}
-                data-testid="button-save-api-key"
-                style={{ flex: 1, padding: "10px 0", borderRadius: 10, fontSize: 14, fontWeight: 700, background: "linear-gradient(135deg,#7c3aed,#ec4899)", color: "#fff", border: "none", cursor: "pointer" }}
-              >
-                저장
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
