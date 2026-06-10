@@ -74,7 +74,12 @@ export default function LyricsPage() {
   const [imageLoading, setImageLoading] = useState(false);
   const [imagePrompt, setImagePrompt] = useState("");
   const [imageError, setImageError] = useState("");
+  const [localImageUrl, setLocalImageUrl] = useState("");
+  const [localImageName, setLocalImageName] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
+  const localImageRef = useRef<HTMLDivElement>(null);
 
   const generate = async () => {
     if (!studyContent.trim()) { setError("공부할 내용을 입력해주세요."); return; }
@@ -145,6 +150,58 @@ export default function LyricsPage() {
     } finally {
       setImageLoading(false);
     }
+  };
+
+  const handleFileSelect = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setImageError("이미지 파일만 업로드 가능합니다.");
+      return;
+    }
+    setImageError("");
+    setLocalImageName(file.name);
+    const url = URL.createObjectURL(file);
+    setLocalImageUrl(url);
+    setTimeout(() => localImageRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileSelect(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          handleFileSelect(file);
+          break;
+        }
+      }
+    }
+  };
+
+  const clearLocalImage = () => {
+    if (localImageUrl) URL.revokeObjectURL(localImageUrl);
+    setLocalImageUrl("");
+    setLocalImageName("");
   };
 
   const [location] = useLocation();
@@ -240,6 +297,16 @@ export default function LyricsPage() {
       height: "auto",
       objectFit: "contain" as const,
       display: "block",
+    } as React.CSSProperties,
+    dropZone: {
+      width: "100%",
+      borderRadius: 12,
+      border: isDragging ? "2px dashed #3b82f6" : "2px dashed rgba(255,255,255,0.2)",
+      background: isDragging ? "rgba(59,130,246,0.1)" : "rgba(0,0,0,0.2)",
+      padding: "24px 16px",
+      textAlign: "center" as const,
+      cursor: "pointer",
+      transition: "all 0.2s",
     } as React.CSSProperties,
   };
 
@@ -451,13 +518,80 @@ export default function LyricsPage() {
         )}
       </div>
 
-      {/* Image Generation */}
+      {/* Local Image 9:16 Converter (NO API) */}
+      <div ref={localImageRef} style={S.imageCard}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ width: 24, height: 24, borderRadius: 8, background: "linear-gradient(135deg, #10b981,#06b6d4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>
+            <ImageIcon size={14} />
+          </div>
+          <p style={S.label}>9:16 이미지 변환 (NO API)</p>
+        </div>
+        <p style={{ ...S.sublabel, marginBottom: 10 }}>
+          파일을 드래그, 클릭 선택, 또는 클립보드 붙여넣기(Ctrl+V)로 가져옵니다
+        </p>
+
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFileSelect(file);
+          }}
+        />
+
+        <div
+          style={S.dropZone}
+          onClick={() => fileInputRef.current?.click()}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onPaste={handlePaste}
+          tabIndex={0}
+        >
+          <ImageIcon size={28} color={isDragging ? "#3b82f6" : "#6666aa"} style={{ marginBottom: 8 }} />
+          <p style={{ fontSize: 13, color: isDragging ? "#3b82f6" : "#8888aa", marginBottom: 4 }}>
+            {isDragging ? "여기에 놓으세요" : "이미지를 드래그하거나 클릭하여 선택"}
+          </p>
+          <p style={{ fontSize: 11, color: "#6666aa" }}>
+            Ctrl+V 로 클립보드 이미지도 붙여넣기 가능
+          </p>
+        </div>
+
+        {localImageUrl && (
+          <div style={{ marginTop: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ fontSize: 12, color: "#8888aa" }}>{localImageName}</span>
+              <button
+                onClick={clearLocalImage}
+                style={{ fontSize: 11, color: "#fca5a5", background: "none", border: "none", cursor: "pointer" }}
+              >
+                지우기
+              </button>
+            </div>
+            <div style={S.imageContainer}>
+              <img
+                data-testid="img-local-converted"
+                src={localImageUrl}
+                alt="변환된 이미지"
+                style={S.imageInContainer}
+              />
+            </div>
+            <p style={{ fontSize: 11, color: "#6666aa", textAlign: "center", marginTop: 8 }}>
+              검은색 레터박스가 적용된 9:16 비율입니다
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* AI Image Generation */}
       <div style={S.imageCard}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <div style={{ width: 24, height: 24, borderRadius: 8, background: "linear-gradient(135deg, #06b6d4,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>
             <ImageIcon size={14} />
           </div>
-          <p style={S.label}>9:16 이미지 생성</p>
+          <p style={S.label}>9:16 이미지 생성 (AI)</p>
         </div>
         <p style={{ ...S.sublabel, marginBottom: 10 }}>정사각형이나 와이드 이미지를 넣어도 위아래 레터박스로 9:16으로 보여줍니다</p>
         <textarea
