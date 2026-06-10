@@ -685,23 +685,32 @@ export default function LyricsPage() {
                 지우기
               </button>
             </div>
-            <div style={{ ...S.imageContainer, position: "relative" }}>
-              <img
-                data-testid="img-local-converted"
-                src={localImageUrl}
-                alt="변환된 이미지"
-                style={{
-                  position: "absolute",
-                  top: "20%",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  maxWidth: "100%",
-                  maxHeight: "80%",
-                  width: "auto",
-                  height: "auto",
-                  objectFit: "contain",
-                }}
-              />
+            <div style={{ position: "relative", width: "100%", maxWidth: 400, margin: "0 auto" }}>
+              <div style={{ paddingBottom: "177.78%" }} />
+              <div style={{
+                position: "absolute",
+                top: 0, left: 0, right: 0, bottom: 0,
+                background: "#000",
+                borderRadius: 12,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+              }}>
+                <div style={{ height: "20%", flexShrink: 0 }} />
+                <img
+                  data-testid="img-local-converted"
+                  src={localImageUrl}
+                  alt="변환된 이미지"
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "80%",
+                    width: "auto",
+                    height: "auto",
+                    flexShrink: 0,
+                  }}
+                />
+              </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 8, flexWrap: "wrap" as const }}>
               <button
