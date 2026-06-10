@@ -251,6 +251,43 @@ export default function LyricsPage() {
   };
 
   const [pastedLocalImage, setPastedLocalImage] = useState(false);
+  const [savedLocalImage, setSavedLocalImage] = useState(false);
+
+  const saveLocalImage = async () => {
+    if (!localImageUrl) return;
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = localImageUrl;
+      await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+      const W = 1080;
+      const H = Math.round(W * 16 / 9);
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, W, H);
+      const imgRatio = img.width / img.height;
+      const containerRatio = 9 / 16;
+      let drawW, drawH, drawX, drawY;
+      if (imgRatio > containerRatio) {
+        drawW = W; drawH = W / imgRatio; drawX = 0; drawY = (H - drawH) / 2;
+      } else {
+        drawH = H; drawW = H * imgRatio; drawX = (W - drawW) / 2; drawY = 0;
+      }
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      const link = document.createElement("a");
+      link.download = localImageName.replace(/\.[^/.]+$/, "") + "_9x16.jpg";
+      link.href = canvas.toDataURL("image/jpeg", 0.95);
+      link.click();
+      setSavedLocalImage(true);
+      setTimeout(() => setSavedLocalImage(false), 1500);
+    } catch {
+      setImageError("저장하지 못했습니다. 이미지를 다시 시도해 보세요.");
+    }
+  };
 
   const pasteFromClipboard = async () => {
     try {
@@ -654,13 +691,20 @@ export default function LyricsPage() {
                 style={S.imageInContainer}
               />
             </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 8, flexWrap: "wrap" as const }}>
               <button
                 onClick={copyLocalImage}
                 style={{ fontSize: 11, color: "#a78bfa", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
               >
                 {copiedLocalImage ? <Check size={12} /> : <Copy size={12} />}
                 {copiedLocalImage ? "복사됨" : "9:16 복사"}
+              </button>
+              <button
+                onClick={saveLocalImage}
+                style={{ fontSize: 11, color: "#10b981", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+              >
+                {savedLocalImage ? <Check size={12} /> : <Save size={12} />}
+                {savedLocalImage ? "저장 완료" : "JPG 저장"}
               </button>
               <span style={{ fontSize: 11, color: "#6666aa" }}>
                 검은색 레터박스가 적용된 9:16 비율입니다
