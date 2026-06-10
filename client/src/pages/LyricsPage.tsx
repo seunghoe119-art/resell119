@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Music, Copy, Check, ChevronDown, ChevronUp, FileEdit, Save, Users, BookOpen, Image as ImageIcon } from "lucide-react";
+import { Music, Copy, Check, ChevronDown, ChevronUp, FileEdit, Save, Users, BookOpen, Image as ImageIcon, Clipboard as ClipboardPaste } from "lucide-react";
 import { useLocation } from "wouter";
 
 function NavLink({ href, icon, label, active }: { href: string; icon: React.ReactNode; label: string; active: boolean }) {
@@ -247,6 +247,29 @@ export default function LyricsPage() {
       setTimeout(() => setCopiedLocalImage(false), 1500);
     } catch {
       setImageError("복사하지 못했습니다. 이미지를 다시 시도해 보세요.");
+    }
+  };
+
+  const [pastedLocalImage, setPastedLocalImage] = useState(false);
+
+  const pasteFromClipboard = async () => {
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const item of clipboardItems) {
+        for (const type of item.types) {
+          if (type.startsWith("image/")) {
+            const blob = await item.getType(type);
+            const file = new File([blob], "clipboard-paste.png", { type });
+            handleFileSelect(file);
+            setPastedLocalImage(true);
+            setTimeout(() => setPastedLocalImage(false), 1500);
+            return;
+          }
+        }
+      }
+      setImageError("클립보드에 이미지가 없습니다.");
+    } catch {
+      setImageError("클립보드 접근이 차단되었습니다. 브라우저 권한을 허용해주세요.");
     }
   };
 
@@ -575,6 +598,13 @@ export default function LyricsPage() {
         <p style={{ ...S.sublabel, marginBottom: 10 }}>
           파일을 드래그, 클릭 선택, 또는 클립보드 붙여넣기(Ctrl+V)로 가져옵니다
         </p>
+
+        <button
+          onClick={pasteFromClipboard}
+          style={{ ...S.imageGenerateBtn, marginBottom: 10, fontSize: 12, background: "linear-gradient(135deg, #8b5cf6, #a78bfa)", minHeight: "32px" }}
+        >
+          {pastedLocalImage ? <><Check size={14} style={{ marginRight: 6 }} />붙여넣기 완료</> : <><ClipboardPaste size={14} style={{ marginRight: 6 }} />클립보드에서 붙여넣기</>}
+        </button>
 
         <input
           type="file"
