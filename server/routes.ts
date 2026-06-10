@@ -304,4 +304,41 @@ Suno AI가 자연스러운 한국어 발음으로 노래해야 하므로, 출력
       return res.status(500).json({ error: error.message || "오류가 발생했습니다." });
     }
   });
+
+  app.post("/api/lyrics/image", async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      if (!prompt || !prompt.trim()) {
+        return res.status(400).json({ error: "프롬프트가 비어있습니다." });
+      }
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "OpenAI API 키가 설정되지 않았습니다." });
+      }
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt: `${prompt}. Output must be a tall vertical 9:16 portrait image.`,
+          size: "1024x1792",
+          quality: "standard",
+          n: 1,
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        return res.status(response.status).json({ error: err?.error?.message ?? `이미지 생성 실패 (HTTP ${response.status})` });
+      }
+      const data = await response.json();
+      const imageUrl = data.data?.[0]?.url ?? "";
+      if (!imageUrl) {
+        return res.status(500).json({ error: "이미지 URL을 받지 못했습니다." });
+      }
+      return res.json({ imageUrl });
+    } catch (error: any) {
+      console.error("이미지 생성 오류:", error);
+      return res.status(500).json({ error: error.message || "이미지 생성 중 오류가 발생했습니다." });
+    }
+  });
 }

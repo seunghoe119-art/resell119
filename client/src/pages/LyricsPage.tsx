@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Music, Copy, Check, ChevronDown, ChevronUp, FileEdit, Save, Users, BookOpen } from "lucide-react";
+import { Music, Copy, Check, ChevronDown, ChevronUp, FileEdit, Save, Users, BookOpen, Image as ImageIcon } from "lucide-react";
 import { useLocation } from "wouter";
 
 function NavLink({ href, icon, label, active }: { href: string; icon: React.ReactNode; label: string; active: boolean }) {
@@ -70,6 +70,10 @@ export default function LyricsPage() {
   const [copiedLyrics, setCopiedLyrics] = useState(false);
   const [copiedSuno, setCopiedSuno] = useState(false);
   const [styleOpen, setStyleOpen] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imagePrompt, setImagePrompt] = useState("");
+  const [imageError, setImageError] = useState("");
   const outputRef = useRef<HTMLDivElement>(null);
 
   const generate = async () => {
@@ -116,6 +120,31 @@ export default function LyricsPage() {
     navigator.clipboard.writeText(combined);
     setCopiedSuno(true);
     setTimeout(() => setCopiedSuno(false), 1500);
+  };
+
+  const generateImage = async () => {
+    if (!imagePrompt.trim()) { setImageError("이미지 프롬프트를 입력해주세요."); return; }
+    setImageError("");
+    setImageLoading(true);
+    setImageUrl("");
+    try {
+      const res = await fetch("/api/lyrics/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: imagePrompt }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? `서버 오류 (HTTP ${res.status})`);
+      }
+      const url = data.imageUrl ?? "";
+      if (!url) throw new Error("이미지 URL을 받지 못했습니다.");
+      setImageUrl(url);
+    } catch (e: any) {
+      setImageError(e.message ?? "이미지 생성 중 오류가 발생했습니다.");
+    } finally {
+      setImageLoading(false);
+    }
   };
 
   const [location] = useLocation();
@@ -177,6 +206,41 @@ export default function LyricsPage() {
       color: "#e0e0f0", cursor: "pointer", display: "flex", alignItems: "center",
       justifyContent: "center", gap: 6,
     } as React.CSSProperties,
+    imageCard: {
+      background: "rgba(255,255,255,0.06)",
+      borderRadius: 16,
+      padding: "18px 16px",
+      margin: "14px 16px 0",
+      border: "1px solid rgba(255,255,255,0.08)",
+    } as React.CSSProperties,
+    imageGenerateBtn: {
+      display: "block", width: "calc(100% - 32px)", margin: "10px 16px 0",
+      padding: "14px 0", borderRadius: 14, fontSize: 15, fontWeight: 700,
+      background: imageLoading ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #06b6d4, #3b82f6)",
+      color: imageLoading ? "#888" : "#fff", border: "none", cursor: imageLoading ? "not-allowed" : "pointer",
+      letterSpacing: "0.03em",
+    } as React.CSSProperties,
+    imageContainer: {
+      position: "relative" as const,
+      width: "100%",
+      maxWidth: 400,
+      margin: "0 auto",
+      aspectRatio: "9/16",
+      background: "#000",
+      borderRadius: 12,
+      overflow: "hidden",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    } as React.CSSProperties,
+    imageInContainer: {
+      maxWidth: "100%",
+      maxHeight: "100%",
+      width: "auto",
+      height: "auto",
+      objectFit: "contain" as const,
+      display: "block",
+    } as React.CSSProperties,
   };
 
   return (
@@ -208,7 +272,7 @@ export default function LyricsPage() {
       {/* Hero */}
       <div style={{ margin: "0 16px 20px", padding: "20px 18px", borderRadius: 16, background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.2)" }}>
         <div style={S.badge}>
-          <span>✦</span> 수노 최적화
+          <span>*</span> 수노 최적화
         </div>
         <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.35, color: "#f0f0f0", marginBottom: 8 }}>
           기존 가사 리듬에 맞춰<br />새 암기 가사를 생성
@@ -383,6 +447,53 @@ export default function LyricsPage() {
             {["인트로", "벌스 일", "프리코러스", "코러스", "벌스 이", "브릿지", "아웃트로", "페이드 아웃", "엔드"].map((s) => (
               <p key={s} style={{ fontSize: 12, color: "#4a4a68", margin: "2px 0" }}>{s}</p>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Image Generation */}
+      <div style={S.imageCard}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ width: 24, height: 24, borderRadius: 8, background: "linear-gradient(135deg, #06b6d4,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>
+            <ImageIcon size={14} />
+          </div>
+          <p style={S.label}>9:16 이미지 생성</p>
+        </div>
+        <p style={{ ...S.sublabel, marginBottom: 10 }}>정사각형이나 와이드 이미지를 넣어도 위아래 레터박스로 9:16으로 보여줍니다</p>
+        <textarea
+          data-testid="textarea-image-prompt"
+          value={imagePrompt}
+          onChange={(e) => setImagePrompt(e.target.value)}
+          placeholder="이미지 생성 프롬프트를 입력하세요 (예: 소방관이 화재 현장에서 구조하는 영웅적인 모습, 어두운 배경에 주황빛 불꽃, 사실적인 스타일)"
+          style={{ ...S.textarea, minHeight: 60 }}
+        />
+        {imageError && (
+          <div style={{ marginTop: 10, padding: "8px 12px", background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 10, fontSize: 13, color: "#fca5a5" }}>
+            {imageError}
+          </div>
+        )}
+        <button
+          data-testid="button-generate-image"
+          onClick={generateImage}
+          disabled={imageLoading}
+          style={S.imageGenerateBtn}
+        >
+          {imageLoading ? "이미지 생성 중..." : "9:16 이미지 생성하기"}
+        </button>
+
+        {imageUrl && (
+          <div style={{ marginTop: 14 }}>
+            <div style={S.imageContainer}>
+              <img
+                data-testid="img-generated"
+                src={imageUrl}
+                alt="생성된 이미지"
+                style={S.imageInContainer}
+              />
+            </div>
+            <p style={{ fontSize: 11, color: "#6666aa", textAlign: "center", marginTop: 8 }}>
+              검은색 레터박스가 적용된 9:16 비율입니다
+            </p>
           </div>
         )}
       </div>
