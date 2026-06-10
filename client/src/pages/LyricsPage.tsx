@@ -77,6 +77,7 @@ export default function LyricsPage() {
   const [localImageUrl, setLocalImageUrl] = useState("");
   const [localImageName, setLocalImageName] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const [copiedLocalImage, setCopiedLocalImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
   const localImageRef = useRef<HTMLDivElement>(null);
@@ -202,6 +203,51 @@ export default function LyricsPage() {
     if (localImageUrl) URL.revokeObjectURL(localImageUrl);
     setLocalImageUrl("");
     setLocalImageName("");
+  };
+
+  const copyLocalImage = async () => {
+    if (!localImageUrl) return;
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = localImageUrl;
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+      const W = 1080;
+      const H = Math.round(W * 16 / 9);
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, W, H);
+      const imgRatio = img.width / img.height;
+      const containerRatio = 9 / 16;
+      let drawW, drawH, drawX, drawY;
+      if (imgRatio > containerRatio) {
+        drawW = W;
+        drawH = W / imgRatio;
+        drawX = 0;
+        drawY = (H - drawH) / 2;
+      } else {
+        drawH = H;
+        drawW = H * imgRatio;
+        drawX = (W - drawW) / 2;
+        drawY = 0;
+      }
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      const blob = await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), "image/png"));
+      await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": blob }),
+      ]);
+      setCopiedLocalImage(true);
+      setTimeout(() => setCopiedLocalImage(false), 1500);
+    } catch {
+      setImageError("복사하지 못했습니다. 이미지를 다시 시도해 보세요.");
+    }
   };
 
   const [location] = useLocation();
@@ -578,9 +624,18 @@ export default function LyricsPage() {
                 style={S.imageInContainer}
               />
             </div>
-            <p style={{ fontSize: 11, color: "#6666aa", textAlign: "center", marginTop: 8 }}>
-              검은색 레터박스가 적용된 9:16 비율입니다
-            </p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 8 }}>
+              <button
+                onClick={copyLocalImage}
+                style={{ fontSize: 11, color: "#a78bfa", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+              >
+                {copiedLocalImage ? <Check size={12} /> : <Copy size={12} />}
+                {copiedLocalImage ? "복사됨" : "9:16 복사"}
+              </button>
+              <span style={{ fontSize: 11, color: "#6666aa" }}>
+                검은색 레터박스가 적용된 9:16 비율입니다
+              </span>
+            </div>
           </div>
         )}
       </div>
