@@ -225,19 +225,18 @@ export default function LyricsPage() {
       ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, W, H);
       const imgRatio = img.width / img.height;
-      const containerRatio = 9 / 16;
+      const availableH = H * 0.8;
+      const availableRatio = W / availableH;
       let drawW, drawH, drawX, drawY;
-      if (imgRatio > containerRatio) {
+      if (imgRatio > availableRatio) {
         drawW = W;
         drawH = W / imgRatio;
-        drawX = 0;
-        drawY = (H - drawH) / 2;
       } else {
-        drawH = H;
-        drawW = H * imgRatio;
-        drawX = (W - drawW) / 2;
-        drawY = 0;
+        drawH = availableH;
+        drawW = availableH * imgRatio;
       }
+      drawX = (W - drawW) / 2;
+      drawY = H * 0.2;
       ctx.drawImage(img, drawX, drawY, drawW, drawH);
       const blob = await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), "image/png"));
       await navigator.clipboard.write([
@@ -270,13 +269,16 @@ export default function LyricsPage() {
       ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, W, H);
       const imgRatio = img.width / img.height;
-      const containerRatio = 9 / 16;
+      const availableH = H * 0.8;
+      const availableRatio = W / availableH;
       let drawW, drawH, drawX, drawY;
-      if (imgRatio > containerRatio) {
-        drawW = W; drawH = W / imgRatio; drawX = 0; drawY = (H - drawH) / 2;
+      if (imgRatio > availableRatio) {
+        drawW = W; drawH = W / imgRatio;
       } else {
-        drawH = H; drawW = H * imgRatio; drawX = (W - drawW) / 2; drawY = 0;
+        drawH = availableH; drawW = availableH * imgRatio;
       }
+      drawX = (W - drawW) / 2;
+      drawY = H * 0.2;
       ctx.drawImage(img, drawX, drawY, drawW, drawH);
       const link = document.createElement("a");
       link.download = localImageName.replace(/\.[^/.]+$/, "") + "_9x16.jpg";
