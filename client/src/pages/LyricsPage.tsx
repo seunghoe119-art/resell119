@@ -78,37 +78,79 @@ export default function LyricsPage() {
   const [localImageName, setLocalImageName] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [copiedLocalImage, setCopiedLocalImage] = useState(false);
+  const [imageOffsetY, setImageOffsetY] = useState(0.2);
+  const [localImageRatio, setLocalImageRatio] = useState(1);
+  const [canvasDragging, setCanvasDragging] = useState(false);
+  const dragRef = useRef<{ startY: number; startOffset: number } | null>(null);
+  const cachedImgRef = useRef<HTMLImageElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
   const localImageRef = useRef<HTMLDivElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  useEffect(() => {
-    if (!localImageUrl || !previewCanvasRef.current) return;
+  const getDrawDims = (imgRatio: number, W: number, H: number) => {
+    let drawW, drawH;
+    if (imgRatio >= W / H) { drawW = W; drawH = W / imgRatio; }
+    else { drawH = H; drawW = H * imgRatio; }
+    return { drawW, drawH };
+  };
+
+  const renderOnCanvas = (img: HTMLImageElement, offsetY: number) => {
+    if (!previewCanvasRef.current) return;
     const canvas = previewCanvasRef.current;
-    const W = canvas.width;
-    const H = canvas.height;
+    const W = canvas.width; const H = canvas.height;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const { drawW, drawH } = getDrawDims(img.width / img.height, W, H);
+    const maxOffset = Math.max(0, (H - drawH) / H);
+    const clampedOffset = Math.max(0, Math.min(maxOffset, offsetY));
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(img, (W - drawW) / 2, clampedOffset * H, drawW, drawH);
+  };
+
+  useEffect(() => {
+    if (!localImageUrl) return;
     const img = new Image();
     img.src = localImageUrl;
     img.onload = () => {
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(0, 0, W, H);
-      const imgRatio = img.width / img.height;
-      const availableH = H * 0.8;
-      const availableRatio = W / availableH;
-      let drawW, drawH;
-      if (imgRatio > availableRatio) {
-        drawW = W; drawH = W / imgRatio;
-      } else {
-        drawH = availableH; drawW = availableH * imgRatio;
-      }
-      const drawX = (W - drawW) / 2;
-      const drawY = H * 0.2;
-      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      cachedImgRef.current = img;
+      setLocalImageRatio(img.width / img.height);
+      setImageOffsetY(0.2);
+      renderOnCanvas(img, 0.2);
     };
   }, [localImageUrl]);
+
+  useEffect(() => {
+    if (cachedImgRef.current) renderOnCanvas(cachedImgRef.current, imageOffsetY);
+  }, [imageOffsetY]);
+
+  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    setCanvasDragging(true);
+    dragRef.current = { startY: e.clientY, startOffset: imageOffsetY };
+  };
+  const handleCanvasTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    setCanvasDragging(true);
+    dragRef.current = { startY: e.touches[0].clientY, startOffset: imageOffsetY };
+  };
+  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasDragging || !dragRef.current || !previewCanvasRef.current) return;
+    const rect = previewCanvasRef.current.getBoundingClientRect();
+    const delta = (e.clientY - dragRef.current.startY) / rect.height;
+    const { drawH } = getDrawDims(localImageRatio, previewCanvasRef.current.width, previewCanvasRef.current.height);
+    const maxOffset = Math.max(0, (previewCanvasRef.current.height - drawH) / previewCanvasRef.current.height);
+    setImageOffsetY(Math.max(0, Math.min(maxOffset, dragRef.current.startOffset + delta)));
+  };
+  const handleCanvasTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (!canvasDragging || !dragRef.current || !previewCanvasRef.current) return;
+    e.preventDefault();
+    const rect = previewCanvasRef.current.getBoundingClientRect();
+    const delta = (e.touches[0].clientY - dragRef.current.startY) / rect.height;
+    const { drawH } = getDrawDims(localImageRatio, previewCanvasRef.current.width, previewCanvasRef.current.height);
+    const maxOffset = Math.max(0, (previewCanvasRef.current.height - drawH) / previewCanvasRef.current.height);
+    setImageOffsetY(Math.max(0, Math.min(maxOffset, dragRef.current.startOffset + delta)));
+  };
+  const handleCanvasDragEnd = () => { setCanvasDragging(false); dragRef.current = null; };
 
   const generate = async () => {
     if (!studyContent.trim()) { setError("공부할 내용을 입력해주세요."); return; }
@@ -239,41 +281,23 @@ export default function LyricsPage() {
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.src = localImageUrl;
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-      });
-      const W = 1080;
-      const H = Math.round(W * 16 / 9);
+      await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+      const W = 1080; const H = Math.round(W * 16 / 9);
       const canvas = document.createElement("canvas");
-      canvas.width = W;
-      canvas.height = H;
+      canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(0, 0, W, H);
-      const imgRatio = img.width / img.height;
-      const availableH = H * 0.8;
-      const availableRatio = W / availableH;
-      let drawW, drawH, drawX, drawY;
-      if (imgRatio > availableRatio) {
-        drawW = W;
-        drawH = W / imgRatio;
-      } else {
-        drawH = availableH;
-        drawW = availableH * imgRatio;
-      }
-      drawX = (W - drawW) / 2;
-      drawY = H * 0.2;
-      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      ctx.fillStyle = "#000000"; ctx.fillRect(0, 0, W, H);
+      const { drawW, drawH } = getDrawDims(img.width / img.height, W, H);
+      const maxOff = Math.max(0, (H - drawH) / H);
+      const off = Math.max(0, Math.min(maxOff, imageOffsetY));
+      ctx.drawImage(img, (W - drawW) / 2, off * H, drawW, drawH);
       const blob = await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), "image/png"));
-      await navigator.clipboard.write([
-        new ClipboardItem({ "image/png": blob }),
-      ]);
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
       setCopiedLocalImage(true);
       setTimeout(() => setCopiedLocalImage(false), 1500);
     } catch {
-      setImageError("복사하지 못했습니다. 이미지를 다시 시도해 보세요.");
+      setImageError("복사하지 못했습니다.");
     }
   };
 
@@ -296,18 +320,10 @@ export default function LyricsPage() {
       if (!ctx) return;
       ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, W, H);
-      const imgRatio = img.width / img.height;
-      const availableH = H * 0.8;
-      const availableRatio = W / availableH;
-      let drawW, drawH, drawX, drawY;
-      if (imgRatio > availableRatio) {
-        drawW = W; drawH = W / imgRatio;
-      } else {
-        drawH = availableH; drawW = availableH * imgRatio;
-      }
-      drawX = (W - drawW) / 2;
-      drawY = H * 0.2;
-      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      const { drawW, drawH } = getDrawDims(img.width / img.height, W, H);
+      const maxOff = Math.max(0, (H - drawH) / H);
+      const off = Math.max(0, Math.min(maxOff, imageOffsetY));
+      ctx.drawImage(img, (W - drawW) / 2, off * H, drawW, drawH);
       const link = document.createElement("a");
       link.download = localImageName.replace(/\.[^/.]+$/, "") + "_9x16.jpg";
       link.href = canvas.toDataURL("image/jpeg", 0.95);
@@ -315,7 +331,7 @@ export default function LyricsPage() {
       setSavedLocalImage(true);
       setTimeout(() => setSavedLocalImage(false), 1500);
     } catch {
-      setImageError("저장하지 못했습니다. 이미지를 다시 시도해 보세요.");
+      setImageError("저장하지 못했습니다.");
     }
   };
 
@@ -718,15 +734,28 @@ export default function LyricsPage() {
               data-testid="img-local-converted"
               width={540}
               height={960}
+              onMouseDown={handleCanvasMouseDown}
+              onMouseMove={handleCanvasMouseMove}
+              onMouseUp={handleCanvasDragEnd}
+              onMouseLeave={handleCanvasDragEnd}
+              onTouchStart={handleCanvasTouchStart}
+              onTouchMove={handleCanvasTouchMove}
+              onTouchEnd={handleCanvasDragEnd}
               style={{
                 display: "block",
                 width: "100%",
                 maxWidth: 400,
                 margin: "0 auto",
                 borderRadius: 12,
+                cursor: canvasDragging ? "grabbing" : "grab",
+                userSelect: "none",
+                touchAction: "none",
               }}
             />
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 8, flexWrap: "wrap" as const }}>
+            <p style={{ fontSize: 11, color: "#6666aa", textAlign: "center", marginTop: 4, marginBottom: 6 }}>
+              위아래로 드래그해서 위치 조정
+            </p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap" as const }}>
               <button
                 onClick={copyLocalImage}
                 style={{ fontSize: 11, color: "#a78bfa", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
@@ -741,9 +770,6 @@ export default function LyricsPage() {
                 {savedLocalImage ? <Check size={12} /> : <Save size={12} />}
                 {savedLocalImage ? "저장 완료" : "JPG 저장"}
               </button>
-              <span style={{ fontSize: 11, color: "#6666aa" }}>
-                검은색 레터박스가 적용된 9:16 비율입니다
-              </span>
             </div>
           </div>
         )}
