@@ -655,9 +655,11 @@ export default function LyricsPage() {
                 {copiedSuno ? "복사됨" : "수노용 복사"}
               </button>
             </div>
-            <div style={{ whiteSpace: "pre-wrap", fontSize: 13, lineHeight: 1.85, color: "#d0d0f0", background: "rgba(0,0,0,0.25)", borderRadius: 10, padding: "12px 14px" }}>
-              {generatedLyrics}
-            </div>
+            <textarea
+              value={generatedLyrics}
+              onChange={(e) => setGeneratedLyrics(e.target.value)}
+              style={{ whiteSpace: "pre-wrap", fontSize: 13, lineHeight: 1.85, color: "#d0d0f0", background: "rgba(0,0,0,0.25)", borderRadius: 10, padding: "12px 14px", width: "100%", boxSizing: "border-box", border: "1px solid rgba(255,255,255,0.08)", resize: "vertical", outline: "none", fontFamily: "'Noto Sans KR', sans-serif", minHeight: 200 }}
+            />
           </>
         ) : (
           <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: 10, padding: "16px 14px", fontSize: 13 }}>
