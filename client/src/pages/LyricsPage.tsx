@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Music, Copy, Check, ChevronDown, ChevronUp, FileEdit, Save, Users, BookOpen, Image as ImageIcon, Clipboard as ClipboardPaste } from "lucide-react";
 import { useLocation } from "wouter";
 
@@ -81,6 +81,34 @@ export default function LyricsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
   const localImageRef = useRef<HTMLDivElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!localImageUrl || !previewCanvasRef.current) return;
+    const canvas = previewCanvasRef.current;
+    const W = canvas.width;
+    const H = canvas.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const img = new Image();
+    img.src = localImageUrl;
+    img.onload = () => {
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, W, H);
+      const imgRatio = img.width / img.height;
+      const availableH = H * 0.8;
+      const availableRatio = W / availableH;
+      let drawW, drawH;
+      if (imgRatio > availableRatio) {
+        drawW = W; drawH = W / imgRatio;
+      } else {
+        drawH = availableH; drawW = availableH * imgRatio;
+      }
+      const drawX = (W - drawW) / 2;
+      const drawY = H * 0.2;
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+    };
+  }, [localImageUrl]);
 
   const generate = async () => {
     if (!studyContent.trim()) { setError("공부할 내용을 입력해주세요."); return; }
@@ -685,33 +713,19 @@ export default function LyricsPage() {
                 지우기
               </button>
             </div>
-            <div style={{ position: "relative", width: "100%", maxWidth: 400, margin: "0 auto" }}>
-              <div style={{ paddingBottom: "177.78%" }} />
-              <div style={{
-                position: "absolute",
-                top: 0, left: 0, right: 0, bottom: 0,
-                background: "#000",
+            <canvas
+              ref={previewCanvasRef}
+              data-testid="img-local-converted"
+              width={540}
+              height={960}
+              style={{
+                display: "block",
+                width: "100%",
+                maxWidth: 400,
+                margin: "0 auto",
                 borderRadius: 12,
-                overflow: "hidden",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}>
-                <div style={{ height: "20%", flexShrink: 0 }} />
-                <img
-                  data-testid="img-local-converted"
-                  src={localImageUrl}
-                  alt="변환된 이미지"
-                  style={{
-                    maxWidth: "100%",
-                    maxHeight: "80%",
-                    width: "auto",
-                    height: "auto",
-                    flexShrink: 0,
-                  }}
-                />
-              </div>
-            </div>
+              }}
+            />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 8, flexWrap: "wrap" as const }}>
               <button
                 onClick={copyLocalImage}
