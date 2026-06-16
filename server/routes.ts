@@ -277,19 +277,33 @@ Suno AI가 자연스러운 한국어 발음으로 노래해야 하므로, 출력
 
       const userMsg = `[공부할 내용]\n${studyContent}\n\n[리믹스 기준 가사]\n${baseLyrics}\n\n[스타일 프롬프트]\n${stylePrompt}\n보컬: ${vocal}, 템포: ${tempo}`;
 
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userMsg },
-          ],
-          temperature: 0.85,
-          max_tokens: 2000,
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+      let response: Response;
+      try {
+        response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: "gpt-4o",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userMsg },
+            ],
+            temperature: 0.85,
+            max_tokens: 1500,
+          }),
+        });
+      } catch (fetchErr: any) {
+        clearTimeout(timeoutId);
+        if (fetchErr.name === "AbortError") {
+          return res.status(504).json({ error: "AI 응답 시간이 초과됐습니다. 다시 시도해주세요." });
+        }
+        throw fetchErr;
+      }
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));

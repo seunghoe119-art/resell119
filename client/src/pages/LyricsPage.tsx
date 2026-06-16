@@ -170,7 +170,12 @@ export default function LyricsPage() {
           tempo,
         }),
       });
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(`서버 응답 오류 (HTTP ${res.status}) — 잠시 후 다시 시도해주세요.`);
+      }
       if (!res.ok) {
         throw new Error(data.error ?? `서버 오류 (HTTP ${res.status})`);
       }
