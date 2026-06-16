@@ -548,6 +548,7 @@ interface WorkEntry {
 interface DayData {
   entries: WorkEntry[];
   tomorrowPlan: string;
+  todayPlan: string;
   freeMemo: string;
   author: string;
   department: string;
@@ -604,7 +605,7 @@ function timeSortKey(t: string): number {
 }
 
 function emptyDayData(author = "", department = ""): DayData {
-  return { entries: [emptyEntry()], tomorrowPlan: "", freeMemo: "", author, department, secret: "" };
+  return { entries: [emptyEntry()], tomorrowPlan: "", todayPlan: "", freeMemo: "", author, department, secret: "" };
 }
 
 const AUTHOR = "소방교 김승회";
@@ -621,6 +622,7 @@ async function loadFromSupabase(dateKey: string): Promise<DayData> {
   return {
     entries: data.entries ?? [emptyEntry()],
     tomorrowPlan: data.tomorrow_plan ?? "",
+    todayPlan: data.today_plan ?? "",
     freeMemo: data.free_memo ?? "",
     secret: data.secret ?? "",
     author: data.author ?? AUTHOR,
@@ -827,6 +829,7 @@ async function saveToSupabase(dateKey: string, d: Partial<DayData>) {
   };
   if (d.entries !== undefined) payload.entries = d.entries;
   if (d.tomorrowPlan !== undefined) payload.tomorrow_plan = d.tomorrowPlan;
+  if (d.todayPlan !== undefined) payload.today_plan = d.todayPlan;
   if (d.freeMemo !== undefined) payload.free_memo = d.freeMemo;
   if (d.secret !== undefined) payload.secret = d.secret;
   await supabase.from("work_logs").upsert(payload, { onConflict: "log_date,author" });
@@ -963,8 +966,7 @@ export default function WorkLogPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dayData, setDayData] = useState<DayData>(emptyDayData(AUTHOR, DEPARTMENT));
   const [loading, setLoading] = useState(false);
-  const [yesterdayPlan, setYesterdayPlan] = useState("");
-  const yesterdayPlanSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tomorrowSyncRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [recentDates, setRecentDates] = useState<string[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; dateKey: string }>({ open: false, dateKey: "" });
   const [globalMemo, setGlobalMemo] = useState("");
@@ -1100,8 +1102,13 @@ export default function WorkLogPage() {
       loadFromSupabase(yKey),
       loadSecretHistory(key),
     ]).then(([todayData, ydayData, hist]) => {
+      // 오늘 todayPlan이 비어있으면 어제 tomorrowPlan으로 초기 채우기 (단방향 초기화)
+      if (!todayData.todayPlan && ydayData.tomorrowPlan) {
+        const initializedTodayPlan = ydayData.tomorrowPlan;
+        todayData = { ...todayData, todayPlan: initializedTodayPlan };
+        saveToSupabase(key, { todayPlan: initializedTodayPlan });
+      }
       setDayData(todayData);
-      setYesterdayPlan(ydayData.tomorrowPlan);
       setSecretHistory(hist);
       lastBackupContentRef.current = todayData.secret ?? "";
       setLoading(false);
@@ -1488,9 +1495,9 @@ export default function WorkLogPage() {
               </div>
             </div>
 
-            {/* 오늘 업무 계획 (전날의 내일 업무 계획) */}
+            {/* 오늘 업무 계획 (독립 필드 — 내일 업무 계획에서 단방향 초기화) */}
             {(() => {
-              const plan = yesterdayPlan;
+              const plan = dayData.todayPlan;
               return (
                 <div style={{ ...S.card, ...S.cardPad, backgroundColor: "#f0f4ff", border: "1px solid #d4e0ff" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: plan ? 10 : 0 }}>
@@ -1531,16 +1538,8 @@ export default function WorkLogPage() {
                   </div>
                   <Textarea
                     data-testid="textarea-today-plan"
-                    value={plan}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setYesterdayPlan(val);
-                      const yKey = dateToKey(addDays(currentDate, -1));
-                      if (yesterdayPlanSaveRef.current) clearTimeout(yesterdayPlanSaveRef.current);
-                      yesterdayPlanSaveRef.current = setTimeout(() => {
-                        saveToSupabase(yKey, { tomorrowPlan: val });
-                      }, 500);
-                    }}
+                    value={dayData.todayPlan}
+                    onChange={(e) => updateDay((d) => ({ ...d, todayPlan: e.target.value }))}
                     placeholder="전날 등록된 업무 계획이 없습니다."
                     style={{
                       minHeight: 80, resize: "none", fontSize: 13,
@@ -1670,7 +1669,16 @@ export default function WorkLogPage() {
                   <Textarea
                     data-testid="textarea-tomorrow"
                     value={dayData.tomorrowPlan}
-                    onChange={(e) => updateDay((d) => ({ ...d, tomorrowPlan: e.target.value }))}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      updateDay((d) => ({ ...d, tomorrowPlan: val }));
+                      // 내일의 todayPlan에도 단방향 동기화
+                      const tKey = dateToKey(addDays(currentDate, 1));
+                      if (tomorrowSyncRef.current) clearTimeout(tomorrowSyncRef.current);
+                      tomorrowSyncRef.current = setTimeout(() => {
+                        saveToSupabase(tKey, { todayPlan: val });
+                      }, 500);
+                    }}
                     placeholder="내일 예정된 업무를 작성하세요..."
                     style={{
                       minHeight: 140, resize: "none", fontSize: 13,
