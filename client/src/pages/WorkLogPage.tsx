@@ -622,7 +622,7 @@ async function loadFromSupabase(dateKey: string): Promise<DayData> {
   return {
     entries: data.entries ?? [emptyEntry()],
     tomorrowPlan: data.tomorrow_plan ?? "",
-    todayPlan: data.today_plan ?? "",
+    todayPlan: data.today_plan || lsLoadTodayPlan(dateKey),
     freeMemo: data.free_memo ?? "",
     secret: data.secret ?? "",
     author: data.author ?? AUTHOR,
@@ -838,9 +838,21 @@ async function saveToSupabase(dateKey: string, d: Partial<DayData>) {
   }
 }
 
-// today_plan 전용 저장 — 컬럼 없어도 메인 저장에 영향 없음
+// today_plan 전용 저장 — localStorage 우선 저장, Supabase는 백그라운드 시도
+const TODAY_PLAN_LS_PREFIX = `worklog_today_plan_${AUTHOR}_`;
+
+function lsSaveTodayPlan(dateKey: string, value: string) {
+  try { localStorage.setItem(TODAY_PLAN_LS_PREFIX + dateKey, value); } catch {}
+}
+
+function lsLoadTodayPlan(dateKey: string): string {
+  try { return localStorage.getItem(TODAY_PLAN_LS_PREFIX + dateKey) ?? ""; } catch { return ""; }
+}
+
 async function saveTodayPlan(dateKey: string, value: string) {
-  if (!value) return;
+  // localStorage에 즉시 저장 (항상 성공)
+  lsSaveTodayPlan(dateKey, value);
+  // Supabase도 시도 (컬럼 있으면 저장됨)
   const { error } = await supabase.from("work_logs").upsert({
     log_date: dateKey,
     author: AUTHOR,
@@ -848,8 +860,8 @@ async function saveTodayPlan(dateKey: string, value: string) {
     updated_at: new Date().toISOString(),
     today_plan: value,
   }, { onConflict: "log_date,author" });
-  if (error) {
-    console.error("today_plan 저장 실패 (SQL 컬럼 추가 필요):", error.message);
+  if (error && error.code !== "PGRST204") {
+    console.error("today_plan Supabase 저장 실패:", error.message);
   }
 }
 
