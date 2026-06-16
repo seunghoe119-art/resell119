@@ -829,10 +829,24 @@ async function saveToSupabase(dateKey: string, d: Partial<DayData>) {
   };
   if (d.entries !== undefined) payload.entries = d.entries;
   if (d.tomorrowPlan !== undefined) payload.tomorrow_plan = d.tomorrowPlan;
-  if (d.todayPlan !== undefined) payload.today_plan = d.todayPlan;
   if (d.freeMemo !== undefined) payload.free_memo = d.freeMemo;
   if (d.secret !== undefined) payload.secret = d.secret;
-  await supabase.from("work_logs").upsert(payload, { onConflict: "log_date,author" });
+  const { error } = await supabase.from("work_logs").upsert(payload, { onConflict: "log_date,author" });
+  if (error) {
+    console.error("Supabase 저장 오류:", error);
+  }
+
+  // today_plan은 별도 시도 — 컬럼이 없으면 main save는 실패하지 않음
+  if (d.todayPlan !== undefined && d.todayPlan !== "") {
+    const { error: tpErr } = await supabase.from("work_logs").upsert({
+      log_date: dateKey,
+      author: AUTHOR,
+      today_plan: d.todayPlan,
+    }, { onConflict: "log_date,author" });
+    if (tpErr) {
+      console.error("today_plan 저장 오류 (컬럼이 없을 수 있음):", tpErr);
+    }
+  }
 }
 
 /* ─── Secret File Storage ─── */
