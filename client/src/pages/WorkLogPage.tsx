@@ -831,21 +831,25 @@ async function saveToSupabase(dateKey: string, d: Partial<DayData>) {
   if (d.tomorrowPlan !== undefined) payload.tomorrow_plan = d.tomorrowPlan;
   if (d.freeMemo !== undefined) payload.free_memo = d.freeMemo;
   if (d.secret !== undefined) payload.secret = d.secret;
+  // todayPlan은 메인 저장에서 제외 — 컬럼 유무와 무관하게 메인 저장은 항상 성공
   const { error } = await supabase.from("work_logs").upsert(payload, { onConflict: "log_date,author" });
   if (error) {
     console.error("Supabase 저장 오류:", error);
   }
+}
 
-  // today_plan은 별도 시도 — 컬럼이 없으면 main save는 실패하지 않음
-  if (d.todayPlan !== undefined && d.todayPlan !== "") {
-    const { error: tpErr } = await supabase.from("work_logs").upsert({
-      log_date: dateKey,
-      author: AUTHOR,
-      today_plan: d.todayPlan,
-    }, { onConflict: "log_date,author" });
-    if (tpErr) {
-      console.error("today_plan 저장 오류 (컬럼이 없을 수 있음):", tpErr);
-    }
+// today_plan 전용 저장 — 컬럼 없어도 메인 저장에 영향 없음
+async function saveTodayPlan(dateKey: string, value: string) {
+  if (!value) return;
+  const { error } = await supabase.from("work_logs").upsert({
+    log_date: dateKey,
+    author: AUTHOR,
+    department: DEPARTMENT,
+    updated_at: new Date().toISOString(),
+    today_plan: value,
+  }, { onConflict: "log_date,author" });
+  if (error) {
+    console.error("today_plan 저장 실패 (SQL 컬럼 추가 필요):", error.message);
   }
 }
 
@@ -981,6 +985,7 @@ export default function WorkLogPage() {
   const [dayData, setDayData] = useState<DayData>(emptyDayData(AUTHOR, DEPARTMENT));
   const [loading, setLoading] = useState(false);
   const tomorrowSyncRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const todayPlanSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [recentDates, setRecentDates] = useState<string[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; dateKey: string }>({ open: false, dateKey: "" });
   const [globalMemo, setGlobalMemo] = useState("");
@@ -1120,7 +1125,7 @@ export default function WorkLogPage() {
       if (!todayData.todayPlan && ydayData.tomorrowPlan) {
         const initializedTodayPlan = ydayData.tomorrowPlan;
         todayData = { ...todayData, todayPlan: initializedTodayPlan };
-        saveToSupabase(key, { todayPlan: initializedTodayPlan });
+        saveTodayPlan(key, initializedTodayPlan);
       }
       setDayData(todayData);
       setSecretHistory(hist);
@@ -1553,7 +1558,12 @@ export default function WorkLogPage() {
                   <Textarea
                     data-testid="textarea-today-plan"
                     value={dayData.todayPlan}
-                    onChange={(e) => updateDay((d) => ({ ...d, todayPlan: e.target.value }))}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDayData((prev) => ({ ...prev, todayPlan: val }));
+                      if (todayPlanSaveRef.current) clearTimeout(todayPlanSaveRef.current);
+                      todayPlanSaveRef.current = setTimeout(() => saveTodayPlan(key, val), 500);
+                    }}
                     placeholder="전날 등록된 업무 계획이 없습니다."
                     style={{
                       minHeight: 80, resize: "none", fontSize: 13,
@@ -1690,7 +1700,7 @@ export default function WorkLogPage() {
                       const tKey = dateToKey(addDays(currentDate, 1));
                       if (tomorrowSyncRef.current) clearTimeout(tomorrowSyncRef.current);
                       tomorrowSyncRef.current = setTimeout(() => {
-                        saveToSupabase(tKey, { todayPlan: val });
+                        saveTodayPlan(tKey, val);
                       }, 500);
                     }}
                     placeholder="내일 예정된 업무를 작성하세요..."
