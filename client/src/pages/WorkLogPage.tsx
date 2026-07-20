@@ -622,7 +622,7 @@ async function loadFromSupabase(dateKey: string): Promise<DayData> {
   return {
     entries: data.entries ?? [emptyEntry()],
     tomorrowPlan: data.tomorrow_plan ?? "",
-    todayPlan: data.today_plan || lsLoadTodayPlan(dateKey),
+    todayPlan: data.today_plan ?? "",
     freeMemo: data.free_memo ?? "",
     secret: data.secret ?? "",
     author: data.author ?? AUTHOR,
@@ -838,31 +838,8 @@ async function saveToSupabase(dateKey: string, d: Partial<DayData>) {
   }
 }
 
-// today_plan 전용 저장 — localStorage fallback + Supabase RPC (컬럼 바로 인식 못할 때 사용)
-const TODAY_PLAN_LS_PREFIX = `worklog_today_plan_${AUTHOR}_`;
-
-function lsSaveTodayPlan(dateKey: string, value: string) {
-  try { localStorage.setItem(TODAY_PLAN_LS_PREFIX + dateKey, value); } catch {}
-}
-
-function lsLoadTodayPlan(dateKey: string): string {
-  try { return localStorage.getItem(TODAY_PLAN_LS_PREFIX + dateKey) ?? ""; } catch { return ""; }
-}
-
+// today_plan 전용 저장 — 맨 앞 upsert (Supabase 저장만 사용)
 async function saveTodayPlan(dateKey: string, value: string) {
-  // localStorage에 즉시 저장 (언제나 보조 저장소로 사용 가능)
-  lsSaveTodayPlan(dateKey, value);
-
-  // 편법 1: RPC 함수 호출 (PostgREST 컬럼 상관없음)
-  const { error: rpcError } = await supabase.rpc("save_today_plan", {
-    p_log_date: dateKey,
-    p_author: AUTHOR,
-    p_department: DEPARTMENT,
-    p_today_plan: value,
-  });
-  if (!rpcError) return; // RPC 성공시 끝
-
-  // 편법 2: 일반 upsert 시도 (RPC 함수가 없을 때 편합)
   const { error } = await supabase.from("work_logs").upsert({
     log_date: dateKey,
     author: AUTHOR,
