@@ -611,18 +611,20 @@ function emptyDayData(author = "", department = ""): DayData {
 const AUTHOR = "소방교 김승회";
 const DEPARTMENT = "119재난대응과";
 
+// todayPlan 전용 행의 log_date 키 (예: "2026-07-25_tp")
+function tpKey(dateKey: string) { return dateKey + "_tp"; }
+
 async function loadFromSupabase(dateKey: string): Promise<DayData> {
-  const { data } = await supabase
-    .from("work_logs")
-    .select("*")
-    .eq("log_date", dateKey)
-    .eq("author", AUTHOR)
-    .single();
+  // 메인 데이터 + todayPlan 전용 행 동시 조회
+  const [{ data }, { data: tpData }] = await Promise.all([
+    supabase.from("work_logs").select("*").eq("log_date", dateKey).eq("author", AUTHOR).single(),
+    supabase.from("work_logs").select("free_memo").eq("log_date", tpKey(dateKey)).eq("author", AUTHOR).single(),
+  ]);
   if (!data) return emptyDayData(AUTHOR, DEPARTMENT);
   return {
     entries: data.entries ?? [emptyEntry()],
     tomorrowPlan: data.tomorrow_plan ?? "",
-    todayPlan: data.today_plan ?? "",
+    todayPlan: tpData?.free_memo ?? "",
     freeMemo: data.free_memo ?? "",
     secret: data.secret ?? "",
     author: data.author ?? AUTHOR,
@@ -831,25 +833,20 @@ async function saveToSupabase(dateKey: string, d: Partial<DayData>) {
   if (d.tomorrowPlan !== undefined) payload.tomorrow_plan = d.tomorrowPlan;
   if (d.freeMemo !== undefined) payload.free_memo = d.freeMemo;
   if (d.secret !== undefined) payload.secret = d.secret;
-  // todayPlan은 메인 저장에서 제외 — 컬럼 유무와 무관하게 메인 저장은 항상 성공
   const { error } = await supabase.from("work_logs").upsert(payload, { onConflict: "log_date,author" });
-  if (error) {
-    console.error("Supabase 저장 오류:", error);
-  }
+  if (error) console.error("Supabase 저장 오류:", error);
 }
 
-// today_plan 전용 저장 — 맨 앞 upsert (Supabase 저장만 사용)
+// todayPlan은 _tp 접미사 행의 free_memo에 저장 — 기존 컬럼 불필요
 async function saveTodayPlan(dateKey: string, value: string) {
   const { error } = await supabase.from("work_logs").upsert({
-    log_date: dateKey,
+    log_date: tpKey(dateKey),
     author: AUTHOR,
     department: DEPARTMENT,
+    free_memo: value,
     updated_at: new Date().toISOString(),
-    today_plan: value,
   }, { onConflict: "log_date,author" });
-  if (error) {
-    console.error("today_plan 저장 실패:", error.message);
-  }
+  if (error) console.error("todayPlan 저장 실패:", error.message);
 }
 
 /* ─── Secret File Storage ─── */
