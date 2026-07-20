@@ -838,7 +838,7 @@ async function saveToSupabase(dateKey: string, d: Partial<DayData>) {
   }
 }
 
-// today_plan 전용 저장 — localStorage 우선 저장, Supabase는 백그라운드 시도
+// today_plan 전용 저장 — localStorage fallback + Supabase RPC (컬럼 바로 인식 못할 때 사용)
 const TODAY_PLAN_LS_PREFIX = `worklog_today_plan_${AUTHOR}_`;
 
 function lsSaveTodayPlan(dateKey: string, value: string) {
@@ -850,9 +850,19 @@ function lsLoadTodayPlan(dateKey: string): string {
 }
 
 async function saveTodayPlan(dateKey: string, value: string) {
-  // localStorage에 즉시 저장 (항상 성공)
+  // localStorage에 즉시 저장 (언제나 보조 저장소로 사용 가능)
   lsSaveTodayPlan(dateKey, value);
-  // Supabase도 시도 (컬럼 있으면 저장됨)
+
+  // 편법 1: RPC 함수 호출 (PostgREST 컬럼 상관없음)
+  const { error: rpcError } = await supabase.rpc("save_today_plan", {
+    p_log_date: dateKey,
+    p_author: AUTHOR,
+    p_department: DEPARTMENT,
+    p_today_plan: value,
+  });
+  if (!rpcError) return; // RPC 성공시 끝
+
+  // 편법 2: 일반 upsert 시도 (RPC 함수가 없을 때 편합)
   const { error } = await supabase.from("work_logs").upsert({
     log_date: dateKey,
     author: AUTHOR,
@@ -860,8 +870,8 @@ async function saveTodayPlan(dateKey: string, value: string) {
     updated_at: new Date().toISOString(),
     today_plan: value,
   }, { onConflict: "log_date,author" });
-  if (error && error.code !== "PGRST204") {
-    console.error("today_plan Supabase 저장 실패:", error.message);
+  if (error) {
+    console.error("today_plan 저장 실패:", error.message);
   }
 }
 
