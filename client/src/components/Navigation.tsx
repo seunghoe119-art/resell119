@@ -39,8 +39,8 @@ export default function Navigation() {
             <Link
               href="/generator"
               data-testid="link-generator"
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
-                location === "/" ? "text-primary" : "text-muted-foreground"
+              className={`flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
+                location === "/generator" ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <FileEdit className="h-4 w-4" />
@@ -49,7 +49,7 @@ export default function Navigation() {
             <Link
               href="/saved"
               data-testid="link-saved"
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
+              className={`flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
                 location === "/saved" ? "text-primary" : "text-muted-foreground"
               }`}
             >
@@ -59,7 +59,7 @@ export default function Navigation() {
             <Link
               href="/guest"
               data-testid="link-guest"
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
+              className={`flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
                 location === "/guest" ? "text-primary" : "text-muted-foreground"
               }`}
             >
@@ -69,7 +69,7 @@ export default function Navigation() {
             <Link
               href="/worklog"
               data-testid="link-worklog"
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
+              className={`flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
                 location === "/worklog" ? "text-primary" : "text-muted-foreground"
               }`}
             >
@@ -79,7 +79,7 @@ export default function Navigation() {
             <Link
               href="/lyrics"
               data-testid="link-lyrics"
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
+              className={`flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
                 location === "/lyrics" ? "text-primary" : "text-muted-foreground"
               }`}
             >
@@ -90,7 +90,7 @@ export default function Navigation() {
               variant="ghost"
               size="icon"
               onClick={() => setShowSettingsDialog(true)}
-              className="h-9 w-9"
+              className="h-9 w-9 shrink-0"
               data-testid="button-settings"
             >
               <Settings className="h-4 w-4" />
