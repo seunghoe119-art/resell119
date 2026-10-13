@@ -63,7 +63,7 @@ export default function SavedPage() {
                   id={post.id}
                   productName={post.productName}
                   createdAt={new Date(post.createdAt)}
-                  onClick={() => setLocation(`/?id=${post.id}`)}
+                  onClick={() => setLocation(`/generator?id=${post.id}`)}
                 />
               ))}
             </div>
