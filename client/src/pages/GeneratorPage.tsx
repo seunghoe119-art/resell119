@@ -177,7 +177,7 @@ export default function GeneratorPage() {
     setAiDraft("");
     setMergedContent("");
     setBriefDescription("");
-    setLocation("/");
+    setLocation("/generator");
   };
 
   const mergeMutation = useMutation({
