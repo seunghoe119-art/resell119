@@ -8,11 +8,13 @@ import SavedPage from "@/pages/SavedPage";
 import GuestPage from "@/pages/GuestPage";
 import WorkLogPage from "@/pages/WorkLogPage";
 import LyricsPage from "@/pages/LyricsPage";
+import StudyTimerPage from "@/pages/StudyTimerPage";
+import { useLocation } from "wouter";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={GeneratorPage} />
+      <Route path="/generator" component={GeneratorPage} />
       <Route path="/saved" component={SavedPage} />
       <Route path="/guest" component={GuestPage} />
       <Route path="/worklog" component={WorkLogPage} />
@@ -22,11 +24,13 @@ function Router() {
 }
 
 function App() {
+  const [location] = useLocation();
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router />
+        <StudyTimerPage active={location === "/"} />
+        {location !== "/" && <Router />}
       </TooltipProvider>
     </QueryClientProvider>
   );

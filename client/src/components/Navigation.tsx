@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { FileEdit, Save, Settings, Users, BookOpen, Music } from "lucide-react";
+import { FileEdit, Save, Settings, Users, BookOpen, Music, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,33 +11,36 @@ import {
 import { useState } from "react";
 
 export default function Navigation() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
-  const handleTitleClick = () => {
-    // Clear localStorage to reset form data
-    localStorage.clear();
-    // Refresh the page to reset all state
-    window.location.href = "/";
-  };
+  const handleTitleClick = () => setLocation("/");
 
   return (
     <nav className="sticky top-0 z-50 border-b bg-background">
-      <div className="flex h-16 items-center justify-between px-6">
-        <div className="flex items-center gap-8">
+      <div className="flex min-h-16 flex-wrap items-center gap-2 px-3 py-2 sm:px-6">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-4">
           <Button
             variant="ghost"
             onClick={handleTitleClick}
             className="text-xl font-bold p-0 h-auto hover:bg-transparent"
           >
-            판매글 생성기
+            resell119
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 max-w-full items-center gap-1 overflow-x-auto whitespace-nowrap pb-1 sm:gap-2">
             <Link
               href="/"
+              data-testid="link-study"
+              className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover-elevate ${location === "/" ? "text-primary" : "text-muted-foreground"}`}
+            >
+              <Timer className="h-4 w-4" />
+              공부 타이머
+            </Link>
+            <Link
+              href="/generator"
               data-testid="link-generator"
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
-                location === "/" ? "text-primary" : "text-muted-foreground"
+              className={`flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
+                location === "/generator" ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <FileEdit className="h-4 w-4" />
@@ -46,7 +49,7 @@ export default function Navigation() {
             <Link
               href="/saved"
               data-testid="link-saved"
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
+              className={`flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
                 location === "/saved" ? "text-primary" : "text-muted-foreground"
               }`}
             >
@@ -56,7 +59,7 @@ export default function Navigation() {
             <Link
               href="/guest"
               data-testid="link-guest"
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
+              className={`flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
                 location === "/guest" ? "text-primary" : "text-muted-foreground"
               }`}
             >
@@ -66,7 +69,7 @@ export default function Navigation() {
             <Link
               href="/worklog"
               data-testid="link-worklog"
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
+              className={`flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
                 location === "/worklog" ? "text-primary" : "text-muted-foreground"
               }`}
             >
@@ -76,7 +79,7 @@ export default function Navigation() {
             <Link
               href="/lyrics"
               data-testid="link-lyrics"
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
+              className={`flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
                 location === "/lyrics" ? "text-primary" : "text-muted-foreground"
               }`}
             >
@@ -87,7 +90,7 @@ export default function Navigation() {
               variant="ghost"
               size="icon"
               onClick={() => setShowSettingsDialog(true)}
-              className="h-9 w-9"
+              className="h-9 w-9 shrink-0"
               data-testid="button-settings"
             >
               <Settings className="h-4 w-4" />
