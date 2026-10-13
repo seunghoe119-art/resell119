@@ -208,7 +208,7 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
                 onClick={() => commit({ type: "startRest", durationMs: 600_000 })}>10분</button>
             </div>
             {runningRest && (
-              <div className="study-rest-active">
+              <div className={"study-rest-active" + (restDone ? " is-done" : "")}>
                 <div className="study-rest-top">
                   <span className="study-rest-badge">{restDone ? "휴식 완료" : "휴식 중"}</span>
                   <strong className={"study-rest-countdown" + (restDone ? " done" : "")}>
