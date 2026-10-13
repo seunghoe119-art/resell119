@@ -1,6 +1,6 @@
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { FileEdit, Save, Settings, Users, BookOpen, Music, Timer } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BookOpen, FileEdit, Menu, Music, Save, Settings, Timer, Users, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,98 +8,122 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { useState } from "react";
+
+const NAV_ITEMS = [
+  { href: "/", label: "공부 타이머", icon: Timer, testId: "link-study" },
+  { href: "/generator", label: "판매글 생성기", icon: FileEdit, testId: "link-generator" },
+  { href: "/saved", label: "저장된 글", icon: Save, testId: "link-saved" },
+  { href: "/guest", label: "게스트 모집", icon: Users, testId: "link-guest" },
+  { href: "/worklog", label: "업무일지", icon: BookOpen, testId: "link-worklog" },
+  { href: "/lyrics", label: "가사생성", icon: Music, testId: "link-lyrics" },
+] as const;
 
 export default function Navigation() {
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const firstLinkRef = useRef<HTMLAnchorElement>(null);
 
-  const handleTitleClick = () => setLocation("/");
+  // Closing the menu never clears browser storage or reloads the running timer.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    // Keyboard users can immediately move through the navigation links.
+    firstLinkRef.current?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [menuOpen]);
 
   return (
-    <nav className="sticky top-0 z-50 border-b bg-background">
-      <div className="flex min-h-16 flex-wrap items-center gap-2 px-3 py-2 sm:px-6">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-4">
-          <Button
-            variant="ghost"
-            onClick={handleTitleClick}
-            className="text-xl font-bold p-0 h-auto hover:bg-transparent"
+    <>
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/30"
+          aria-hidden="true"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+      <nav className="fixed inset-x-0 top-0 z-50 h-16 border-b bg-background" aria-label="사이트 메뉴">
+        <div className="flex h-full items-center gap-3 px-3 sm:px-6">
+          <button
+            type="button"
+            ref={menuButtonRef}
+            data-testid="button-menu"
+            aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
+            aria-expanded={menuOpen}
+            aria-controls="site-navigation-links"
+            onClick={() => setMenuOpen(open => !open)}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-border bg-background transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {menuOpen ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
+          </button>
+          <Link
+            href="/"
+            data-testid="link-home"
+            className="text-lg font-bold text-foreground hover:text-primary"
+            onClick={() => setMenuOpen(false)}
           >
             resell119
-          </Button>
-          <div className="flex min-w-0 max-w-full items-center gap-1 overflow-x-auto whitespace-nowrap pb-1 sm:gap-2">
-            <Link
-              href="/"
-              data-testid="link-study"
-              className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover-elevate ${location === "/" ? "text-primary" : "text-muted-foreground"}`}
-            >
-              <Timer className="h-4 w-4" />
-              공부 타이머
-            </Link>
-            <Link
-              href="/generator"
-              data-testid="link-generator"
-              className={`flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
-                location === "/generator" ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              <FileEdit className="h-4 w-4" />
-              판매글 생성기
-            </Link>
-            <Link
-              href="/saved"
-              data-testid="link-saved"
-              className={`flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
-                location === "/saved" ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              <Save className="h-4 w-4" />
-              저장된 글
-            </Link>
-            <Link
-              href="/guest"
-              data-testid="link-guest"
-              className={`flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
-                location === "/guest" ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              <Users className="h-4 w-4" />
-              게스트 모집
-            </Link>
-            <Link
-              href="/worklog"
-              data-testid="link-worklog"
-              className={`flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
-                location === "/worklog" ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              <BookOpen className="h-4 w-4" />
-              업무일지
-            </Link>
-            <Link
-              href="/lyrics"
-              data-testid="link-lyrics"
-              className={`flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover-elevate rounded-md ${
-                location === "/lyrics" ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              <Music className="h-4 w-4" />
-              가사생성
-            </Link>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowSettingsDialog(true)}
-              className="h-9 w-9 shrink-0"
-              data-testid="button-settings"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
+          </Link>
         </div>
-      </div>
 
-      {/* Settings Dialog */}
+        {menuOpen && (
+          <div
+            id="site-navigation-links"
+            className="absolute left-3 top-[calc(100%+0.5rem)] max-h-[calc(100dvh-5rem)] w-[calc(100vw-1.5rem)] max-w-72 overflow-y-auto rounded-xl border bg-background p-2 shadow-2xl sm:left-6"
+          >
+            <div className="flex flex-col gap-1">
+              {NAV_ITEMS.map(({ href, label, icon: Icon, testId }, index) => (
+                <Link
+                  key={href}
+                  href={href}
+                  ref={index === 0 ? firstLinkRef : undefined}
+                  data-testid={testId}
+                  aria-current={location === href ? "page" : undefined}
+                  onClick={() => setMenuOpen(false)}
+                  className={[
+                    "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent",
+                    location === href
+                      ? "bg-accent text-primary"
+                      : "text-foreground",
+                  ].join(" ")}
+                >
+                  <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  <span>{label}</span>
+                </Link>
+              ))}
+              <div className="my-1 border-t" />
+              <button
+                type="button"
+                data-testid="button-settings"
+                className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setShowSettingsDialog(true);
+                }}
+              >
+                <Settings className="h-5 w-5 shrink-0" aria-hidden="true" />
+                설정
+              </button>
+            </div>
+          </div>
+        )}
+      </nav>
+      {/* Keep the original content below the fixed top-left menu bar. */}
+      <div className="h-16" aria-hidden="true" />
+
       <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
         <DialogContent data-testid="dialog-settings">
           <DialogHeader>
@@ -107,12 +131,10 @@ export default function Navigation() {
             <DialogDescription>supabase - seunghoe119</DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              vercel - seunghoe119
-            </p>
+            <p className="text-sm text-muted-foreground">vercel - seunghoe119</p>
           </div>
         </DialogContent>
       </Dialog>
-    </nav>
+    </>
   );
 }
