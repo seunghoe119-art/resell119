@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Navigation from "@/components/Navigation";
+import { supabase } from "@/lib/supabase";
 import {
   applyStudyAction, currentStudyElapsed, formatStudyCountdown, formatStudyDate,
   formatStudyTime, initialStudyModel, reconcileStudyModel, restRemainingMs,
@@ -25,6 +26,8 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const wakeRequestRef = useRef(false);
   const mountedRef = useRef(true);
+  const [syncUserId, setSyncUserId] = useState<string | null>(null);
+  const [hydratedDate, setHydratedDate] = useState<string | null>(null);
 
   const commit = useCallback((action: TimerAction) => {
     const now = Date.now();
@@ -40,6 +43,51 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
       }));
     } catch { /* storage disabled/full */ }
   }, [model.date, model.passCount, model.totalTimeMs]);
+
+  // Sync only for signed-in Supabase users. Unauthenticated visitors remain local-only.
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setHydratedDate(null);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (cancelled) return;
+      setSyncUserId(user?.id ?? null);
+      if (!user) return;
+      const { data, error } = await supabase.from("study_timer_daily")
+        .select("pass_count, pure_study_ms")
+        .eq("user_id", user.id).eq("study_date", model.date).maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        console.warn("Study timer sync unavailable", error.message);
+        return;
+      }
+      if (data) {
+        setModel(previous => previous.date !== model.date ? previous : ({
+          ...previous,
+          passCount: Math.max(previous.passCount, Number(data.pass_count) || 0),
+          totalTimeMs: Math.max(previous.totalTimeMs, Number(data.pure_study_ms) || 0),
+        }));
+      }
+      setHydratedDate(model.date);
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [model.date]);
+
+  useEffect(() => {
+    if (!syncUserId || hydratedDate !== model.date) return;
+    const timeout = window.setTimeout(async () => {
+      const { error } = await supabase.from("study_timer_daily").upsert({
+        user_id: syncUserId,
+        study_date: model.date,
+        pass_count: model.passCount,
+        pure_study_ms: model.totalTimeMs,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id,study_date" });
+      if (error) console.warn("Study timer sync failed", error.message);
+    }, 400);
+    return () => window.clearTimeout(timeout);
+  }, [syncUserId, hydratedDate, model.date, model.passCount, model.totalTimeMs]);
 
   // One clock loop for both timers, even when this page is hidden by another route.
   useEffect(() => {
