@@ -100,6 +100,13 @@ export function currentDayStudyElapsed(model: StudyTimerModel, now: number): num
   return Math.min(STUDY_DURATION_MS, model.studyDayElapsedMs + live);
 }
 
+/** Display-only total: PASS persists the pending credit and starts it again at zero. */
+export function currentDayStudyTotal(model: StudyTimerModel, now: number): number {
+  const current = reconcileStudyModel(model, now);
+  return current.totalTimeMs + (current.studyStatus === "idle"
+    ? 0 : currentDayStudyElapsed(current, now));
+}
+
 export function restRemainingMs(model: StudyTimerModel, now: number): number {
   if (model.restStatus === "done") return 0;
   if (model.restStatus !== "running" || model.restStartedAt === null) return model.restDurationMs;
