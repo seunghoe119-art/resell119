@@ -1,6 +1,6 @@
 /**
  * Study Timer One의 실제 타이머 동작을 React에서 사용할 수 있도록 분리한 상태 로직.
- * 시간은 프레임 수가 아니라 Date.now()로 계산하며, 브라우저에 저장하는 것은 당일 통계뿐이다.
+ * 프레임 수가 아닌 Date.now()로 계산하고 현재 진행 상태도 복원한다.
  */
 export const STUDY_DURATION_MS = 60_000;
 export const STUDY_STORAGE_KEY = "study_timer_v2";
@@ -46,25 +46,44 @@ export function localStudyDate(now: number): string {
 }
 
 export function initialStudyModel(now: number, saved: string | null): StudyTimerModel {
-  let passCount = 0;
-  let totalTimeMs = 0;
-  try {
-    const parsed = saved ? JSON.parse(saved) : null;
-    if (parsed && parsed.date === localStudyDate(now) &&
-      Number.isSafeInteger(parsed.passCount) && parsed.passCount >= 0 &&
-      Number.isFinite(parsed.totalTimeMs) && parsed.totalTimeMs >= 0) {
-      passCount = parsed.passCount;
-      totalTimeMs = parsed.totalTimeMs;
-    }
-  } catch {
-    // 손상된 저장 데이터와 저장소 접근 거부는 타이머 사용을 막지 않는다.
-  }
-  return {
-    date: localStudyDate(now), passCount, totalTimeMs,
+  const empty: StudyTimerModel = {
+    date: localStudyDate(now), passCount: 0, totalTimeMs: 0,
     studyStatus: "idle", studyElapsedMs: 0, studyStartedAt: null,
     studyDayElapsedMs: 0, studyDayStartedAt: null,
     restStatus: "idle", restDurationMs: 0, restStartedAt: null,
   };
+  try {
+    const p = saved ? JSON.parse(saved) : null;
+    if (!p || typeof p !== "object") return empty;
+    const nonnegative = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0;
+    const timestamp = (v: unknown) =>
+      typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= now ? v : null;
+    const currentDate = p.date === empty.date;
+    const status: StudyStatus =
+      ["idle", "running", "paused", "finished"].includes(p.studyStatus) ? p.studyStatus : "idle";
+    const rest: RestStatus =
+      ["idle", "running", "done"].includes(p.restStatus) ? p.restStatus : "idle";
+    const studyStartedAt = timestamp(p.studyStartedAt);
+    const restStartedAt = timestamp(p.restStartedAt);
+    const validStatus = (status !== "running" && status !== "finished") || studyStartedAt !== null;
+    const validRest = rest !== "running" || restStartedAt !== null;
+    const next: StudyTimerModel = {
+      date: typeof p.date === "string" ? p.date : empty.date,
+      passCount: currentDate && Number.isSafeInteger(p.passCount) && p.passCount >= 0 ? p.passCount : 0,
+      totalTimeMs: currentDate && nonnegative(p.totalTimeMs) ? p.totalTimeMs : 0,
+      studyStatus: validStatus ? status : "idle",
+      studyElapsedMs: nonnegative(p.studyElapsedMs) ? p.studyElapsedMs : 0,
+      studyStartedAt: validStatus && (status === "running" || status === "finished") ? studyStartedAt : null,
+      studyDayElapsedMs: currentDate && nonnegative(p.studyDayElapsedMs) ? p.studyDayElapsedMs : 0,
+      studyDayStartedAt: currentDate ? timestamp(p.studyDayStartedAt) : null,
+      restStatus: validRest ? rest : "idle",
+      restDurationMs: nonnegative(p.restDurationMs) ? p.restDurationMs : 0,
+      restStartedAt: validRest && rest === "running" ? restStartedAt : null,
+    };
+    return reconcileStudyModel(next, now);
+  } catch {
+    return empty;
+  }
 }
 
 export function currentStudyElapsed(model: StudyTimerModel, now: number): number {
@@ -73,8 +92,12 @@ export function currentStudyElapsed(model: StudyTimerModel, now: number): number
 }
 
 export function currentDayStudyElapsed(model: StudyTimerModel, now: number): number {
-  return model.studyDayElapsedMs +
-    (model.studyDayStartedAt === null ? 0 : Math.max(0, now - model.studyDayStartedAt));
+  // Never credit the flashing period after the first 60 seconds, even across 03:00.
+  const allowed = Math.max(0, STUDY_DURATION_MS - model.studyElapsedMs);
+  const live = model.studyDayStartedAt === null || model.studyStartedAt === null
+    ? 0 : Math.min(allowed, Math.max(0, now - model.studyDayStartedAt),
+      Math.max(0, model.studyStartedAt + allowed - model.studyDayStartedAt));
+  return Math.min(STUDY_DURATION_MS, model.studyDayElapsedMs + live);
 }
 
 export function restRemainingMs(model: StudyTimerModel, now: number): number {
@@ -96,6 +119,10 @@ export function reconcileStudyModel(model: StudyTimerModel, now: number): StudyT
       studyDayStartedAt: next.studyStartedAt === null
         ? null : Math.max(boundary, next.studyStartedAt),
     };
+  }
+  if (next.studyStatus === "running" && next.studyStartedAt !== null &&
+      next.studyDayStartedAt === null) {
+    next = { ...next, studyDayStartedAt: Math.max(studyDayStart(now), next.studyStartedAt) };
   }
   if (next.studyStatus === "running" &&
     currentStudyElapsed(next, now) >= STUDY_DURATION_MS) {
