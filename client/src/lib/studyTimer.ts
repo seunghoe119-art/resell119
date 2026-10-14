@@ -3,7 +3,9 @@
  * 시간은 프레임 수가 아니라 Date.now()로 계산하며, 브라우저에 저장하는 것은 당일 통계뿐이다.
  */
 export const STUDY_DURATION_MS = 60_000;
-export const STUDY_STORAGE_KEY = "study_timer_v1";
+export const STUDY_STORAGE_KEY = "study_timer_v2";
+const SEOUL_OFFSET_MS = 9 * 60 * 60 * 1000;
+const STUDY_DAY_START_HOUR = 3;
 
 export type StudyStatus = "idle" | "running" | "paused" | "finished";
 export type RestStatus = "idle" | "running" | "done";
@@ -29,17 +31,18 @@ export type TimerAction =
   | { type: "startRest"; durationMs: number }
   | { type: "cancelRest" };
 
-export function localStudyDate(now: number): string {
-  const date = new Date(now);
-  return date.getFullYear() + "-" +
-    String(date.getMonth() + 1).padStart(2, "0") + "-" +
-    String(date.getDate()).padStart(2, "0");
+/** Study days run from 03:00 KST to 02:59:59 KST the next day. */
+export function studyDayStart(now: number): number {
+  const koreaNow = new Date(now + SEOUL_OFFSET_MS);
+  const year = koreaNow.getUTCFullYear();
+  const month = koreaNow.getUTCMonth();
+  const day = koreaNow.getUTCDate();
+  const todayStart = Date.UTC(year, month, day, STUDY_DAY_START_HOUR) - SEOUL_OFFSET_MS;
+  return now < todayStart ? todayStart - 86_400_000 : todayStart;
 }
 
-function localMidnight(now: number): number {
-  const date = new Date(now);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
+export function localStudyDate(now: number): string {
+  return new Date(studyDayStart(now) + SEOUL_OFFSET_MS).toISOString().slice(0, 10);
 }
 
 export function initialStudyModel(now: number, saved: string | null): StudyTimerModel {
@@ -86,12 +89,12 @@ export function reconcileStudyModel(model: StudyTimerModel, now: number): StudyT
   const date = localStudyDate(now);
   if (date !== next.date) {
     // 이전 날짜의 누적 통계는 이월하지 않는다. 타이머 자체의 총 경과 시간은 유지한다.
-    const midnight = localMidnight(now);
+    const boundary = studyDayStart(now);
     next = {
       ...next, date, passCount: 0, totalTimeMs: 0,
       studyDayElapsedMs: 0,
       studyDayStartedAt: next.studyStartedAt === null
-        ? null : Math.max(midnight, next.studyStartedAt),
+        ? null : Math.max(boundary, next.studyStartedAt),
     };
   }
   if (next.studyStatus === "running" &&
@@ -113,7 +116,7 @@ export function applyStudyAction(model: StudyTimerModel, action: TimerAction, no
           ...next, studyStatus: "paused",
           studyElapsedMs: currentStudyElapsed(next, now),
           studyStartedAt: null,
-          studyDayElapsedMs: currentDayStudyElapsed(next, now),
+          studyDayElapsedMs: Math.min(STUDY_DURATION_MS, currentDayStudyElapsed(next, now)),
           studyDayStartedAt: null,
         };
       }
@@ -130,7 +133,7 @@ export function applyStudyAction(model: StudyTimerModel, action: TimerAction, no
       return {
         ...next,
         passCount: next.passCount + 1,
-        totalTimeMs: next.totalTimeMs + currentDayStudyElapsed(next, now),
+        totalTimeMs: next.totalTimeMs + Math.min(STUDY_DURATION_MS, currentDayStudyElapsed(next, now)),
         studyStatus: "running",
         studyElapsedMs: 0, studyStartedAt: now,
         studyDayElapsedMs: 0, studyDayStartedAt: now,
