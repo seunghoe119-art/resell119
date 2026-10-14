@@ -35,14 +35,12 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
     setClock(now);
   }, []);
 
-  // Changes in statistics are saved, but a running timer is intentionally not persisted.
+  // Persist timer anchors and paused state too; Date.now() reconciles elapsed time on reload.
   useEffect(() => {
     try {
-      window.localStorage.setItem(STUDY_STORAGE_KEY, JSON.stringify({
-        date: model.date, passCount: model.passCount, totalTimeMs: model.totalTimeMs,
-      }));
+      window.localStorage.setItem(STUDY_STORAGE_KEY, JSON.stringify(model));
     } catch { /* storage disabled/full */ }
-  }, [model.date, model.passCount, model.totalTimeMs]);
+  }, [model]);
 
   // Sync only for signed-in Supabase users. Unauthenticated visitors remain local-only.
   useEffect(() => {
