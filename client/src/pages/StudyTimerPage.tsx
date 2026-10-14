@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Navigation from "@/components/Navigation";
 import { supabase } from "@/lib/supabase";
 import {
-  applyStudyAction, currentStudyElapsed, formatStudyCountdown, formatStudyDate,
+  applyStudyAction, currentDayStudyTotal, currentStudyElapsed, formatStudyCountdown, formatStudyDate,
   formatStudyTime, initialStudyModel, reconcileStudyModel, restRemainingMs,
   STUDY_DURATION_MS, STUDY_STORAGE_KEY,
   type StudyTimerModel, type TimerAction,
@@ -184,6 +184,7 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
   };
 
   const elapsed = currentStudyElapsed(model, clock);
+  const displayedTotalTimeMs = currentDayStudyTotal(model, clock);
   const remaining = Math.max(0, STUDY_DURATION_MS - elapsed);
   const over = model.studyStatus !== "idle" && elapsed >= STUDY_DURATION_MS;
   const restRemaining = restRemainingMs(model, clock);
@@ -205,7 +206,7 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
           <section className="study-stats" aria-label="오늘의 문제풀이 통계">
             <div className="study-stat"><span>푼 문제</span><strong>{model.passCount}개</strong></div>
             <div className="study-divider" />
-            <div className="study-stat"><span>누적 시간</span><strong>{formatStudyTime(model.totalTimeMs)}</strong></div>
+            <div className="study-stat"><span>누적 시간</span><strong>{formatStudyTime(displayedTotalTimeMs)}</strong></div>
             <div className="study-divider" />
             <div className="study-stat"><span>문제당 평균</span>
               <strong>{model.passCount ? formatStudyTime(Math.round(model.totalTimeMs / model.passCount)) : "--:--"}</strong>
