@@ -45,3 +45,15 @@ const reset = await loadSharedStudyTimer(b, restored);
 assert.equal(currentDayStudyTotal(reset, Date.now()), 0);
 assert.equal(reset.studyStatus, "idle");
 console.log("PASS: RESET restored on independent client; verification row left idle/zero");
+
+const migrationTime = Date.now();
+const small = { ...initialStudyModel(migrationTime, null), passCount: 7, totalTimeMs: 125_929 };
+assert.equal(await a.write(await a.read(), encodeStudySnapshot(small, migrationTime)), true);
+const legacy = { ...small, passCount: 44, totalTimeMs: 2_253_000 };
+await loadSharedStudyTimer(a, legacy, () => migrationTime, true);
+const migratedOnB = await loadSharedStudyTimer(b, small, () => migrationTime);
+assert.equal(migratedOnB.passCount, 44);
+assert.equal(migratedOnB.totalTimeMs, 2_253_000);
+await commitSharedStudyAction(a, { type: "resetStudy" });
+assert.equal((await loadSharedStudyTimer(b, legacy, Date.now, true)).passCount, 0);
+console.log("PASS: legacy browser migration reaches another client; RESET blocks re-import; verification idle/zero");

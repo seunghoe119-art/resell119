@@ -109,3 +109,29 @@ test("read errors and corrupt cloud records never overwrite data with the local 
   await assert.rejects(commitSharedStudyAction(db, { type: "pass" }, () => start));
   assert.equal(db.writes, 0);
 });
+
+test("legacy 44-question browser migrates over a smaller cloud record once without adding overlapping totals", async () => {
+  const db = memoryStore();
+  await loadSharedStudyTimer(db, { ...empty(), passCount: 7, totalTimeMs: 125_929 }, () => start);
+  const legacy = { ...empty(), passCount: 44, totalTimeMs: 2_253_000,
+    studyStatus: "running" as const, studyStartedAt: start, studyDayStartedAt: start };
+  const migrated = await loadSharedStudyTimer(db, legacy, () => start + 5000, true);
+  assert.equal(migrated.passCount, 44);
+  assert.equal(currentDayStudyTotal(migrated, start + 5000), 2_258_000);
+  const secondBrowser = await loadSharedStudyTimer(db, empty(), () => start + 5000);
+  assert.deepEqual(secondBrowser, migrated);
+  assert.equal(secondBrowser.totalTimeMs, 2_253_000);
+});
+
+test("regular polling cannot import larger stale totals and explicit RESET prevents legacy resurrection", async () => {
+  const db = memoryStore();
+  await loadSharedStudyTimer(db, { ...empty(), passCount: 7, totalTimeMs: 125_929 }, () => start);
+  const stale = { ...empty(), passCount: 44, totalTimeMs: 2_253_000 };
+  assert.equal((await loadSharedStudyTimer(db, stale, () => start)).passCount, 7);
+  await commitSharedStudyAction(db, { type: "resetStudy" }, () => start);
+  await commitSharedStudyAction(db, { type: "toggleStudy" }, () => start + 1000);
+  const restored = await loadSharedStudyTimer(db, stale, () => start + 2000, true);
+  assert.equal(restored.passCount, 0);
+  assert.equal(restored.totalTimeMs, 0);
+  assert.equal(JSON.parse(db.raw!).reset_at, start);
+});

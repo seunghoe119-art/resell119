@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Navigation from "@/components/Navigation";
 import { studyTimerStore } from "@/lib/studyTimerCloud";
-import { commitSharedStudyAction, loadSharedStudyTimer } from "@/lib/studyTimerSync";
+import { commitSharedStudyAction, loadSharedStudyTimer, STUDY_MIGRATION_KEY, STUDY_LEGACY_BACKUP_KEY } from "@/lib/studyTimerSync";
 import {
   currentDayStudyTotal, currentStudyElapsed, formatStudyCountdown, formatStudyDate,
   formatStudyTime, initialStudyModel, reconcileStudyModel, restRemainingMs,
@@ -14,7 +14,13 @@ const CIRCUMFERENCE = 2 * Math.PI * 126;
 
 function makeInitialModel(): StudyTimerModel {
   let saved: string | null = null;
-  try { saved = window.localStorage.getItem(STUDY_STORAGE_KEY); } catch { /* private mode */ }
+  try {
+    saved = window.localStorage.getItem(STUDY_STORAGE_KEY);
+    if (saved && !window.localStorage.getItem(STUDY_MIGRATION_KEY) &&
+        !window.localStorage.getItem(STUDY_LEGACY_BACKUP_KEY)) {
+      window.localStorage.setItem(STUDY_LEGACY_BACKUP_KEY, saved);
+    }
+  } catch { /* private mode */ }
   return initialStudyModel(Date.now(), saved);
 }
 
@@ -31,13 +37,23 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
   const [cloudReady, setCloudReady] = useState(false);
   const syncBusy = useRef(false);
   const cloudReadyRef = useRef(false);
+  const migrationPending = useRef(true);
 
   const refreshCloud = useCallback(async () => {
     if (syncBusy.current) return;
     syncBusy.current = true;
     try {
-      const next = await loadSharedStudyTimer(studyTimerStore, modelRef.current);
+      let migrate = false;
+      let backup = modelRef.current;
+      try {
+        migrate = migrationPending.current && !window.localStorage.getItem(STUDY_MIGRATION_KEY);
+        const savedBackup = window.localStorage.getItem(STUDY_LEGACY_BACKUP_KEY);
+        if (migrate && savedBackup) backup = initialStudyModel(Date.now(), savedBackup);
+      } catch { /* read-only storage: cloud still works */ }
+      const next = await loadSharedStudyTimer(studyTimerStore, backup, Date.now, migrate);
       if (!mountedRef.current) return;
+      migrationPending.current = false;
+      try { window.localStorage.setItem(STUDY_MIGRATION_KEY, "1"); } catch { /* storage disabled */ }
       modelRef.current = next;
       setModel(next);
       setClock(Date.now());
@@ -93,6 +109,35 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
       document.removeEventListener("visibilitychange", refresh);
     };
   }, [refreshCloud]);
+
+  // Long-lived timer tabs must not keep an obsolete local-only bundle forever.
+  // Only reload the timer route; other routes may contain unsaved form edits.
+  useEffect(() => {
+    if (!active || import.meta.env.DEV) return;
+    let disposed = false;
+    const checkVersion = async () => {
+      if (document.visibilityState !== "visible" || syncBusy.current) return;
+      try {
+        const currentScript = document.querySelector<HTMLScriptElement>('script[type="module"][src]')?.src;
+        if (!currentScript) return;
+        const response = await fetch("/", { cache: "no-store" });
+        if (!response.ok) return;
+        const html = new DOMParser().parseFromString(await response.text(), "text/html");
+        const script = html.querySelector('script[type="module"][src]')?.getAttribute("src");
+        if (!disposed && !syncBusy.current && script &&
+            new URL(script, window.location.origin).href !== currentScript) window.location.reload();
+      } catch { /* connection errors are handled by timer synchronization */ }
+    };
+    const interval = window.setInterval(() => void checkVersion(), 30_000);
+    window.addEventListener("focus", checkVersion);
+    window.addEventListener("pageshow", checkVersion);
+    return () => {
+      disposed = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", checkVersion);
+      window.removeEventListener("pageshow", checkVersion);
+    };
+  }, [active]);
 
   // One clock loop for both timers, even when this page is hidden by another route.
   useEffect(() => {
@@ -214,7 +259,7 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
             <div className={"study-sync-status" + (syncStatus === "error" ? " is-error" : "")} role="status">
               {syncStatus === "loading" ? "기록 불러오는 중…"
                 : syncStatus === "saving" ? "저장 중…"
-                : syncStatus === "saved" ? "Supabase 연결됨 · 다른 기기와 동기화"
+                : syncStatus === "saved" ? "클라우드 동기화됨 · v4"
                 : "서버 연결 실패 · 변경사항을 저장할 수 없습니다"}
               {syncStatus === "error" && <button type="button" onClick={() => void refreshCloud()}>다시 연결</button>}
             </div>

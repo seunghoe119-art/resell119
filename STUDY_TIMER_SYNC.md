@@ -30,9 +30,21 @@ Concurrent changes retry instead of overwriting newer records. Read failures do
 not upsert zero; errors are visible and unsaved actions are not reported as saved.
 Other visible tabs refresh every five seconds and on focus/online.
 
-Only the first successful initialization imports the original browser backup when
-the `personal` row is absent. Open the browser with existing records first after
-deployment. Later reads always restore cloud state, including a RESET to zero.
+Before a legacy browser first loads cloud data, its original local record is
+preserved under `study_timer_before_cloud_v1`. A per-browser migration marker
+allows a one-time import even if another browser already initialized a smaller
+cloud record. Import only occurs if both completed time and question count are
+at least the cloud values and at least one is larger. Overlapping totals are
+never added. The larger legacy model supplies its original running/paused anchors.
+Normal polling never imports stale local statistics. RESET writes a `reset_at`
+cutoff carried forward by all actions; legacy imports cannot undo that reset.
+Open/reload the original browser with the larger records to import them. The old
+already-loaded code cannot be remotely replaced until its first reload.
+
+The timer route checks its HTML module version on focus/pageshow and every 30
+seconds, reloading when a newer build exists. Other routes are not reloaded to
+protect unsaved forms. HTML responses use no-store headers. The UI shows v4 so
+an outdated local-only tab is distinguishable from the cloud version.
 
 ## Verification
 
