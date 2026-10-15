@@ -66,3 +66,8 @@
 .study-rest-active.is-done .study-rest-fill { background: #60a5fa; }
 @media (max-width: 380px) { .study-timer-app { padding: 20px 14px 28px; } .study-stats { margin-bottom: 24px; } .study-pass { font-size: 1.375rem; padding: 18px 0; } .study-rest-countdown { font-size: 1.875rem; } }
 @media (prefers-reduced-motion: reduce) { .study-ring-blink, .study-timer-shell.study-flash, .study-timer-shell.rest-flash, .study-rest-countdown.done { animation: none; } }
+
+.study-sync-status { margin-top: 10px; color: var(--study-muted); font-size: .7rem; }
+.study-sync-status.is-error { color: var(--study-orange); }
+.study-sync-status button { margin-left: 8px; text-decoration: underline; }
+.study-btn:disabled { opacity: .45; cursor: wait; }
