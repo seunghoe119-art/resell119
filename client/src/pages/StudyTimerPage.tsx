@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Navigation from "@/components/Navigation";
-import { supabase } from "@/lib/supabase";
+import { studyTimerStore } from "@/lib/studyTimerCloud";
+import { commitSharedStudyAction, loadSharedStudyTimer } from "@/lib/studyTimerSync";
 import {
-  applyStudyAction, currentDayStudyTotal, currentStudyElapsed, formatStudyCountdown, formatStudyDate,
+  currentDayStudyTotal, currentStudyElapsed, formatStudyCountdown, formatStudyDate,
   formatStudyTime, initialStudyModel, reconcileStudyModel, restRemainingMs,
   STUDY_DURATION_MS, STUDY_STORAGE_KEY,
   type StudyTimerModel, type TimerAction,
@@ -26,66 +27,72 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const wakeRequestRef = useRef(false);
   const mountedRef = useRef(true);
-  const [syncUserId, setSyncUserId] = useState<string | null>(null);
-  const [hydratedDate, setHydratedDate] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<"loading" | "saved" | "saving" | "error">("loading");
+  const [cloudReady, setCloudReady] = useState(false);
+  const syncBusy = useRef(false);
+  const cloudReadyRef = useRef(false);
 
-  const commit = useCallback((action: TimerAction) => {
-    const now = Date.now();
-    setModel(previous => applyStudyAction(previous, action, now));
-    setClock(now);
+  const refreshCloud = useCallback(async () => {
+    if (syncBusy.current) return;
+    syncBusy.current = true;
+    try {
+      const next = await loadSharedStudyTimer(studyTimerStore, modelRef.current);
+      if (!mountedRef.current) return;
+      modelRef.current = next;
+      setModel(next);
+      setClock(Date.now());
+      cloudReadyRef.current = true;
+      setCloudReady(true);
+      setSyncStatus("saved");
+    } catch (error) {
+      console.warn("Study timer cloud load failed", error);
+      if (mountedRef.current) setSyncStatus("error");
+    } finally {
+      syncBusy.current = false;
+    }
   }, []);
 
-  // Persist timer anchors and paused state too; Date.now() reconciles elapsed time on reload.
-  useEffect(() => {
+  const commit = useCallback(async (action: TimerAction) => {
+    if (syncBusy.current || !cloudReadyRef.current) return;
+    syncBusy.current = true;
+    setSyncStatus("saving");
     try {
-      window.localStorage.setItem(STUDY_STORAGE_KEY, JSON.stringify(model));
-    } catch { /* storage disabled/full */ }
+      const next = await commitSharedStudyAction(studyTimerStore, action);
+      if (!mountedRef.current) return;
+      modelRef.current = next;
+      setModel(next);
+      setClock(Date.now());
+      setSyncStatus("saved");
+    } catch (error) {
+      console.warn("Study timer cloud save failed", error);
+      if (mountedRef.current) setSyncStatus("error");
+    } finally {
+      syncBusy.current = false;
+    }
+  }, []);
+
+  // A local backup is useful during an outage; the shared cloud model wins on load.
+  useEffect(() => {
+    try { window.localStorage.setItem(STUDY_STORAGE_KEY, JSON.stringify(model)); }
+    catch { /* storage disabled/full */ }
   }, [model]);
 
-  // Sync only for signed-in Supabase users. Unauthenticated visitors remain local-only.
   useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setHydratedDate(null);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (cancelled) return;
-      setSyncUserId(user?.id ?? null);
-      if (!user) return;
-      const { data, error } = await supabase.from("study_timer_daily")
-        .select("pass_count, pure_study_ms")
-        .eq("user_id", user.id).eq("study_date", model.date).maybeSingle();
-      if (cancelled) return;
-      if (error) {
-        console.warn("Study timer sync unavailable", error.message);
-        return;
-      }
-      if (data) {
-        setModel(previous => previous.date !== model.date ? previous : ({
-          ...previous,
-          passCount: Math.max(previous.passCount, Number(data.pass_count) || 0),
-          totalTimeMs: Math.max(previous.totalTimeMs, Number(data.pure_study_ms) || 0),
-        }));
-      }
-      setHydratedDate(model.date);
+    void refreshCloud();
+    const refresh = () => {
+      if (document.visibilityState === "visible") void refreshCloud();
     };
-    void load();
-    return () => { cancelled = true; };
-  }, [model.date]);
-
-  useEffect(() => {
-    if (!syncUserId || hydratedDate !== model.date) return;
-    const timeout = window.setTimeout(async () => {
-      const { error } = await supabase.from("study_timer_daily").upsert({
-        user_id: syncUserId,
-        study_date: model.date,
-        pass_count: model.passCount,
-        pure_study_ms: model.totalTimeMs,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id,study_date" });
-      if (error) console.warn("Study timer sync failed", error.message);
-    }, 400);
-    return () => window.clearTimeout(timeout);
-  }, [syncUserId, hydratedDate, model.date, model.passCount, model.totalTimeMs]);
+    const interval = window.setInterval(refresh, 5000);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [refreshCloud]);
 
   // One clock loop for both timers, even when this page is hidden by another route.
   useEffect(() => {
@@ -157,7 +164,7 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
     };
   }, []);
 
-  const pass = useCallback(() => commit({ type: "pass" }), [commit]);
+  const pass = useCallback(() => { void commit({ type: "pass" }); }, [commit]);
   useEffect(() => {
     if (!active) return;
     const keydown = (event: KeyboardEvent) => {
@@ -176,9 +183,11 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
     return () => document.removeEventListener("keydown", keydown);
   }, [active, pass]);
 
+  const controlsDisabled = !cloudReady || syncStatus === "saving";
+
   const reset = () => {
     const message = model.passCount || model.totalTimeMs
-      ? `통계를 초기화하시겠습니까?\n푼 문제: ${model.passCount}개  누적: ${formatStudyTime(model.totalTimeMs)}`
+      ? `통계를 초기화하시겠습니까?\n푼 문제: ${model.passCount}개  누적: ${formatStudyTime(currentDayStudyTotal(model, Date.now()))}`
       : "타이머를 초기화하시겠습니까?";
     if (window.confirm(message)) commit({ type: "resetStudy" });
   };
@@ -202,6 +211,13 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
         <div className="study-timer-app">
           <header className="study-top-bar">
             <div className="study-date">{formatStudyDate(model.date)}</div>
+            <div className={"study-sync-status" + (syncStatus === "error" ? " is-error" : "")} role="status">
+              {syncStatus === "loading" ? "기록 불러오는 중…"
+                : syncStatus === "saving" ? "저장 중…"
+                : syncStatus === "saved" ? "Supabase 연결됨 · 다른 기기와 동기화"
+                : "서버 연결 실패 · 변경사항을 저장할 수 없습니다"}
+              {syncStatus === "error" && <button type="button" onClick={() => void refreshCloud()}>다시 연결</button>}
+            </div>
           </header>
           <section className="study-stats" aria-label="오늘의 문제풀이 통계">
             <div className="study-stat"><span>푼 문제</span><strong>{model.passCount}개</strong></div>
@@ -234,24 +250,24 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
           </section>
 
           <div className="study-controls">
-            <button type="button" className="study-btn study-reset" onClick={reset}>RESET</button>
-            <button type="button" onClick={() => commit({ type: "toggleStudy" })}
+            <button type="button" className="study-btn study-reset" disabled={controlsDisabled} onClick={reset}>RESET</button>
+            <button type="button" disabled={controlsDisabled} onClick={() => void commit({ type: "toggleStudy" })}
               className={"study-btn study-start " + (model.studyStatus === "running" ? "is-running" :
                 model.studyStatus === "paused" || model.studyStatus === "finished" ? "is-paused" : "")}>
               {startLabel}
             </button>
           </div>
           <div className="study-pass-section">
-            <button type="button" className="study-btn study-pass" disabled={model.studyStatus === "idle"}
+            <button type="button" className="study-btn study-pass" disabled={controlsDisabled || model.studyStatus === "idle"}
               onClick={pass}>PASS</button>
             <p>스페이스바로도 PASS</p>
           </div>
           <section className="study-rest-section" aria-label="휴식 타이머">
             <div className="study-rest-label">휴식 타이머</div>
             <div className="study-rest-buttons">
-              <button type="button" className="study-btn study-rest-btn"
+              <button type="button" disabled={controlsDisabled} className="study-btn study-rest-btn"
                 onClick={() => commit({ type: "startRest", durationMs: 300_000 })}>5분</button>
-              <button type="button" className="study-btn study-rest-btn"
+              <button type="button" disabled={controlsDisabled} className="study-btn study-rest-btn"
                 onClick={() => commit({ type: "startRest", durationMs: 600_000 })}>10분</button>
             </div>
             {runningRest && (
@@ -261,7 +277,7 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
                   <strong className={"study-rest-countdown" + (restDone ? " done" : "")}>
                     {formatStudyCountdown(restRemaining)}
                   </strong>
-                  <button type="button" className="study-btn study-rest-cancel"
+                  <button type="button" disabled={controlsDisabled} className="study-btn study-rest-cancel"
                     onClick={() => commit({ type: "cancelRest" })}>취소</button>
                 </div>
                 <div className="study-rest-track">
