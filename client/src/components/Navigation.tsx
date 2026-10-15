@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { BookOpen, FileEdit, Menu, Music, Save, Settings, Timer, Users, X } from "lucide-react";
 import {
@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   { href: "/lyrics", label: "가사생성", icon: Music, testId: "link-lyrics" },
 ] as const;
 
-export default function Navigation() {
+export default function Navigation({ calendar }: { calendar?: ReactNode } = {}) {
   const [location] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
@@ -82,9 +82,10 @@ export default function Navigation() {
         {menuOpen && (
           <div
             id="site-navigation-links"
-            className="absolute left-3 top-[calc(100%+0.5rem)] max-h-[calc(100dvh-5rem)] w-[calc(100vw-1.5rem)] max-w-72 overflow-y-auto rounded-xl border bg-background p-2 shadow-2xl sm:left-6"
+            className={"absolute left-3 top-[calc(100%+0.5rem)] max-h-[calc(100dvh-5rem)] w-[calc(100vw-1.5rem)] overflow-y-auto rounded-xl border bg-background p-2 shadow-2xl sm:left-6 " + (calendar ? "max-w-sm" : "max-w-72")}
           >
             <div className="flex flex-col gap-1">
+              {calendar}
               {NAV_ITEMS.map(({ href, label, icon: Icon, testId }, index) => (
                 <Link
                   key={href}
