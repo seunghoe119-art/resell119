@@ -1,41 +1,45 @@
 # Study timer cloud persistence
 
-This personal site has no Supabase Auth login. Like WorkLogPage, StudyTimerPage
-uses the existing `work_logs` table's shared access. No new table, credentials or
-RLS changes are required. This is a shared personal timer, not separate user accounts.
+The owner selected the sjmemo project (`rebjcoazabhkcobjjzkj`). The public browser
+configuration falls back to this project when no environment is supplied or when
+the old deleted project (`lgyfgdbbkzchwvmelftw`) is still configured in deployment.
+The checked-in key is a browser publishable key, not a service-role or secret key.
 
-The timer owns exactly one row:
+## Schema
 
-- `author = __study_timer_v3__`
-- `log_date = study-timer-state`
-- `free_memo` contains a versioned JSON snapshot with `model`, `study_date`,
-  `pass_count`, `pure_study_ms` and `saved_at`.
+`study-timer-shared-setup.sql` creates the dedicated `study_timer_state` table.
+The application uses `id=personal`. Other existing application tables are untouched.
+This is a shared personal-site timer and contains timing statistics only.
 
-The complete model includes accumulated completed time, the current problem's
-start/pause anchors and credited elapsed time. Other browsers restore this model
-and calculate eligible live time from the anchors even if the original browser is
-closed. `pure_study_ms` is the eligible total at save time; use the model to derive
-the live value. It never includes flashing overtime. State changes are written
-immediately; there is no write on each clock tick.
+- `snapshot`: exact versioned serialized model used for conditional updates
+- `model`: generated JSON with complete running/paused/rest anchors
+- `study_date`: generated KST study date (03:00 day boundary)
+- `pass_count`: generated completed question count
+- `pure_study_ms`: generated eligible daily total at the last state change
+- `study_status`, `study_started_at_ms`: generated current problem status/start time
+- `updated_at`: last state change timestamp
 
-On the very first load only, an absent cloud row is initialized from the existing
-browser backup. Open the browser with the existing study records first to migrate
-those records. Subsequent loads always use cloud state, including RESET to zero.
-Local storage remains a backup, never a MAX merge that double-counts pending time.
+Live pending time is derived from the saved anchors, capped at 60 seconds per
+problem. A closed/sleeping laptop does not need to execute a background timer or
+write every second: another browser restores the anchors and calculates the
+eligible total. `pure_study_ms` itself is a save-time snapshot, not a ticking DB counter.
 
-Each action reads the latest cloud state and uses compare-and-swap on `free_memo`.
-Concurrent changes retry instead of overwriting newer data. Polling every five
-seconds and focus/online events refresh other open browsers without writing.
-Read failures never trigger empty upserts; failed actions report a visible error
-and are not reported as saved. Controls wait for the initial cloud load.
+START/PAUSE/RESUME/PASS/RESET and rest actions save immediately. Each action reads
+current cloud state and compares the exact previous snapshot before writing.
+Concurrent changes retry instead of overwriting newer records. Read failures do
+not upsert zero; errors are visible and unsaved actions are not reported as saved.
+Other visible tabs refresh every five seconds and on focus/online.
 
-The former `study_timer_daily` SQL file is for an Auth-based design and is not
-used by this implementation. Existing work diary records are untouched.
+Only the first successful initialization imports the original browser backup when
+the `personal` row is absent. Open the browser with existing records first after
+deployment. Later reads always restore cloud state, including a RESET to zero.
 
-Verification: `node --test client/src/lib/studyTimer.test.ts client/src/lib/studyTimerSync.test.ts client/src/lib/studyTimerStore.test.ts`
-(Node 24), or `npx tsx --test client/src/lib/studyTimer.test.ts client/src/lib/studyTimerSync.test.ts client/src/lib/studyTimerStore.test.ts`.
+## Verification
 
-Deployment still requires working `VITE_SUPABASE_URL` and
-`VITE_SUPABASE_ANON_KEY` values for the Supabase project that contains `work_logs`.
-If the configured project is paused/deleted, restore it or update both values and
-redeploy. Application code cannot revive a nonexistent Supabase endpoint.
+`node --test client/src/lib/studyTimer.test.ts client/src/lib/studyTimerSync.test.ts client/src/lib/studyTimerStore.test.ts`
+
+Node 24 is sufficient; Node 20 can use `npx tsx --test` with the same files.
+The opt-in `scripts/verify-study-timer-cloud.ts` uses independent Supabase clients
+against the real project and the isolated `verification` row; it never changes
+`personal` or any work diary records. Supply `STUDY_SUPABASE_URL` and
+`STUDY_SUPABASE_KEY`, then run with Node 24. The verification row is left idle/zero.

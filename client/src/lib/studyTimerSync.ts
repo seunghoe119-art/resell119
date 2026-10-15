@@ -3,10 +3,8 @@ import {
   type StudyTimerModel, type TimerAction,
 } from "./studyTimer.ts";
 
-// The personal site already uses work_logs without Supabase Auth. Use an isolated
-// author/key so timer state never overlaps real diary entries or requires new SQL.
-export const STUDY_SYNC_AUTHOR = "__study_timer_v3__";
-export const STUDY_SYNC_KEY = "study-timer-state";
+export const STUDY_SYNC_TABLE = "study_timer_state";
+export const STUDY_SYNC_ID = "personal";
 
 export interface StudyTimerStore {
   read(): Promise<string | null>;
