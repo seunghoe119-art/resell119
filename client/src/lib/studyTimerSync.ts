@@ -5,6 +5,8 @@ import {
 
 export const STUDY_SYNC_TABLE = "study_timer_state";
 export const STUDY_SYNC_ID = "personal";
+export const STUDY_MIGRATION_KEY = "study_timer_cloud_migrated_v1";
+export const STUDY_LEGACY_BACKUP_KEY = "study_timer_before_cloud_v1";
 
 export interface StudyTimerStore {
   read(): Promise<string | null>;
@@ -12,12 +14,13 @@ export interface StudyTimerStore {
   write(expected: string | null, value: string): Promise<boolean>;
 }
 
-export function encodeStudySnapshot(model: StudyTimerModel, now: number): string {
+export function encodeStudySnapshot(model: StudyTimerModel, now: number, resetAt?: number): string {
   return JSON.stringify({
     version: 1, model,
     study_date: model.date, pass_count: model.passCount,
     pure_study_ms: currentDayStudyTotal(model, now),
     saved_at: now,
+    ...(resetAt === undefined ? {} : { reset_at: resetAt }),
   });
 }
 
@@ -34,10 +37,26 @@ export function decodeStudySnapshot(raw: string, now: number): StudyTimerModel {
 
 export async function loadSharedStudyTimer(
   store: StudyTimerStore, fallback: StudyTimerModel, now: () => number = Date.now,
+  migrateLegacy = false,
 ): Promise<StudyTimerModel> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const raw = await store.read();
-    if (raw !== null) return decodeStudySnapshot(raw, now());
+    if (raw !== null) {
+      const time = now();
+      const cloud = decodeStudySnapshot(raw, time);
+      const local = initialStudyModel(time, JSON.stringify(fallback));
+      const resetAt = JSON.parse(raw).reset_at;
+      // One-time migration of a pre-cloud browser. Totals overlap, so never sum
+      // them. Preserve today's larger completed statistics and its timer anchors.
+      // A cloud RESET is an explicit cutoff: old browsers must not resurrect it.
+      if (migrateLegacy && resetAt === undefined && local.date === cloud.date &&
+          local.passCount >= cloud.passCount && local.totalTimeMs >= cloud.totalTimeMs &&
+          (local.passCount > cloud.passCount || local.totalTimeMs > cloud.totalTimeMs)) {
+        if (await store.write(raw, encodeStudySnapshot(local, time))) return local;
+        continue;
+      }
+      return cloud;
+    }
     const time = now();
     const model = initialStudyModel(time, JSON.stringify(fallback));
     if (await store.write(null, encodeStudySnapshot(model, time))) return model;
@@ -54,7 +73,8 @@ export async function commitSharedStudyAction(
     if (raw === null) throw new Error("Cloud timer record is missing; reload first");
     const time = now();
     const model = applyStudyAction(decodeStudySnapshot(raw, time), action, time);
-    if (await store.write(raw, encodeStudySnapshot(model, time))) return model;
+    const resetAt = action.type === "resetStudy" ? time : JSON.parse(raw).reset_at;
+    if (await store.write(raw, encodeStudySnapshot(model, time, resetAt))) return model;
   }
   throw new Error("Timer changed on another device; retry");
 }
