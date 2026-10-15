@@ -55,3 +55,23 @@ The opt-in `scripts/verify-study-timer-cloud.ts` uses independent Supabase clien
 against the real project and the isolated `verification` row; it never changes
 `personal` or any work diary records. Supply `STUDY_SUPABASE_URL` and
 `STUDY_SUPABASE_KEY`, then run with Node 24. The verification row is left idle/zero.
+
+## Calendar history
+
+The collapsed top-left navigation contains a study calendar on the timer route.
+Date clicks show the credited total in hours/minutes/seconds; today uses the live
+shared model. Future dates are disabled, past months are navigable and missing
+records are labeled explicitly.
+
+Each study day is archived in the same dedicated table as
+`personal:day:YYYY-MM-DD`. Before replacing current state, the adapter preserves
+the previous snapshot; successful writes archive the new one. Reads backfill the
+latest snapshot and skip repeated identical values. Conditional writes and the
+snapshot timestamp prevent older requests from replacing newer history.
+Archived running anchors are evaluated through the exact end of their study day
+(03:00 KST), crediting only the allowed portion of the last 60-second problem.
+This preserves the last problem even when the laptop was closed at rollover.
+
+Existing current-day data is backfilled. Past days that were overwritten before
+this feature existed cannot be reconstructed from the current singleton record.
+No new database permissions or schema changes are necessary.

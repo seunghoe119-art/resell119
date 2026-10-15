@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createStudyTimerStore } from "../client/src/lib/studyTimerStore.ts";
 import { initialStudyModel, currentDayStudyTotal } from "../client/src/lib/studyTimer.ts";
 import { loadSharedStudyTimer, commitSharedStudyAction, encodeStudySnapshot } from "../client/src/lib/studyTimerSync.ts";
+import { snapshotStudyDayTotal } from "../client/src/lib/studyTimerHistory.ts";
 
 const url = process.env.STUDY_SUPABASE_URL;
 const key = process.env.STUDY_SUPABASE_KEY;
@@ -57,3 +58,14 @@ assert.equal(migratedOnB.totalTimeMs, 2_253_000);
 await commitSharedStudyAction(a, { type: "resetStudy" });
 assert.equal((await loadSharedStudyTimer(b, legacy, Date.now, true)).passCount, 0);
 console.log("PASS: legacy browser migration reaches another client; RESET blocks re-import; verification idle/zero");
+
+const beforeBoundary = Date.parse("2026-10-14T17:59:30Z");
+const yesterday = { ...initialStudyModel(beforeBoundary, null), totalTimeMs: 120_000,
+  studyStatus: "running" as const, studyStartedAt: beforeBoundary, studyDayStartedAt: beforeBoundary };
+await a.write(await a.read(), encodeStudySnapshot(yesterday, beforeBoundary));
+await commitSharedStudyAction(a, { type: "resetStudy" });
+const { data: history, error: historyError } = await client().from("study_timer_state")
+  .select("snapshot").eq("id", "verification:day:2026-10-14").single();
+if (historyError) throw historyError;
+assert.equal(snapshotStudyDayTotal(history.snapshot, Date.now()), 150_000);
+console.log("PASS: archived yesterday survives day rollover, with exact 03:00 KST pending credit");

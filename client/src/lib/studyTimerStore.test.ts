@@ -17,7 +17,7 @@ test("Supabase transport isolates timer records and uses conditional writes", as
         { status: 200, headers: { "Content-Type": "application/json" } });
     } },
   });
-  const store = createStudyTimerStore(client);
+  const store = createStudyTimerStore(client, STUDY_SYNC_ID, false);
   assert.equal(await store.read(), "snapshot");
   assert.equal(requests[0].url.pathname, "/rest/v1/" + STUDY_SYNC_TABLE);
   assert.equal(requests[0].url.searchParams.get("id"), "eq." + STUDY_SYNC_ID);
@@ -38,7 +38,7 @@ test("Supabase failures throw, and zero affected rows signal a conflict", async 
       { status: failure ? 400 : 200, headers: { "Content-Type": "application/json" } },
     ) },
   });
-  const store = createStudyTimerStore(client);
+  const store = createStudyTimerStore(client, STUDY_SYNC_ID, false);
   await assert.rejects(store.read());
   await assert.rejects(store.write("old", "new"));
   failure = false;

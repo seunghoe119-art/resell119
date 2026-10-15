@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Navigation from "@/components/Navigation";
+import StudyCalendar from "@/components/StudyCalendar";
 import { studyTimerStore } from "@/lib/studyTimerCloud";
 import { commitSharedStudyAction, loadSharedStudyTimer, STUDY_MIGRATION_KEY, STUDY_LEGACY_BACKUP_KEY } from "@/lib/studyTimerSync";
 import {
@@ -250,7 +251,7 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
 
   return (
     <div style={{ display: active ? undefined : "none" }} aria-hidden={!active}>
-      <Navigation />
+      <Navigation calendar={<StudyCalendar model={model} clock={clock} />} />
       <main className={"study-timer-shell" + (active && over ? " study-flash" : "") +
         (active && restDone ? " rest-flash" : "")}>
         <div className="study-timer-app">

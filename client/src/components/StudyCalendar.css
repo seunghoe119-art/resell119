@@ -1,0 +1,22 @@
+.study-calendar { margin: 8px 4px; padding: 16px 8px 8px; border-top: 1px solid #e4e9ed; color: #17212b; }
+.study-calendar h2 { margin: 0 0 14px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+.study-calendar-month { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 13px; }
+.study-calendar button { cursor: pointer; border-radius: 8px; }
+.study-calendar button:focus-visible { outline: 2px solid #00a78f; outline-offset: 2px; }
+.study-calendar-month button { display: grid; place-items: center; width: 36px; height: 36px; background: #f4f7f8; }
+.study-calendar button:disabled { opacity: .3; cursor: default; }
+.study-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.study-calendar-weekday { padding: 7px 0; text-align: center; font-size: 11px; color: #71808d; }
+.study-calendar-weekday:first-child { color: #d15050; }
+.study-calendar-grid button { position: relative; min-height: 36px; font-size: 12px; padding: 5px 0 9px; }
+.study-calendar-grid button:hover:not(:disabled) { background: #eaf8f5; }
+.study-calendar-grid button.is-today { box-shadow: inset 0 0 0 1px #00a78f; }
+.study-calendar-grid button.is-selected { background: #007f70 !important; color: white; }
+.study-calendar-grid i { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #00a78f; bottom: 4px; left: calc(50% - 1.5px); }
+.study-calendar-grid button.is-selected i { background: white; }
+.study-calendar-result { background: #f1f8f6; border: 1px solid #dceee8; border-radius: 12px; margin-top: 14px; padding: 14px 10px; display: flex; flex-direction: column; gap: 7px; }
+.study-calendar-result > span { font-size: 11px; color: #596d66; }
+.study-calendar-result strong { font-size: 20px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.study-calendar-result small, .study-calendar-result p { font-size: 11px; color: #69756f; margin: 0; }
+.study-calendar-result button { text-align: left; color: #007f70; font-size: 12px; text-decoration: underline; }
+.study-calendar-note { margin-top: 10px; font-size: 10px; line-height: 1.7; color: #7a858e; }
