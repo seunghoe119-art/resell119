@@ -102,3 +102,31 @@
 .study-sync-status.is-error { color: var(--study-orange); }
 .study-sync-status button { margin-left: 8px; text-decoration: underline; }
 .study-btn:disabled { opacity: .45; cursor: wait; }
+
+.study-mode-tabs { display: flex; width: 100%; gap: 4px; padding: 5px; border: 1px solid var(--study-border); background: var(--study-surface); border-radius: 14px; margin: -12px 0 24px; }
+.study-mode-tabs button { flex: 1; border: 0; padding: 11px 3px; border-radius: 10px; font: inherit; font-size: .8125rem; color: var(--study-muted); cursor: pointer; }
+.study-mode-tabs button.is-selected { background: var(--study-text); color: var(--study-bg); font-weight: 700; }
+.study-mode-tabs button:focus-visible { outline: 2px solid var(--study-teal); outline-offset: 2px; }
+.study-mode-tabs button:disabled { opacity: .5; cursor: wait; }
+.focus-mode-panel { width: 100%; display: flex; flex-direction: column; align-items: center; }
+.focus-settings { width: 100%; min-width: 0; border: 1px solid var(--study-border); border-radius: 16px; padding: 14px; margin-bottom: 20px; background: var(--study-surface); }
+.focus-settings legend { color: var(--study-muted); font-size: .75rem; padding: 0 6px; }
+.focus-settings:disabled { opacity: .65; }
+.focus-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 12px; }
+.focus-presets button { padding: 9px 2px; border: 1px solid var(--study-border); border-radius: 9px; font-size: .8125rem; cursor: pointer; }
+.focus-presets button.is-selected { background: #e0f6f1; border-color: #00a38d; color: #006d60; font-weight: 700; }
+.focus-inputs { display: grid; gap: 12px; }
+.focus-inputs.is-pomodoro { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.focus-inputs label { display: flex; flex-direction: column; gap: 5px; color: var(--study-muted); font-size: .6875rem; }
+.focus-inputs label > span { display: flex; align-items: center; gap: 7px; }
+.focus-inputs input { min-width: 0; width: 100%; border: 1px solid var(--study-border); background: var(--study-bg); color: var(--study-text); border-radius: 9px; padding: 9px; font-size: .9375rem; font-variant-numeric: tabular-nums; }
+.focus-validation { margin: 10px 0 0; font-size: .6875rem; color: var(--study-red); }
+.focus-phase-label { color: var(--study-teal); font-size: .875rem; font-weight: 700; margin: 0 0 14px; }
+.focus-cycle-dots { display: flex; gap: 8px; margin-bottom: 16px; }
+.focus-cycle-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--study-surface2); }
+.focus-cycle-dots i.is-done { background: var(--study-teal); }
+.focus-cycle-dots i.is-current { box-shadow: 0 0 0 2px var(--study-teal); }
+.focus-actions { display: flex; gap: 10px; margin: 26px 0 14px; }
+.focus-help { margin: 0; text-align: center; color: var(--study-muted); font-size: .6875rem; line-height: 1.8; }
+.study-timer-shell.is-focus-break { --study-teal: #347edb; }
+.study-timer-shell.is-focus-break .study-ring-progress { transition: stroke 1s ease; }
