@@ -89,6 +89,15 @@ await commitSharedStudyAction(a, { type: "startFocus", kind: "pomodoro", workMs:
 const pomoOnB = await loadSharedStudyTimer(b, initialStudyModel(Date.now(), null));
 assert.equal(pomoOnB.mode, "pomodoro");
 assert.equal(pomoOnB.focus?.cycles, 4);
+await commitSharedStudyAction(b, { type: "finishFocusPhase", phaseIndex: 0 });
+const restOnA = await loadSharedStudyTimer(a, initialStudyModel(Date.now(), null));
+assert.equal(restOnA.focus?.status, "paused");
+assert.equal(restOnA.focus?.elapsedMs, 25 * 60_000);
+await commitSharedStudyAction(a, { type: "finishFocusPhase", phaseIndex: 1 });
+const roundTwoOnB = await loadSharedStudyTimer(b, initialStudyModel(Date.now(), null));
+assert.equal(roundTwoOnB.focus?.elapsedMs, 30 * 60_000);
+assert.equal(roundTwoOnB.totalTimeMs, restOnA.totalTimeMs);
+console.log("PASS: early round finish and skipped rest preserve credit across independent clients");
 await commitSharedStudyAction(a, { type: "resetStudy" });
 await commitSharedStudyAction(a, { type: "selectMode", mode: "question" });
 console.log("PASS: independent clients restore focus, paused credit and Pomodoro configuration; verification reset");

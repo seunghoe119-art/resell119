@@ -81,10 +81,14 @@ export default function FocusTimerPanel({ model, clock, disabled, active, commit
             type: "startFocus", kind: pomo ? "pomodoro" : "focus", workMs: minutes * 60_000,
             breakMs: breakMinutes * 60_000, longBreakMs: longMinutes * 60_000, cycles,
           })}>{session?.status === "running" ? "일시정지" : session?.status === "paused" ? "이어서 시작" : complete ? "다시 시작" : "시작"}</button>
+        {pomo && session && !complete && view && <button type="button" className="study-btn study-reset" disabled={disabled}
+          onClick={() => void commit({ type: "finishFocusPhase", phaseIndex: (view.cycle - 1) * 2 + (view.kind === "work" ? 0 : 1) })}>
+          {view.kind === "work" ? "이번 회차 마치기" : "휴식 건너뛰기"}
+        </button>}
         <button type="button" className="study-btn study-reset" disabled={disabled || !session || (complete && session.startedAt === null)}
-          onClick={() => void commit({ type: "endFocus" })}>{complete ? "완료 확인" : "종료"}</button>
+          onClick={() => void commit({ type: "endFocus" })}>{complete ? "완료 확인" : pomo ? "전체 종료" : "종료"}</button>
       </div>
-      <p className="focus-help">{pomo ? `공부와 휴식이 자동 전환됩니다. ${cycles}회 집중 후 긴 휴식을 마치면 멈춥니다.`
+      <p className="focus-help">{pomo ? `공부와 휴식이 자동 전환됩니다. 회차를 일찍 마치면 휴식 대기 상태가 되고, 휴식을 건너뛰면 다음 공부로 이어집니다. ${cycles}회 집중 후 긴 휴식을 마치면 멈춥니다.`
         : "일찍 종료해도 실제 공부한 시간만 누적됩니다."}<br />일시정지와 휴식 시간은 순공부시간에 포함되지 않습니다.</p>
     </section>
   );

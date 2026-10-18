@@ -130,3 +130,6 @@
 .focus-help { margin: 0; text-align: center; color: var(--study-muted); font-size: .6875rem; line-height: 1.8; }
 .study-timer-shell.is-focus-break { --study-teal: #347edb; }
 .study-timer-shell.is-focus-break .study-ring-progress { transition: stroke 1s ease; }
+
+.focus-actions { flex-wrap: wrap; }
+.focus-actions .study-btn { white-space: nowrap; }
