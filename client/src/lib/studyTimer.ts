@@ -2,7 +2,7 @@
  * Study Timer One의 실제 타이머 동작을 React에서 사용할 수 있도록 분리한 상태 로직.
  * 프레임 수가 아닌 Date.now()로 계산하고 현재 진행 상태도 복원한다.
  */
-import { currentDayFocusElapsed, focusElapsed, focusProgramDuration, restoreFocusSession,
+import { currentDayFocusElapsed, focusElapsed, focusPhases, focusProgramDuration, restoreFocusSession,
   type FocusSession, type StudyMode } from "./focusTimer.ts";
 export const STUDY_DURATION_MS = 60_000;
 export const STUDY_STORAGE_KEY = "study_timer_v2";
@@ -39,7 +39,8 @@ export type FocusAction =
   | { type: "selectMode"; mode: StudyMode }
   | { type: "startFocus"; kind: "focus" | "pomodoro"; workMs: number; breakMs: number; longBreakMs: number; cycles: number }
   | { type: "toggleFocus" }
-  | { type: "endFocus" };
+  | { type: "endFocus" }
+  | { type: "finishFocusPhase"; phaseIndex: number };
 
 /** Study days run from 03:00 KST to 02:59:59 KST the next day. */
 export function studyDayStart(now: number): number {
@@ -187,6 +188,20 @@ export function applyStudyAction(model: StudyTimerModel, action: TimerAction | F
       if (next.focus.status === "paused") return { ...next, focus: { ...next.focus, status: "running", startedAt: now } };
       return { ...next, totalTimeMs: currentDayStudyTotal(next, now), focus: {
         ...next.focus, status: "paused", elapsedMs: focusElapsed(next.focus, now), startedAt: null,
+      } };
+    }
+    case "finishFocusPhase": {
+      const session = next.focus;
+      if (!session || session.kind !== "pomodoro" || session.status === "finished") return next;
+      const elapsed = focusElapsed(session, now);
+      const phases = focusPhases(session);
+      let boundary = 0;
+      const index = phases.findIndex(phase => { boundary += phase.durationMs; return elapsed < boundary; });
+      // Reject a repeat click or an action from a browser still showing an older phase.
+      if (index < 0 || index !== action.phaseIndex) return next;
+      return { ...next, totalTimeMs: currentDayStudyTotal(next, now), focus: {
+        ...session, elapsedMs: boundary, startedAt: null,
+        status: index === phases.length - 1 ? "finished" : "paused",
       } };
     }
     case "endFocus":

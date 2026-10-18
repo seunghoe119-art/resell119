@@ -106,3 +106,26 @@ test("legacy snapshots retain their existing daily totals and question timing", 
   assert.equal(restored.questionTimeMs, 120_000);
   assert.equal(currentDayStudyTotal(restored, start), 120_000);
 });
+
+
+test("ending a paused round preserves actual credit and advances through rest to the next round", () => {
+  const paused = applyStudyAction(begin("pomodoro", 25), { type: "toggleFocus" }, start + 9 * minute);
+  const rest = applyStudyAction(paused, { type: "finishFocusPhase", phaseIndex: 0 }, start + 20 * minute);
+  assert.equal(rest.totalTimeMs, 9 * minute);
+  assert.equal(focusView(rest.focus!, start + 30 * minute).kind, "break");
+  assert.equal(rest.focus?.status, "paused");
+  assert.deepEqual(applyStudyAction(rest, { type: "finishFocusPhase", phaseIndex: 0 }, start + 30 * minute), rest);
+  const nextRound = applyStudyAction(rest, { type: "finishFocusPhase", phaseIndex: 1 }, start + 30 * minute);
+  assert.equal(focusView(nextRound.focus!, start + 30 * minute).cycle, 2);
+  assert.equal(focusView(nextRound.focus!, start + 30 * minute).remainingMs, 25 * minute);
+  const resumed = applyStudyAction(nextRound, { type: "toggleFocus" }, start + 30 * minute);
+  const restored = initialStudyModel(start + 32 * minute, JSON.stringify(resumed));
+  assert.equal(currentDayStudyTotal(restored, start + 32 * minute), 11 * minute);
+});
+
+test("finishing all rounds early never credits skipped work and final break ends the block", () => {
+  let model = begin("pomodoro", 25);
+  for (let i = 0; i < 8; i++) model = applyStudyAction(model, { type: "finishFocusPhase", phaseIndex: i }, start + minute);
+  assert.equal(model.focus?.status, "finished");
+  assert.equal(currentDayStudyTotal(model, start + 200 * minute), minute);
+});
