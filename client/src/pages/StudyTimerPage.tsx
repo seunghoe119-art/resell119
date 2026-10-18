@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Navigation from "@/components/Navigation";
 import StudyCalendar from "@/components/StudyCalendar";
+import FocusTimerPanel from "@/components/FocusTimerPanel";
+import { focusView } from "@/lib/focusTimer";
 import { studyTimerStore } from "@/lib/studyTimerCloud";
 import { commitSharedStudyAction, loadSharedStudyTimer, STUDY_MIGRATION_KEY, STUDY_LEGACY_BACKUP_KEY } from "@/lib/studyTimerSync";
 import {
@@ -158,7 +160,8 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
     };
   }, []);
 
-  const studyNeedsWake = model.studyStatus === "running" || model.studyStatus === "finished";
+  const studyNeedsWake = model.studyStatus === "running" || model.studyStatus === "finished" ||
+    Boolean(model.focus && model.focus.startedAt !== null && model.focus.status !== "paused");
   const restNeedsWake = model.restStatus === "running";
   const shouldWake = studyNeedsWake || restNeedsWake;
 
@@ -180,7 +183,8 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
         const lock = await navigator.wakeLock.request("screen");
         if (disposed || !mountedRef.current || document.visibilityState !== "visible" ||
           !(modelRef.current.studyStatus === "running" || modelRef.current.studyStatus === "finished" ||
-            modelRef.current.restStatus === "running")) {
+            modelRef.current.restStatus === "running" ||
+            (modelRef.current.focus && modelRef.current.focus.startedAt !== null && modelRef.current.focus.status !== "paused"))) {
           await lock.release();
         } else {
           wakeLockRef.current = lock;
@@ -242,6 +246,9 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
   const displayedTotalTimeMs = currentDayStudyTotal(model, clock);
   const remaining = Math.max(0, STUDY_DURATION_MS - elapsed);
   const over = model.studyStatus !== "idle" && elapsed >= STUDY_DURATION_MS;
+  const focusState = model.focus ? focusView(model.focus, clock) : null;
+  const focusOver = model.mode !== "question" && Boolean(focusState?.complete && model.focus?.startedAt !== null);
+  const focusResting = model.mode === "pomodoro" && Boolean(focusState && !focusState.complete && focusState.kind !== "work");
   const restRemaining = restRemainingMs(model, clock);
   const restDone = model.restStatus === "done";
   const runningRest = model.restStatus !== "idle";
@@ -252,7 +259,8 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
   return (
     <div style={{ display: active ? undefined : "none" }} aria-hidden={!active}>
       <Navigation calendar={<StudyCalendar model={model} clock={clock} />} />
-      <main className={"study-timer-shell" + (active && over ? " study-flash" : "") +
+      <main className={"study-timer-shell" + (active && (over || focusOver) ? " study-flash" : "") +
+        (focusResting ? " is-focus-break" : "") +
         (active && restDone ? " rest-flash" : "")}>
         <div className="study-timer-app">
           <header className="study-top-bar">
@@ -260,21 +268,28 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
             <div className={"study-sync-status" + (syncStatus === "error" ? " is-error" : "")} role="status">
               {syncStatus === "loading" ? "기록 불러오는 중…"
                 : syncStatus === "saving" ? "저장 중…"
-                : syncStatus === "saved" ? "클라우드 동기화됨 · v4"
+                : syncStatus === "saved" ? "클라우드 동기화됨 · v5"
                 : "서버 연결 실패 · 변경사항을 저장할 수 없습니다"}
               {syncStatus === "error" && <button type="button" onClick={() => void refreshCloud()}>다시 연결</button>}
             </div>
           </header>
-          <section className="study-stats" aria-label="오늘의 문제풀이 통계">
+          <section className="study-stats" aria-label="오늘의 공부 통계">
             <div className="study-stat"><span>푼 문제</span><strong>{model.passCount}개</strong></div>
             <div className="study-divider" />
             <div className="study-stat"><span>누적 시간</span><strong>{formatStudyTime(displayedTotalTimeMs)}</strong></div>
             <div className="study-divider" />
             <div className="study-stat"><span>문제당 평균</span>
-              <strong>{model.passCount ? formatStudyTime(Math.round(model.totalTimeMs / model.passCount)) : "--:--"}</strong>
+              <strong>{model.passCount ? formatStudyTime(Math.round(model.questionTimeMs / model.passCount)) : "--:--"}</strong>
             </div>
           </section>
 
+          <div className="study-mode-tabs" role="group" aria-label="공부 모드">
+            {([ ["question", "문제풀이"], ["focus", "집중 공부"], ["pomodoro", "뽀모도로"] ] as const).map(([mode, label]) => (
+              <button key={mode} type="button" aria-pressed={model.mode === mode} disabled={controlsDisabled}
+                className={model.mode === mode ? "is-selected" : ""} onClick={() => void commit({ type: "selectMode", mode })}>{label}</button>
+            ))}
+          </div>
+          {model.mode === "question" ? <>
           <section className="study-timer-area" aria-label="60초 문제풀이 타이머">
             <div className={"study-ring-wrap" + (active && over ? " study-ring-blink" : "")}>
               <svg viewBox="0 0 300 300" className="study-ring" aria-hidden="true">
@@ -334,6 +349,7 @@ export default function StudyTimerPage({ active = true }: { active?: boolean }) 
               </div>
             )}
           </section>
+          </> : <FocusTimerPanel key={model.mode} model={model} clock={clock} disabled={controlsDisabled} active={active} commit={commit} />}
         </div>
       </main>
     </div>

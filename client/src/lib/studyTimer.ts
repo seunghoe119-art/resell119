@@ -2,6 +2,8 @@
  * Study Timer One의 실제 타이머 동작을 React에서 사용할 수 있도록 분리한 상태 로직.
  * 프레임 수가 아닌 Date.now()로 계산하고 현재 진행 상태도 복원한다.
  */
+import { currentDayFocusElapsed, focusElapsed, focusProgramDuration, restoreFocusSession,
+  type FocusSession, type StudyMode } from "./focusTimer.ts";
 export const STUDY_DURATION_MS = 60_000;
 export const STUDY_STORAGE_KEY = "study_timer_v2";
 const SEOUL_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -14,6 +16,9 @@ export interface StudyTimerModel {
   date: string;
   passCount: number;
   totalTimeMs: number;
+  questionTimeMs: number;
+  mode: StudyMode;
+  focus: FocusSession | null;
   studyStatus: StudyStatus;
   studyElapsedMs: number; // 일시정지까지의 총 경과 시간
   studyStartedAt: number | null; // 실행 중인 구간의 시작 시각
@@ -24,12 +29,17 @@ export interface StudyTimerModel {
   restStartedAt: number | null;
 }
 
-export type TimerAction =
+export type TimerAction = FocusAction
   | { type: "toggleStudy" }
   | { type: "pass" }
   | { type: "resetStudy" }
   | { type: "startRest"; durationMs: number }
   | { type: "cancelRest" };
+export type FocusAction =
+  | { type: "selectMode"; mode: StudyMode }
+  | { type: "startFocus"; kind: "focus" | "pomodoro"; workMs: number; breakMs: number; longBreakMs: number; cycles: number }
+  | { type: "toggleFocus" }
+  | { type: "endFocus" };
 
 /** Study days run from 03:00 KST to 02:59:59 KST the next day. */
 export function studyDayStart(now: number): number {
@@ -47,7 +57,8 @@ export function localStudyDate(now: number): string {
 
 export function initialStudyModel(now: number, saved: string | null): StudyTimerModel {
   const empty: StudyTimerModel = {
-    date: localStudyDate(now), passCount: 0, totalTimeMs: 0,
+    date: localStudyDate(now), passCount: 0, totalTimeMs: 0, questionTimeMs: 0,
+    mode: "question", focus: null,
     studyStatus: "idle", studyElapsedMs: 0, studyStartedAt: null,
     studyDayElapsedMs: 0, studyDayStartedAt: null,
     restStatus: "idle", restDurationMs: 0, restStartedAt: null,
@@ -71,6 +82,10 @@ export function initialStudyModel(now: number, saved: string | null): StudyTimer
       date: typeof p.date === "string" ? p.date : empty.date,
       passCount: currentDate && Number.isSafeInteger(p.passCount) && p.passCount >= 0 ? p.passCount : 0,
       totalTimeMs: currentDate && nonnegative(p.totalTimeMs) ? p.totalTimeMs : 0,
+      questionTimeMs: currentDate ? (nonnegative(p.questionTimeMs) ? p.questionTimeMs
+        : nonnegative(p.totalTimeMs) ? p.totalTimeMs : 0) : 0,
+      mode: ["question", "focus", "pomodoro"].includes(p.mode) ? p.mode : "question",
+      focus: restoreFocusSession(p.focus, now),
       studyStatus: validStatus ? status : "idle",
       studyElapsedMs: nonnegative(p.studyElapsedMs) ? p.studyElapsedMs : 0,
       studyStartedAt: validStatus && (status === "running" || status === "finished") ? studyStartedAt : null,
@@ -80,6 +95,9 @@ export function initialStudyModel(now: number, saved: string | null): StudyTimer
       restDurationMs: nonnegative(p.restDurationMs) ? p.restDurationMs : 0,
       restStartedAt: validRest && rest === "running" ? restStartedAt : null,
     };
+    // Legacy snapshots are question-only; never restore two studying modes at once.
+    if (next.mode === "question") next.focus = null;
+    else { if (next.focus?.kind !== next.mode) next.focus = null; next.studyStatus = "idle"; next.studyStartedAt = null; next.studyDayStartedAt = null; }
     return reconcileStudyModel(next, now);
   } catch {
     return empty;
@@ -104,7 +122,7 @@ export function currentDayStudyElapsed(model: StudyTimerModel, now: number): num
 export function currentDayStudyTotal(model: StudyTimerModel, now: number): number {
   const current = reconcileStudyModel(model, now);
   return current.totalTimeMs + (current.studyStatus === "idle"
-    ? 0 : currentDayStudyElapsed(current, now));
+    ? 0 : currentDayStudyElapsed(current, now)) + currentDayFocusElapsed(current.focus, now, studyDayStart(now));
 }
 
 export function restRemainingMs(model: StudyTimerModel, now: number): number {
@@ -121,7 +139,7 @@ export function reconcileStudyModel(model: StudyTimerModel, now: number): StudyT
     // 이전 날짜의 누적 통계는 이월하지 않는다. 타이머 자체의 총 경과 시간은 유지한다.
     const boundary = studyDayStart(now);
     next = {
-      ...next, date, passCount: 0, totalTimeMs: 0,
+      ...next, date, passCount: 0, totalTimeMs: 0, questionTimeMs: 0,
       studyDayElapsedMs: 0,
       studyDayStartedAt: next.studyStartedAt === null
         ? null : Math.max(boundary, next.studyStartedAt),
@@ -138,13 +156,46 @@ export function reconcileStudyModel(model: StudyTimerModel, now: number): StudyT
   if (next.restStatus === "running" && restRemainingMs(next, now) <= 0) {
     next = { ...next, restStatus: "done" };
   }
+  if (next.focus?.status === "running" && focusElapsed(next.focus, now) >= focusProgramDuration(next.focus)) {
+    next = { ...next, focus: { ...next.focus, status: "finished" } };
+  }
   return next;
 }
 
-export function applyStudyAction(model: StudyTimerModel, action: TimerAction, now: number): StudyTimerModel {
+export function applyStudyAction(model: StudyTimerModel, action: TimerAction | FocusAction, now: number): StudyTimerModel {
   const next = reconcileStudyModel(model, now);
   switch (action.type) {
+    case "selectMode": {
+      if (action.mode === next.mode) return next;
+      const credit = currentDayStudyTotal(next, now);
+      return { ...next, mode: action.mode, totalTimeMs: credit, focus: null,
+        studyStatus: "idle", studyElapsedMs: 0, studyStartedAt: null,
+        studyDayElapsedMs: 0, studyDayStartedAt: null, restStatus: "idle", restStartedAt: null, restDurationMs: 0 };
+    }
+    case "startFocus": {
+      if (next.mode !== action.kind) return next;
+      // Double clicks / a stale second browser must not restart an active block.
+      if (next.focus?.status === "running" || next.focus?.status === "paused") return next;
+      const session = restoreFocusSession({ kind: action.kind, status: "running", startedAt: now,
+        elapsedMs: 0, workMs: action.workMs, breakMs: action.breakMs, longBreakMs: action.longBreakMs, cycles: action.cycles }, now);
+      if (!session || (action.kind === "pomodoro" && action.workMs > 7_200_000)) return next;
+      return { ...next, totalTimeMs: currentDayStudyTotal(next, now), focus: session,
+        restStatus: "idle", restStartedAt: null, restDurationMs: 0 };
+    }
+    case "toggleFocus": {
+      if (!next.focus || next.focus.status === "finished") return next;
+      if (next.focus.status === "paused") return { ...next, focus: { ...next.focus, status: "running", startedAt: now } };
+      return { ...next, totalTimeMs: currentDayStudyTotal(next, now), focus: {
+        ...next.focus, status: "paused", elapsedMs: focusElapsed(next.focus, now), startedAt: null,
+      } };
+    }
+    case "endFocus":
+      if (!next.focus) return next;
+      return { ...next, totalTimeMs: currentDayStudyTotal(next, now), focus: {
+        ...next.focus, status: "finished", elapsedMs: focusElapsed(next.focus, now), startedAt: null,
+      } };
     case "toggleStudy":
+      if (next.mode !== "question") return next;
       if (next.studyStatus === "running") {
         return {
           ...next, studyStatus: "paused",
@@ -163,22 +214,24 @@ export function applyStudyAction(model: StudyTimerModel, action: TimerAction, no
         studyDayElapsedMs: 0, studyDayStartedAt: now,
       };
     case "pass":
-      if (next.studyStatus === "idle") return next;
+      if (next.mode !== "question" || next.studyStatus === "idle") return next;
       return {
         ...next,
         passCount: next.passCount + 1,
         totalTimeMs: next.totalTimeMs + Math.min(STUDY_DURATION_MS, currentDayStudyElapsed(next, now)),
+        questionTimeMs: next.questionTimeMs + Math.min(STUDY_DURATION_MS, currentDayStudyElapsed(next, now)),
         studyStatus: "running",
         studyElapsedMs: 0, studyStartedAt: now,
         studyDayElapsedMs: 0, studyDayStartedAt: now,
       };
     case "resetStudy":
       return {
-        ...next, passCount: 0, totalTimeMs: 0,
+        ...next, passCount: 0, totalTimeMs: 0, questionTimeMs: 0, focus: null,
         studyStatus: "idle", studyElapsedMs: 0, studyStartedAt: null,
         studyDayElapsedMs: 0, studyDayStartedAt: null,
       };
     case "startRest":
+      if (next.mode !== "question") return next;
       return {
         ...next, restStatus: "running",
         restDurationMs: action.durationMs, restStartedAt: now,

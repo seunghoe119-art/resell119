@@ -1,4 +1,5 @@
-import { currentDayStudyElapsed, initialStudyModel, type StudyTimerModel } from "./studyTimer.ts";
+import { currentDayFocusElapsed } from "./focusTimer.ts";
+import { currentDayStudyElapsed, initialStudyModel, studyDayStart, type StudyTimerModel } from "./studyTimer.ts";
 
 export function studyHistoryId(timerId: string, date: string): string {
   return `${timerId}:day:${date}`;
@@ -19,7 +20,8 @@ export function snapshotStudyDayTotal(raw: string, now: number): number {
   const model: StudyTimerModel = initialStudyModel(Math.min(now, end - 1),
     JSON.stringify(JSON.parse(raw).model));
   return model.totalTimeMs + (model.studyStatus === "idle"
-    ? 0 : currentDayStudyElapsed(model, Math.min(now, end)));
+    ? 0 : currentDayStudyElapsed(model, Math.min(now, end))) +
+    currentDayFocusElapsed(model.focus, Math.min(now, end), studyDayStart(end - 1));
 }
 
 export function calendarDates(month: string): (string | null)[] {

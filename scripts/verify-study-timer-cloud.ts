@@ -69,3 +69,26 @@ const { data: history, error: historyError } = await client().from("study_timer_
 if (historyError) throw historyError;
 assert.equal(snapshotStudyDayTotal(history.snapshot, Date.now()), 150_000);
 console.log("PASS: archived yesterday survives day rollover, with exact 03:00 KST pending credit");
+
+await commitSharedStudyAction(a, { type: "selectMode", mode: "focus" });
+await commitSharedStudyAction(a, { type: "startFocus", kind: "focus", workMs: 19 * 60_000,
+  breakMs: 5 * 60_000, longBreakMs: 15 * 60_000, cycles: 4 });
+await new Promise(resolve => setTimeout(resolve, 1100));
+const focusOnB = await loadSharedStudyTimer(b, initialStudyModel(Date.now(), null));
+assert.equal(focusOnB.mode, "focus");
+assert.equal(focusOnB.focus?.workMs, 19 * 60_000);
+assert.ok(currentDayStudyTotal(focusOnB, Date.now()) >= 1000);
+const focusPaused = await commitSharedStudyAction(b, { type: "toggleFocus" });
+const focusOnA = await loadSharedStudyTimer(a, initialStudyModel(Date.now(), null));
+assert.equal(focusOnA.focus?.status, "paused");
+assert.equal(currentDayStudyTotal(focusOnA, Date.now() + 60_000), focusPaused.totalTimeMs);
+await commitSharedStudyAction(a, { type: "endFocus" });
+await commitSharedStudyAction(a, { type: "selectMode", mode: "pomodoro" });
+await commitSharedStudyAction(a, { type: "startFocus", kind: "pomodoro", workMs: 25 * 60_000,
+  breakMs: 5 * 60_000, longBreakMs: 15 * 60_000, cycles: 4 });
+const pomoOnB = await loadSharedStudyTimer(b, initialStudyModel(Date.now(), null));
+assert.equal(pomoOnB.mode, "pomodoro");
+assert.equal(pomoOnB.focus?.cycles, 4);
+await commitSharedStudyAction(a, { type: "resetStudy" });
+await commitSharedStudyAction(a, { type: "selectMode", mode: "question" });
+console.log("PASS: independent clients restore focus, paused credit and Pomodoro configuration; verification reset");
